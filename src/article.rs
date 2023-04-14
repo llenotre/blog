@@ -18,13 +18,14 @@ pub struct Article {
 	pub title: String,
 	/// The article's description.
 	pub desc: String,
-
-	/// The article's content.
-	pub content: String,
-
 	/// Timestamp since epoch at which the article has been posted.
 	#[serde(with = "util::serde_date_time")]
 	pub post_date: DateTime<Utc>,
+	/// Tells whether the article is public.
+	pub public: bool,
+
+	/// The article's content.
+	pub content: String,
 }
 
 impl Article {
@@ -34,10 +35,12 @@ impl Article {
 	/// - `db` is the database.
 	/// - `page` is the page number.
 	/// - `per_page` is the number of articles per page.
+	/// - `public` tells whether to the function must return only public articles.
 	pub async fn list(
 		db: &mongodb::Database,
 		page: u32,
-		per_page: u32
+		per_page: u32,
+		public: bool
 	) -> Result<Vec<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("article");
 		let find_options = FindOptions::builder()
@@ -45,10 +48,19 @@ impl Article {
 			.limit(Some(per_page as _))
 			.build();
 
-		collection.find(
-			Some(doc!{
+		let filter = if public {
+			doc!{
+				"$order_by": { "post_date": "-1" },
+				"public": true,
+			}
+		} else {
+			doc!{
 				"$order_by": { "post_date": "-1" }
-			}),
+			}
+		};
+
+		collection.find(
+			Some(filter),
 			Some(find_options)
 		)
 			.await?
@@ -63,7 +75,7 @@ impl Article {
 	/// - `id` is the ID of the article.
 	pub async fn get(
 		db: &mongodb::Database,
-		id: String,
+		id: String
 	) -> Result<Option<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("article");
 

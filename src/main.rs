@@ -19,7 +19,6 @@ use std::env;
 use std::fs;
 use std::io;
 use std::process::exit;
-use std::sync::Mutex;
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -33,7 +32,7 @@ struct Config {
 /// Structure shared accross the server.
 pub struct GlobalData {
 	/// The connection to the MongoDB database.
-	mongo: mongodb::Client,
+	pub mongo: mongodb::Client,
 }
 
 /// Query specifying the current page.
@@ -44,11 +43,11 @@ pub struct PageQuery {
 }
 
 #[get("/")]
-async fn root(data: web::Data<Mutex<GlobalData>>, page: web::Query<PageQuery>) -> impl Responder {
+async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl Responder {
 	let page = page.into_inner().page;
 
 	// Article colors
-	static colors: [&str; 5] = [
+	static COLORS: [&str; 5] = [
 		"#ea2027", // red
 		"#ee5a24", // orange
 		"#009432", // green
@@ -58,8 +57,8 @@ async fn root(data: web::Data<Mutex<GlobalData>>, page: web::Query<PageQuery>) -
 
 	// Get articles
 	let articles = {
-		let db = data.lock().unwrap().mongo.database("blog");
-		Article::list(&db, page, 10)
+		let db = data.mongo.database("blog");
+		Article::list(&db, page, 10, true)
 			.await
 			.unwrap() // TODO handle error (http 500)
 	};
@@ -68,7 +67,7 @@ async fn root(data: web::Data<Mutex<GlobalData>>, page: web::Query<PageQuery>) -
 	let articles_html: String = articles.into_iter()
 		.enumerate()
 		.map(|(i, article)| {
-			let color = colors[i % colors.len()];
+			let color = COLORS[i % COLORS.len()];
 
 			format!(
 				r#"<div class="article" style="background-color: {};">
@@ -93,14 +92,33 @@ async fn root(data: web::Data<Mutex<GlobalData>>, page: web::Query<PageQuery>) -
 }
 
 #[get("/article/{id}")]
-async fn get_article(id: web::Path<String>) -> impl Responder {
-	let _article_id = id.into_inner();
+async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl Responder {
+	let id = id.into_inner();
 
-	// TODO read page code
-	// TODO get article (if not found, 404)
-	// TODO generate HTML from markdown
-	// TODO replace tag in page
-	HttpResponse::Ok().body("TODO")
+	// Get articles
+	let article = {
+		let db = data.mongo.database("blog");
+		Article::get(&db, id)
+			.await
+			.unwrap() // TODO handle error (http 500)
+			.filter(|a| a.public)
+	};
+
+	match article {
+		Some(article) => {
+			let html = include_str!("../pages/index.html");
+			let html = html.replace("{article.title}", &article.title);
+			let html = html.replace("{article.desc}", &article.desc);
+			let html = html.replace("{article.content}", &article.content); // TODO turn markdown into html
+
+			HttpResponse::Ok().body(html)
+		}
+
+		None => {
+			// TODO 404
+			todo!();
+		}
+	}
 }
 
 #[actix_web::main]
@@ -126,9 +144,9 @@ async fn main() -> io::Result<()> {
 	let client_options = ClientOptions::parse(&config.mongo_url).await.unwrap();
 	let client = Client::with_options(client_options).unwrap();
 
-    let data = web::Data::new(Mutex::new(GlobalData {
+    let data = web::Data::new(GlobalData {
 		mongo: client,
-	}));
+	});
 
     HttpServer::new(move || {
         App::new()
