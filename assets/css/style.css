@@ -69,14 +69,53 @@ a.page-button {
 	flex-basis: 40%;
 }
 
+div.reactions {
+	width: 100%;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+}
+
+a.reaction {
+	background: #1f1f1f;
+	border-radius: 5px;
+	margin-left: 20px;
+	margin-right: 20px;
+	padding: 0 5px 0 5px;
+	color: white;
+	text-align: center;
+	text-decoration: none;
+	font-size: 30px;
+}
+
+a.reaction:hover {
+	background: #2f2f2f;
+}
+
 input, textarea {
 	padding: 5px;
 	width: 100%;
 	font-family: 'Fira Code', monospace;
 }
 
+*:focus {
+    outline: none;
+}
+
 textarea {
 	height: 300px;
+}
+
+button {
+	background-color: #1f1f1f;
+	border: none;
+	color: #fff;
+	text-align: center;
+	text-decoration: none;
+	margin: 0;
+	padding: 10px;
+	cursor: pointer;
 }
 
 footer {

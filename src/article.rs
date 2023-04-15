@@ -22,14 +22,19 @@ pub struct Article {
 	pub title: String,
 	/// The article's description.
 	pub desc: String,
+
+	// TODO keep history
+	/// The article's content.
+	pub content: String,
+
 	/// Timestamp since epoch at which the article has been posted.
 	#[serde(with = "util::serde_date_time")]
 	pub post_date: DateTime<Utc>,
+
 	/// Tells whether the article is public.
 	pub public: bool,
-
-	/// The article's content.
-	pub content: String,
+	/// Tells whether comments are locked on the article.
+	pub comments_locked: bool,
 }
 
 impl Article {

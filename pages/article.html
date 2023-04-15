@@ -25,6 +25,28 @@
 			{article.content}
 		</div>
 
+		<div class="section intro">
+			<h2>Comments</h2>
+
+			<h3>Reactions</h3>
+
+			<div class="reactions">
+				{reactions}
+				<a id="reaction-add" class="reaction" href="#">+</a>
+			</div>
+
+			<h3>{comments.count} comments<h3>
+
+			<h6>Markdown is supported</h6>
+
+			<textarea id="comment" placeholder="What are your thoughts?"></textarea>
+			<button id="comment-submit" href="#">Post comment</button>
+
+			<div>
+				{comments}
+			</div>
+		</div>
+
 		<footer>
 			<h6>Pssst. You want to contact me? Send me an <a href="mailto:TODO">email</a>!</h6>
 		</footer>

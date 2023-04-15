@@ -1,9 +1,11 @@
 mod article;
+mod comment;
 mod util;
 
 use actix_files::Files;
 use actix_web::{
 	HttpResponse,
+	http::header::ContentType,
 	post,
 	web,
     App,
@@ -14,6 +16,7 @@ use actix_web::{
 };
 use article::Article;
 use bson::oid::ObjectId;
+use comment::Comment;
 use mongodb::Client;
 use mongodb::options::ClientOptions;
 use serde::Deserialize;
@@ -129,7 +132,9 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 	};
 	let html = html.replace("{button.next}", &next_button_html);
 
-	HttpResponse::Ok().body(html)
+	HttpResponse::Ok()
+		.content_type(ContentType::html())
+		.body(html)
 }
 
 #[get("/article/{id}")]
@@ -137,13 +142,18 @@ async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl
 	let id = id.into_inner();
 	let id = ObjectId::parse_str(id).unwrap(); // TODO handle error (http 404)
 
-	// Get articles
-	let article = {
+	// Get article
+	let (article, comments) = {
 		let db = data.mongo.database("blog");
-		Article::get(&db, id)
+
+		let article = Article::get(&db, id)
 			.await
-			.unwrap() // TODO handle error (http 500)
-			.filter(|a| a.public)
+			.unwrap(); // TODO handle error (http 500)
+		let comments = Comment::list_for_article(&db, id)
+			.await
+			.unwrap(); // TODO handle error (http 500)
+
+		(article, comments)
 	};
 
 	match article {
@@ -155,7 +165,30 @@ async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl
 			let html = html.replace("{article.desc}", &article.desc);
 			let html = html.replace("{article.content}", &markdown);
 
-			HttpResponse::Ok().body(html)
+			let html = html.replace("{comments.count}", &format!("{}", comments.len()));
+
+			let comments_html: String = comments.into_iter()
+				.map(|com| {
+					let content = "TODO"; // TODO
+
+					format!(r#"<div class="comment">
+							<div class="comment-header">
+								{} (posted at {})
+							</div>
+
+							{}
+						</div>"#,
+						com.author,
+						com.post_date.format("%d/%m/%Y %H:%M:%S"),
+						content
+					)
+				})
+				.collect();
+			let html = html.replace("{comments}", &comments_html);
+
+			HttpResponse::Ok()
+				.content_type(ContentType::html())
+				.body(html)
 		}
 
 		None => {
@@ -163,6 +196,52 @@ async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl
 			todo!();
 		}
 	}
+}
+
+/// TODO doc
+#[derive(Deserialize)]
+pub struct PostCommentPayload {
+	/// The ID of the article.
+	article_id: String,
+	/// The ID of the comment this comment responds to. If `None`, this comment is not a response.
+	response_to: Option<ObjectId>,
+
+	/// The content of the comment in markdown.
+	content: String,
+}
+
+#[post("/article")]
+async fn post_comment(
+	data: web::Data<GlobalData>,
+	payload: web::Json<PostCommentPayload>
+) -> impl Responder {
+	let payload = payload.into_inner();
+	let article_id = ObjectId::parse_str(payload.article_id).unwrap(); // TODO handle error (http 404)
+
+	let comment = Comment {
+		id: ObjectId::new(),
+
+		article: article_id,
+		response_to: payload.response_to,
+
+		author: "TODO".to_string(), // TODO
+
+		post_date: chrono::offset::Utc::now(),
+
+		removed: false,
+	};
+
+	{
+		let db = data.mongo.database("blog");
+
+		// TODO insert comment content
+
+		comment.insert(&db)
+			.await
+			.unwrap(); // TODO handle error (http 500)
+	}
+
+	HttpResponse::Ok().finish()
 }
 
 /// Article edition coming from the editor.
@@ -184,7 +263,10 @@ pub struct ArticleEdit {
 }
 
 #[post("/article")]
-async fn post_article(data: web::Data<GlobalData>, info: web::Form<ArticleEdit>) -> impl Responder {
+async fn post_article(
+	data: web::Data<GlobalData>,
+	info: web::Form<ArticleEdit>
+) -> impl Responder {
 	let info = info.into_inner();
 
 	let id = match info.id {
@@ -202,10 +284,13 @@ async fn post_article(data: web::Data<GlobalData>, info: web::Form<ArticleEdit>)
 
 				title: info.title,
 				desc: info.desc,
-				post_date: chrono::offset::Utc::now(),
-				public: info.public == "on",
 
 				content: info.content,
+
+				post_date: chrono::offset::Utc::now(),
+
+				public: info.public == "on",
+				comments_locked: false,
 			};
 
 			let db = data.mongo.database("blog");
@@ -233,7 +318,9 @@ async fn editor(data: web::Data<GlobalData>, query: web::Query<EditorQuery>) -> 
 	// TODO get article from ID if specified
 
 	let html = include_str!("../pages/editor.html");
-	HttpResponse::Ok().body(html)
+	HttpResponse::Ok()
+		.content_type(ContentType::html())
+		.body(html)
 }
 
 #[actix_web::main]
@@ -271,6 +358,7 @@ async fn main() -> io::Result<()> {
             .service(root)
             .service(get_article)
 			.service(post_article)
+			.service(post_comment)
             .service(editor)
     })
     .bind(format!("0.0.0.0:{}", config.port))?
