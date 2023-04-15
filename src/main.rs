@@ -141,10 +141,12 @@ async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl
 
 	match article {
 		Some(article) => {
+			let markdown = markdown::to_html(&article.content);
+
 			let html = include_str!("../pages/index.html");
 			let html = html.replace("{article.title}", &article.title);
 			let html = html.replace("{article.desc}", &article.desc);
-			let html = html.replace("{article.content}", &article.content); // TODO turn markdown into html
+			let html = html.replace("{article.content}", &markdown);
 
 			HttpResponse::Ok().body(html)
 		}
