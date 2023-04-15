@@ -95,7 +95,7 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 
 			format!(
 				r#"<div class="article" style="background-color: {};">
-					<h2><a href="/article/{}">{}</a><h2>
+					<h2><a href="/article/{}">{}</a></h2>
 
 					<p>
 						{}

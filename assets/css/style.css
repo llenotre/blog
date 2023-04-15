@@ -15,6 +15,10 @@ div.section {
 	}
 }
 
+a {
+	color: black;
+}
+
 .intro {
 	background-color: #006266;
 	color: #fff;
@@ -31,10 +35,6 @@ div.articles-list-inner {
 	display: flex;
 }
 
-a {
-	color: black;
-}
-
 div.article {
 	background: orange;
 	text-decoration: none;
@@ -46,6 +46,10 @@ div.article {
 	-moz-box-sizing: border-box;
 	box-sizing: border-box;
 	flex-basis: 100%;
+}
+
+div.article a {
+	text-decoration: none;
 }
 
 @media(min-width: 1024px) {
