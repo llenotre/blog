@@ -29,6 +29,14 @@ pub struct Article {
 }
 
 impl Article {
+	/// Returns the total number of articles.
+	pub async fn get_total_count(db: &mongodb::Database) -> Result<u32, mongodb::error::Error> {
+		let collection = db.collection::<Self>("article");
+		collection.count_documents(None, None)
+			.await
+			.map(|n| n as _)
+	}
+
 	/// Returns the list of articles for the given page.
 	///
 	/// Arguments:
@@ -46,21 +54,21 @@ impl Article {
 		let find_options = FindOptions::builder()
 			.skip(Some((page * per_page) as _))
 			.limit(Some(per_page as _))
+			.sort(Some(doc!{
+				"post_date": -1
+			}))
 			.build();
 
 		let filter = if public {
-			doc!{
-				"$order_by": { "post_date": "-1" },
+			Some(doc!{
 				"public": true,
-			}
+			})
 		} else {
-			doc!{
-				"$order_by": { "post_date": "-1" }
-			}
+			None
 		};
 
 		collection.find(
-			Some(filter),
+			filter,
 			Some(find_options)
 		)
 			.await?

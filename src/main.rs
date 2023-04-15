@@ -20,6 +20,9 @@ use std::fs;
 use std::io;
 use std::process::exit;
 
+/// The number of articles per page.
+const ARTICLES_PER_PAGE: u32 = 10;
+
 /// Server configuration.
 #[derive(Deserialize)]
 struct Config {
@@ -39,12 +42,14 @@ pub struct GlobalData {
 #[derive(Deserialize)]
 pub struct PageQuery {
 	/// The current page number.
-	page: u32,
+	page: Option<u32>,
 }
 
 #[get("/")]
 async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl Responder {
-	let page = page.into_inner().page;
+	let page = page.into_inner()
+		.page
+		.unwrap_or(0);
 
 	// Article colors
 	static COLORS: [&str; 5] = [
@@ -56,12 +61,25 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 	];
 
 	// Get articles
-	let articles = {
+	let (total_articles, articles) = {
 		let db = data.mongo.database("blog");
-		Article::list(&db, page, 10, true)
+
+		// TODO handle errors (http 500)
+		let total_articles = Article::get_total_count(&db)
 			.await
-			.unwrap() // TODO handle error (http 500)
+			.unwrap();
+		let articles = Article::list(&db, page, ARTICLES_PER_PAGE, true)
+			.await
+			.unwrap();
+
+		(total_articles, articles)
 	};
+	let pages_count = util::ceil_div(total_articles, ARTICLES_PER_PAGE);
+
+	if page != 0 && page >= pages_count {
+		// TODO http 404
+		todo!();
+	}
 
 	// Produce articles HTML
 	let articles_html: String = articles.into_iter()
@@ -86,7 +104,24 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 		.collect();
 
 	let html = include_str!("../pages/index.html");
+	let html = html.replace("{page.curr}", &format!("{}", page));
+	let html = html.replace("{page.total}", &format!("{}", pages_count));
+	let html = html.replace("{articles.count}", &format!("{}", total_articles));
 	let html = html.replace("{articles}", &articles_html);
+
+	let prev_button_html = if page > 0 {
+		format!("<a href=\"?page={}\" class=\"page-button\">Previous Page</a>", page - 1)
+	} else {
+		String::new()
+	};
+	let html = html.replace("{button.prev}", &prev_button_html);
+
+	let next_button_html = if page + 1 < pages_count {
+		format!("<a href=\"?page={}\" class=\"page-button\" style=\"margin-left: auto;\">Next Page</a>", page + 1)
+	} else {
+		String::new()
+	};
+	let html = html.replace("{button.next}", &next_button_html);
 
 	HttpResponse::Ok().body(html)
 }

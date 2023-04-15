@@ -1,5 +1,14 @@
 //! Module implementing utilities.
 
+/// TODO doc
+pub fn ceil_div(a: u32, b: u32) -> u32 {
+	if a % b != 0 {
+		a / b + 1
+	} else {
+		a / b
+	}
+}
+
 /// Module handling serialization/deserialization of dates.
 pub mod serde_date_time {
 	use chrono::DateTime;

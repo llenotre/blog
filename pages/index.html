@@ -50,9 +50,13 @@
 				{articles}
 			</div>
 
+			<p>
+				Page {page.curr}/{page.total}. {articles.count} articles in total
+			</p>
+
 			<div class="articles-list-inner">
-				<a href="?page=TODO" class="page-button">Previous Page</a>
-				<a href="?page=TODO" class="page-button" style="margin-left: auto;">Next Page</a>
+				{button.prev}
+				{button.next}
 			</div>
 		</div>
 
