@@ -17,6 +17,7 @@ use actix_web::{
 use article::Article;
 use bson::oid::ObjectId;
 use comment::Comment;
+use comment::CommentContent;
 use mongodb::Client;
 use mongodb::options::ClientOptions;
 use serde::Deserialize;
@@ -170,6 +171,7 @@ async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl
 			let comments_html: String = comments.into_iter()
 				.map(|com| {
 					let content = "TODO"; // TODO
+					let markdown = markdown::to_html(content);
 
 					format!(r#"<div class="comment">
 							<div class="comment-header">
@@ -180,7 +182,7 @@ async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl
 						</div>"#,
 						com.author,
 						com.post_date.format("%d/%m/%Y %H:%M:%S"),
-						content
+						markdown
 					)
 				})
 				.collect();
@@ -218,23 +220,33 @@ async fn post_comment(
 	let payload = payload.into_inner();
 	let article_id = ObjectId::parse_str(payload.article_id).unwrap(); // TODO handle error (http 404)
 
+	let id = ObjectId::new();
+	let date = chrono::offset::Utc::now();
+
 	let comment = Comment {
-		id: ObjectId::new(),
+		id,
 
 		article: article_id,
 		response_to: payload.response_to,
 
 		author: "TODO".to_string(), // TODO
 
-		post_date: chrono::offset::Utc::now(),
+		post_date: date,
 
 		removed: false,
+	};
+	let comment_content = CommentContent {
+		comment_id: id,
+
+		edit_date: date,
 	};
 
 	{
 		let db = data.mongo.database("blog");
 
-		// TODO insert comment content
+		comment_content.insert(&db)
+			.await
+			.unwrap(); // TODO handle error (http 500)
 
 		comment.insert(&db)
 			.await

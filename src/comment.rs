@@ -6,6 +6,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crate::util;
 use futures_util::stream::TryStreamExt;
+use mongodb::options::FindOneOptions;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -72,11 +73,48 @@ impl Comment {
 #[derive(Serialize, Deserialize)]
 pub struct CommentContent {
 	/// The ID of the comment.
-	pub comment: ObjectId,
+	pub comment_id: ObjectId,
 
 	/// Timestamp since epoch at which the comment has been edited.
 	#[serde(with = "util::serde_date_time")]
 	pub edit_date: DateTime<Utc>,
+}
+
+impl CommentContent {
+	/// Returns the latest content of the comment with the given ID `id`.
+	///
+	/// `db` is the database.
+	pub async fn get_content(
+		db: &mongodb::Database,
+		id: ObjectId,
+	) -> Result<Option<Self>, mongodb::error::Error> {
+		let collection = db.collection::<Self>("comment_content");
+		let find_options = FindOneOptions::builder()
+			.sort(Some(doc!{
+				"edit_date": -1
+			}))
+			.build();
+
+		collection.find_one(
+			Some(doc!{
+				"comment_id": id,
+			}),
+			Some(find_options)
+		)
+			.await
+
+	}
+
+	/// Inserts the current content in the database.
+	///
+	/// `db` is the database.
+	pub async fn insert(
+		&self,
+		db: &mongodb::Database
+	) -> Result<(), mongodb::error::Error> {
+		let collection = db.collection::<Self>("comment_content");
+		collection.insert_one(self, None).await.map(|_| ())
+	}
 }
 
 /// Reaction to an article or a comment.
