@@ -1,5 +1,6 @@
 //! This module handles articles.
 
+use bson::Bson;
 use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
@@ -95,11 +96,15 @@ impl Article {
 	/// Inserts the current article in the database.
 	///
 	/// `db` is the database.
+	///
+	/// The function returns the ID of the inserted article.
 	pub async fn insert(
 		&self,
 		db: &mongodb::Database
-	) -> Result<(), mongodb::error::Error> {
+	) -> Result<Bson, mongodb::error::Error> {
 		let collection = db.collection::<Self>("article");
-		collection.insert_one(self, None).await.map(|_| ())
+		collection.insert_one(self, None)
+			.await
+			.map(|r| r.inserted_id)
 	}
 }

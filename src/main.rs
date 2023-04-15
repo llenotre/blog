@@ -187,11 +187,12 @@ pub struct ArticleEdit {
 async fn post_article(data: web::Data<GlobalData>, info: web::Form<ArticleEdit>) -> impl Responder {
 	let info = info.into_inner();
 
-	match info.id {
+	let id = match info.id {
 		// Update article
-		Some(_id) => {
+		Some(id) => {
 			// TODO update article
-			HttpResponse::InternalServerError().finish()
+
+			id
 		}
 
 		// Create article
@@ -208,11 +209,13 @@ async fn post_article(data: web::Data<GlobalData>, info: web::Form<ArticleEdit>)
 			};
 
 			let db = data.mongo.database("blog");
-			a.insert(&db).await.unwrap(); // TODO handle error
+			let id = a.insert(&db).await.unwrap(); // TODO handle error
 
-			HttpResponse::Ok().finish() // TODO redirect to home or article?
+			id.as_object_id().unwrap().to_string()
 		}
-	}
+	};
+
+	web::Redirect::to(format!("/article/{}", id))
 }
 
 /// Editor page query.
