@@ -65,6 +65,16 @@ a.page-button {
 	flex-basis: 40%;
 }
 
+input, textarea {
+	padding: 5px;
+	width: 100%;
+	font-family: 'Fira Code', monospace;
+}
+
+textarea {
+	height: 300px;
+}
+
 footer {
 	background-color: #1f1f1f;
 	color: #999;

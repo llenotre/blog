@@ -4,6 +4,7 @@ mod util;
 use actix_files::Files;
 use actix_web::{
 	HttpResponse,
+	post,
 	web,
     App,
     HttpServer,
@@ -12,6 +13,7 @@ use actix_web::{
     middleware,
 };
 use article::Article;
+use bson::oid::ObjectId;
 use mongodb::Client;
 use mongodb::options::ClientOptions;
 use serde::Deserialize;
@@ -85,7 +87,11 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 	let articles_html: String = articles.into_iter()
 		.enumerate()
 		.map(|(i, article)| {
-			let color = COLORS[i % COLORS.len()];
+			let color = if article.public {
+				COLORS[i % COLORS.len()]
+			} else {
+				"gray"
+			};
 
 			format!(
 				r#"<div class="article" style="background-color: {};">
@@ -104,7 +110,7 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 		.collect();
 
 	let html = include_str!("../pages/index.html");
-	let html = html.replace("{page.curr}", &format!("{}", page));
+	let html = html.replace("{page.curr}", &format!("{}", page + 1));
 	let html = html.replace("{page.total}", &format!("{}", pages_count));
 	let html = html.replace("{articles.count}", &format!("{}", total_articles));
 	let html = html.replace("{articles}", &articles_html);
@@ -129,6 +135,7 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 #[get("/article/{id}")]
 async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl Responder {
 	let id = id.into_inner();
+	let id = ObjectId::parse_str(id).unwrap(); // TODO handle error (http 404)
 
 	// Get articles
 	let article = {
@@ -143,7 +150,7 @@ async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl
 		Some(article) => {
 			let markdown = markdown::to_html(&article.content);
 
-			let html = include_str!("../pages/index.html");
+			let html = include_str!("../pages/article.html");
 			let html = html.replace("{article.title}", &article.title);
 			let html = html.replace("{article.desc}", &article.desc);
 			let html = html.replace("{article.content}", &markdown);
@@ -156,6 +163,74 @@ async fn get_article(data: web::Data<GlobalData>, id: web::Path<String>) -> impl
 			todo!();
 		}
 	}
+}
+
+/// Article edition coming from the editor.
+#[derive(Deserialize)]
+pub struct ArticleEdit {
+	/// The ID of the article. If `None`, a new article is being created.
+	id: Option<String>,
+
+	/// The title of the article.
+	title: String,
+	/// The description of the article.
+	desc: String,
+
+	/// The content of the article in markdown.
+	content: String,
+
+	/// Tells whether to publish the article.
+	public: String,
+}
+
+#[post("/article")]
+async fn post_article(data: web::Data<GlobalData>, info: web::Form<ArticleEdit>) -> impl Responder {
+	let info = info.into_inner();
+
+	match info.id {
+		// Update article
+		Some(_id) => {
+			// TODO update article
+			HttpResponse::InternalServerError().finish()
+		}
+
+		// Create article
+		None => {
+			let a = Article {
+				id: ObjectId::new(),
+
+				title: info.title,
+				desc: info.desc,
+				post_date: chrono::offset::Utc::now(),
+				public: info.public == "on",
+
+				content: info.content,
+			};
+
+			let db = data.mongo.database("blog");
+			a.insert(&db).await.unwrap(); // TODO handle error
+
+			HttpResponse::Ok().finish() // TODO redirect to home or article?
+		}
+	}
+}
+
+/// Editor page query.
+#[derive(Deserialize)]
+pub struct EditorQuery {
+	/// The ID of the article to edit. If `None`, a new article is being created.
+	id: Option<u32>,
+}
+
+#[get("/editor")]
+async fn editor(data: web::Data<GlobalData>, query: web::Query<EditorQuery>) -> impl Responder {
+	let _query = query.into_inner();
+
+	// TODO check auth
+	// TODO get article from ID if specified
+
+	let html = include_str!("../pages/editor.html");
+	HttpResponse::Ok().body(html)
 }
 
 #[actix_web::main]
@@ -192,6 +267,8 @@ async fn main() -> io::Result<()> {
             .service(Files::new("/assets", "./assets"))
             .service(root)
             .service(get_article)
+			.service(post_article)
+            .service(editor)
     })
     .bind(format!("0.0.0.0:{}", config.port))?
     .run()

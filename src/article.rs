@@ -1,5 +1,6 @@
 //! This module handles articles.
 
+use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
 use crate::util;
@@ -7,12 +8,14 @@ use futures_util::stream::TryStreamExt;
 use mongodb::bson::doc;
 use mongodb::options::FindOptions;
 use serde::Deserialize;
+use serde::Serialize;
 
 /// Structure representing an article.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Article {
 	/// The article's id.
-	pub id: String,
+	#[serde(rename = "_id")]
+	pub id: ObjectId,
 
 	/// The article's title.
 	pub title: String,
@@ -83,17 +86,20 @@ impl Article {
 	/// - `id` is the ID of the article.
 	pub async fn get(
 		db: &mongodb::Database,
-		id: String
+		id: ObjectId
 	) -> Result<Option<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("article");
+		collection.find_one(Some(doc!{"_id": id}), None).await
+	}
 
-		collection.find_one(
-			Some(doc!{
-				"id": id
-			}),
-			None
-		)
-			.await
-
+	/// Inserts the current article in the database.
+	///
+	/// `db` is the database.
+	pub async fn insert(
+		&self,
+		db: &mongodb::Database
+	) -> Result<(), mongodb::error::Error> {
+		let collection = db.collection::<Self>("article");
+		collection.insert_one(self, None).await.map(|_| ())
 	}
 }

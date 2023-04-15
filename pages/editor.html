@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>Luc Lenôtre - Blog</title>
+		<link rel="stylesheet" href="/assets/css/style.css" \>
+		<!-- TODO: remove dependency to google -->
+		<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300&display=swap" rel="stylesheet">
+		<meta charset="UTF-8" \>
+	</head>
+
+	<body>
+		<div class="section">
+			<h2>Article editor</h2>
+		</div>
+
+		<div class="section intro">
+			<form method="POST" action="/article">
+				<input name="title" type="text" placeholder="Title"></input>
+				<input name="desc" type="text" placeholder="Description"></input>
+
+				<textarea name="content"></textarea>
+
+				<div>
+					<input name="public" type="checkbox"></input>
+					<label for="public">Publish the article</label>
+				</div>
+
+				<input type="submit" value="Validate"></input>
+			</form>
+		</div>
+
+		<div class="section">
+			<h2>Preview</h2>
+		</div>
+
+		<div class="section intro">
+			<h2>TODO: title preview</h2>
+
+			<p>
+				TODO: desc preview
+			</p>
+		</div>
+
+		<div class="section">
+			TODO: content preview
+		</div>
+	</body>
+</html>
