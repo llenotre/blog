@@ -1,9 +1,19 @@
 //! This module handles articles.
 
+use actix_web::{
+	HttpResponse,
+	Responder,
+	get,
+	http::header::ContentType,
+	post,
+	web,
+};
 use bson::Bson;
 use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
+use crate::GlobalData;
+use crate::comment::Comment;
 use crate::util;
 use futures_util::stream::TryStreamExt;
 use mongodb::bson::doc;
@@ -112,4 +122,145 @@ impl Article {
 			.await
 			.map(|r| r.inserted_id)
 	}
+}
+
+#[get("/article/{id}")]
+pub async fn get(data: web::Data<GlobalData>, id: web::Path<String>) -> impl Responder {
+	let id = id.into_inner();
+	let id = ObjectId::parse_str(id).unwrap(); // TODO handle error (http 404)
+
+	// Get article
+	let (article, comments) = {
+		let db = data.mongo.database("blog");
+
+		let article = Article::get(&db, id)
+			.await
+			.unwrap(); // TODO handle error (http 500)
+		let comments = Comment::list_for_article(&db, id)
+			.await
+			.unwrap(); // TODO handle error (http 500)
+
+		(article, comments)
+	};
+
+	match article {
+		Some(article) => {
+			let markdown = markdown::to_html(&article.content);
+
+			let html = include_str!("../pages/article.html");
+			let html = html.replace("{article.title}", &article.title);
+			let html = html.replace("{article.desc}", &article.desc);
+			let html = html.replace("{article.content}", &markdown);
+
+			let html = html.replace("{comments.count}", &format!("{}", comments.len()));
+
+			let comments_html: String = comments.into_iter()
+				.map(|com| {
+					let content = "TODO"; // TODO
+					let markdown = markdown::to_html(content);
+
+					format!(r#"<div class="comment">
+							<div class="comment-header">
+								{} (posted at {})
+							</div>
+
+							{}
+						</div>"#,
+						com.author,
+						com.post_date.format("%d/%m/%Y %H:%M:%S"),
+						markdown
+					)
+				})
+				.collect();
+			let html = html.replace("{comments}", &comments_html);
+
+			HttpResponse::Ok()
+				.content_type(ContentType::html())
+				.body(html)
+		}
+
+		None => {
+			// TODO 404
+			todo!();
+		}
+	}
+}
+
+/// Article edition coming from the editor.
+#[derive(Deserialize)]
+pub struct ArticleEdit {
+	/// The ID of the article. If `None`, a new article is being created.
+	id: Option<String>,
+
+	/// The title of the article.
+	title: String,
+	/// The description of the article.
+	desc: String,
+
+	/// The content of the article in markdown.
+	content: String,
+
+	/// Tells whether to publish the article.
+	public: String,
+}
+
+#[post("/article")]
+pub async fn post(
+	data: web::Data<GlobalData>,
+	info: web::Form<ArticleEdit>
+) -> impl Responder {
+	let info = info.into_inner();
+
+	let id = match info.id {
+		// Update article
+		Some(id) => {
+			// TODO update article
+
+			id
+		}
+
+		// Create article
+		None => {
+			let a = Article {
+				id: ObjectId::new(),
+
+				title: info.title,
+				desc: info.desc,
+
+				content: info.content,
+
+				post_date: chrono::offset::Utc::now(),
+
+				public: info.public == "on",
+				comments_locked: false,
+			};
+
+			let db = data.mongo.database("blog");
+			let id = a.insert(&db).await.unwrap(); // TODO handle error
+
+			id.as_object_id().unwrap().to_string()
+		}
+	};
+
+	web::Redirect::to(format!("/article/{}", id))
+}
+
+/// Editor page query.
+#[derive(Deserialize)]
+pub struct EditorQuery {
+	/// The ID of the article to edit. If `None`, a new article is being created.
+	id: Option<u32>,
+}
+
+#[get("/editor")]
+async fn editor(data: web::Data<GlobalData>, query: web::Query<EditorQuery>) -> impl Responder {
+	let _query = query.into_inner();
+
+	// TODO check auth
+	// TODO get article from ID if specified
+
+	let html = include_str!("../pages/editor.html");
+	HttpResponse::Ok()
+		.content_type(ContentType::html())
+		.body(html)
 }

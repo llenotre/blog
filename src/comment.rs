@@ -1,9 +1,16 @@
 //! This module handles comments on articles.
 
+use actix_web::{
+	HttpResponse,
+	Responder,
+	post,
+	web,
+};
 use bson::doc;
 use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
+use crate::GlobalData;
 use crate::util;
 use futures_util::stream::TryStreamExt;
 use mongodb::options::FindOneOptions;
@@ -137,4 +144,60 @@ pub struct Reaction {
 
 	/// Tells whether the reaction has been removed.
 	pub removed: bool,
+}
+
+/// TODO doc
+#[derive(Deserialize)]
+pub struct PostCommentPayload {
+	/// The ID of the article.
+	article_id: String,
+	/// The ID of the comment this comment responds to. If `None`, this comment is not a response.
+	response_to: Option<ObjectId>,
+
+	/// The content of the comment in markdown.
+	content: String,
+}
+
+#[post("/article")]
+pub async fn post(
+	data: web::Data<GlobalData>,
+	payload: web::Json<PostCommentPayload>
+) -> impl Responder {
+	let payload = payload.into_inner();
+	let article_id = ObjectId::parse_str(payload.article_id).unwrap(); // TODO handle error (http 404)
+
+	let id = ObjectId::new();
+	let date = chrono::offset::Utc::now();
+
+	let comment = Comment {
+		id,
+
+		article: article_id,
+		response_to: payload.response_to,
+
+		author: "TODO".to_string(), // TODO
+
+		post_date: date,
+
+		removed: false,
+	};
+	let comment_content = CommentContent {
+		comment_id: id,
+
+		edit_date: date,
+	};
+
+	{
+		let db = data.mongo.database("blog");
+
+		comment_content.insert(&db)
+			.await
+			.unwrap(); // TODO handle error (http 500)
+
+		comment.insert(&db)
+			.await
+			.unwrap(); // TODO handle error (http 500)
+	}
+
+	HttpResponse::Ok().finish()
 }
