@@ -1,2 +1,5 @@
 port = 80
 mongo_url = "mongodb://localhost:27017"
+
+client_id = "..."
+client_secret = "..."

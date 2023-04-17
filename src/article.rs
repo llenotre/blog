@@ -14,6 +14,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crate::GlobalData;
 use crate::comment::Comment;
+use crate::user;
 use crate::util;
 use futures_util::stream::TryStreamExt;
 use mongodb::bson::doc;
@@ -142,6 +143,7 @@ pub async fn get(data: web::Data<GlobalData>, id: web::Path<String>) -> impl Res
 
 		(article, comments)
 	};
+	let logged = false; // TODO
 
 	match article {
 		Some(article) => {
@@ -152,8 +154,20 @@ pub async fn get(data: web::Data<GlobalData>, id: web::Path<String>) -> impl Res
 			let html = html.replace("{article.desc}", &article.desc);
 			let html = html.replace("{article.content}", &markdown);
 
-			let html = html.replace("{comments.count}", &format!("{}", comments.len()));
+			let comment_editor_html = if logged {
+				r#"<h6>Markdown is supported</h6>
 
+				<textarea id="comment" placeholder="What are your thoughts?"></textarea>
+				<button id="comment-submit" href="\#">Post comment</button>"#.to_owned()
+			} else {
+				format!(
+					r#"<p><a href="{}">Login</a> with Github to leave a comment.</p>"#,
+					user::get_auth_url(&data)
+				)
+			};
+			let html = html.replace("{comment.editor}", &comment_editor_html);
+
+			let comments_count = comments.len();
 			let comments_html: String = comments.into_iter()
 				.map(|com| {
 					let content = "TODO"; // TODO
@@ -173,6 +187,7 @@ pub async fn get(data: web::Data<GlobalData>, id: web::Path<String>) -> impl Res
 				})
 				.collect();
 			let html = html.replace("{comments}", &comments_html);
+			let html = html.replace("{comments.count}", &format!("{}", comments_count));
 
 			HttpResponse::Ok()
 				.content_type(ContentType::html())
