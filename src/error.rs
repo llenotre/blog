@@ -2,7 +2,6 @@
 
 use actix_web::Error;
 use actix_web::HttpResponseBuilder;
-use actix_web::body::BoxBody;
 use actix_web::dev::Service;
 use actix_web::dev::ServiceRequest;
 use actix_web::dev::ServiceResponse;
@@ -17,12 +16,12 @@ use std::future::ready;
 pub struct ErrorHandling;
 
 impl<S, B> Transform<S, ServiceRequest> for ErrorHandling
-	where
-		S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-		S::Future: 'static,
-		B: 'static
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
 {
-    type Response = ServiceResponse<BoxBody>;
+    type Response = ServiceResponse<B>;
     type Error = Error;
     type InitError = ();
     type Transform = ErrorHandlingMiddleware<S>;
@@ -40,15 +39,15 @@ pub struct ErrorHandlingMiddleware<S> {
 	service: S,
 }
 
-impl<S, B> Service<S> for ErrorHandlingMiddleware<S>
-	where
-		S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-		S::Future: 'static,
-		B: 'static
+impl<S, B> Service<ServiceRequest> for ErrorHandlingMiddleware<S>
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
 {
-	type Response = ServiceResponse<BoxBody>;
-	type Error = Error;
-	type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
 	forward_ready!(service);
 
