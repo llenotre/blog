@@ -1,5 +1,7 @@
+mod analytics;
 mod article;
 mod comment;
+mod error;
 mod user;
 mod util;
 
@@ -178,6 +180,7 @@ async fn main() -> io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::new("[%t] %a: %r - Response: %s (in %D ms)"))
+            .wrap(error::ErrorHandling)
             .app_data(data.clone())
             .service(Files::new("/assets", "./assets"))
 			.service(article::post)
