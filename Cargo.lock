@@ -344,6 +344,7 @@ dependencies = [
  "mongodb",
  "reqwest",
  "serde",
+ "tokio",
  "toml",
 ]
 

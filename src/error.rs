@@ -2,6 +2,7 @@
 
 use actix_web::Error;
 use actix_web::HttpResponseBuilder;
+use actix_web::body::EitherBody;
 use actix_web::dev::Service;
 use actix_web::dev::ServiceRequest;
 use actix_web::dev::ServiceResponse;
@@ -12,16 +13,16 @@ use futures_util::future::LocalBoxFuture;
 use std::future::Ready;
 use std::future::ready;
 
-/// Middleware allowing to collect analytics.
+/// Middleware handling errors.
 pub struct ErrorHandling;
 
 impl<S, B> Transform<S, ServiceRequest> for ErrorHandling
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    B: 'static,
+	B: 'static
 {
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
     type InitError = ();
     type Transform = ErrorHandlingMiddleware<S>;
@@ -43,9 +44,9 @@ impl<S, B> Service<ServiceRequest> for ErrorHandlingMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    B: 'static,
+	B: 'static
 {
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
@@ -58,7 +59,7 @@ where
 			let res = fut.await;
 
 			match res {
-				Ok(response) => response,
+				Ok(response) => Ok(response.map_body(|_, body| EitherBody::Left { body })),
 
 				Err(e) => {
 					let status = e.as_response_error().status_code();
@@ -73,7 +74,7 @@ where
 						.content_type(ContentType::html())
 						.body(html);
 
-					req.into_response(res)
+					Ok(req.into_response(res).map_body(|_, body| EitherBody::Right { body }))
 				}
 			}
 		})

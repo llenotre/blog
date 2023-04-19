@@ -1,7 +1,9 @@
+#![feature(async_closure)]
+
 mod analytics;
 mod article;
 mod comment;
-mod error;
+//mod error;
 mod user;
 mod util;
 
@@ -180,7 +182,10 @@ async fn main() -> io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::new("[%t] %a: %r - Response: %s (in %D ms)"))
-            .wrap(error::ErrorHandling)
+            .wrap(analytics::Analytics {
+				global: data.clone().into_inner()
+			})
+            //.wrap(error::ErrorHandling)
             .app_data(data.clone())
             .service(Files::new("/assets", "./assets"))
 			.service(article::post)
