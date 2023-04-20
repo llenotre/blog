@@ -162,6 +162,14 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 		.body(html)
 }
 
+#[get("/legal")]
+async fn legal() -> impl Responder {
+	let html = include_str!("../pages/legal.html");
+	HttpResponse::Ok()
+		.content_type(ContentType::html())
+		.body(html)
+}
+
 #[actix_web::main]
 async fn main() -> io::Result<()> {
     // Enabling logging
@@ -209,6 +217,7 @@ async fn main() -> io::Result<()> {
 			.service(comment::post)
             .service(article::editor)
             .service(article::get)
+            .service(legal)
             .service(root)
             .service(user::logout)
             .service(user::oauth)
