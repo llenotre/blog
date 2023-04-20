@@ -1,7 +1,6 @@
 //! TODO doc
 
 use actix_web::{
-	HttpResponse,
 	Responder,
 	get,
 	web,

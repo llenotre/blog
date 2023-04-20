@@ -132,10 +132,10 @@ pub async fn get(
 	id: web::Path<String>,
 	session: Session,
 ) -> impl Responder {
-	let id = id.into_inner();
-	session.insert("last_article", id.clone()).unwrap(); // TODO handle error
+	let id_str = id.into_inner();
+	session.insert("last_article", id_str.clone()).unwrap(); // TODO handle error
 
-	let id = ObjectId::parse_str(id).unwrap(); // TODO handle error (http 404)
+	let id = ObjectId::parse_str(&id_str).unwrap(); // TODO handle error (http 404)
 
 	// Get article
 	let (article, comments) = {
@@ -157,6 +157,7 @@ pub async fn get(
 			let markdown = markdown::to_html(&article.content);
 
 			let html = include_str!("../pages/article.html");
+			let html = html.replace("{article.id}", &id_str);
 			let html = html.replace("{article.title}", &article.title);
 			let html = html.replace("{article.desc}", &article.desc);
 			let html = html.replace("{article.content}", &markdown);
@@ -280,10 +281,16 @@ pub struct EditorQuery {
 }
 
 #[get("/editor")]
-async fn editor(data: web::Data<GlobalData>, query: web::Query<EditorQuery>) -> impl Responder {
+async fn editor(
+	data: web::Data<GlobalData>,
+	query: web::Query<EditorQuery>,
+	session: Session,
+) -> impl Responder {
 	let _query = query.into_inner();
 
-	// TODO check auth
+	// Check auth
+	// TODO
+
 	// TODO get article from ID if specified
 
 	let html = include_str!("../pages/editor.html");
