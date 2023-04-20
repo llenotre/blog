@@ -12,11 +12,13 @@
 		</div>
 
 		<div class="section intro">
-			<li><a href="https://twitter.com/intent/tweet?text={article.title}%12https://blog.lenot.re/article/{article.id}" target="_blank">Share on Twitter</a></li>
-			<!-- TODO: add LinkedIn -->
-			<li><a href="https://www.reddit.com/submit?title={article.title}&url=https://blog.lenot.re/article/{article.id}" target="_blank">Share on Reddit</a></li>
-			<!-- TODO: add Facebook -->
-			<!-- TODO: copy URL button -->
+			<ul>
+				<li><a href="https://twitter.com/intent/tweet?text={article.title}%12https://blog.lenot.re/article/{article.id}" target="_blank">Share on Twitter</a></li>
+				<!-- TODO: share on LinkedIn -->
+				<li><a href="https://www.reddit.com/submit?title={article.title}&url=https://blog.lenot.re/article/{article.id}" target="_blank">Share on Reddit</a></li>
+				<li><a href="https://www.facebook.com/sharer/sharer.php?u=https://blog.lenot.re/article/{article.id}" target="_blank">Share on Facebook</a></li>
+				<!-- TODO: copy URL button -->
+			</ul>
 
 			<h2>{article.title}</h2>
 
@@ -32,12 +34,12 @@
 		<div class="section intro">
 			<h2>Comments</h2>
 
-			<h3>Reactions</h3>
+			<!--<h3>Reactions</h3>
 
 			<div class="reactions">
 				{reactions}
 				<a id="reaction-add" class="reaction" href="#">+</a>
-			</div>
+			</div>-->
 
 			{comment.editor}
 
