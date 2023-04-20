@@ -8,8 +8,11 @@ mod user;
 mod util;
 
 use actix_files::Files;
+use actix_session::SessionMiddleware;
+use actix_session::storage::CookieSessionStore;
 use actix_web::{
 	HttpResponse,
+	cookie::Key,
 	http::header::ContentType,
 	web,
     App,
@@ -42,6 +45,9 @@ struct Config {
 	client_id: String,
 	/// The client secret of the Github application.
 	client_secret: String,
+
+	/// The secret key used to secure sessions.
+	session_secret_key: String,
 }
 
 /// Structure shared accross the server.
@@ -53,6 +59,13 @@ pub struct GlobalData {
 	pub client_id: String,
 	/// The client secret of the Github application.
 	pub client_secret: String,
+}
+
+impl GlobalData {
+	/// Returns a reference to the database.
+	pub fn get_database(&self) -> mongodb::Database {
+		self.mongo.database("blog")
+	}
 }
 
 /// Query specifying the current page.
@@ -79,7 +92,7 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 
 	// Get articles
 	let (total_articles, articles) = {
-		let db = data.mongo.database("blog");
+		let db = data.get_database();
 
 		// TODO handle errors (http 500)
 		let total_articles = Article::get_total_count(&db)
@@ -185,6 +198,10 @@ async fn main() -> io::Result<()> {
             .wrap(analytics::Analytics {
 				global: data.clone().into_inner()
 			})
+			.wrap(SessionMiddleware::new(
+				CookieSessionStore::default(),
+				Key::from(config.session_secret_key.as_bytes()) // TODO parse hex
+			))
             //.wrap(error::ErrorHandling)
             .app_data(data.clone())
             .service(Files::new("/assets", "./assets"))
@@ -193,6 +210,7 @@ async fn main() -> io::Result<()> {
             .service(article::editor)
             .service(article::get)
             .service(root)
+            .service(user::logout)
             .service(user::oauth)
     })
     .bind(format!("0.0.0.0:{}", config.port))?

@@ -112,7 +112,7 @@ where
 				logged_user: None, // TODO get from current session
 			};
 
-			let db = (*self.global).mongo.database("blog");
+			let db = self.global.get_database();
 			tokio::spawn(async move {
 				if let Err(e) = entry.insert(&db).await {
 					eprintln!("Cannot log analytics: {}", e);

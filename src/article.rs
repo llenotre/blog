@@ -8,6 +8,7 @@ use actix_web::{
 	post,
 	web,
 };
+use actix_session::Session;
 use bson::Bson;
 use bson::oid::ObjectId;
 use chrono::DateTime;
@@ -126,13 +127,19 @@ impl Article {
 }
 
 #[get("/article/{id}")]
-pub async fn get(data: web::Data<GlobalData>, id: web::Path<String>) -> impl Responder {
+pub async fn get(
+	data: web::Data<GlobalData>,
+	id: web::Path<String>,
+	session: Session,
+) -> impl Responder {
 	let id = id.into_inner();
+	session.insert("last_article", id.clone()).unwrap(); // TODO handle error
+
 	let id = ObjectId::parse_str(id).unwrap(); // TODO handle error (http 404)
 
 	// Get article
 	let (article, comments) = {
-		let db = data.mongo.database("blog");
+		let db = data.get_database();
 
 		let article = Article::get(&db, id)
 			.await
@@ -143,7 +150,7 @@ pub async fn get(data: web::Data<GlobalData>, id: web::Path<String>) -> impl Res
 
 		(article, comments)
 	};
-	let logged = false; // TODO
+	let user_login = session.get::<String>("user_login").unwrap(); // TODO handle error
 
 	match article {
 		Some(article) => {
@@ -154,16 +161,21 @@ pub async fn get(data: web::Data<GlobalData>, id: web::Path<String>) -> impl Res
 			let html = html.replace("{article.desc}", &article.desc);
 			let html = html.replace("{article.content}", &markdown);
 
-			let comment_editor_html = if logged {
-				r#"<h6>Markdown is supported</h6>
+			let comment_editor_html = match user_login {
+				Some(user_login) => format!(
+					r#"<p>You are currently logged as <b>{}</b>. <a href="/logout">Logout</a></p>
 
-				<textarea id="comment" placeholder="What are your thoughts?"></textarea>
-				<button id="comment-submit" href="\#">Post comment</button>"#.to_owned()
-			} else {
-				format!(
+					<h6>Markdown is supported</h6>
+
+					<textarea id="comment" placeholder="What are your thoughts?"></textarea>
+					<button id="comment-submit" href="\#">Post comment</button>"#,
+					user_login
+				),
+
+				None => format!(
 					r#"<p><a href="{}">Login</a> with Github to leave a comment.</p>"#,
 					user::get_auth_url(&data)
-				)
+				),
 			};
 			let html = html.replace("{comment.editor}", &comment_editor_html);
 
@@ -250,7 +262,7 @@ pub async fn post(
 				comments_locked: false,
 			};
 
-			let db = data.mongo.database("blog");
+			let db = data.get_database();
 			let id = a.insert(&db).await.unwrap(); // TODO handle error
 
 			id.as_object_id().unwrap().to_string()

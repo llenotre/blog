@@ -188,7 +188,7 @@ pub async fn post(
 	};
 
 	{
-		let db = data.mongo.database("blog");
+		let db = data.get_database();
 
 		comment_content.insert(&db)
 			.await
