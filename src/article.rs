@@ -15,6 +15,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crate::GlobalData;
 use crate::comment::Comment;
+use crate::user::User;
 use crate::user;
 use crate::util;
 use futures_util::stream::TryStreamExt;
@@ -102,7 +103,7 @@ impl Article {
 	/// Arguments:
 	/// - `db` is the database.
 	/// - `id` is the ID of the article.
-	pub async fn get(
+	pub async fn from_id(
 		db: &mongodb::Database,
 		id: ObjectId
 	) -> Result<Option<Self>, mongodb::error::Error> {
@@ -141,7 +142,7 @@ pub async fn get(
 	let (article, comments) = {
 		let db = data.get_database();
 
-		let article = Article::get(&db, id)
+		let article = Article::from_id(&db, id)
 			.await
 			.unwrap(); // TODO handle error (http 500)
 		let comments = Comment::list_for_article(&db, id)
@@ -239,6 +240,8 @@ pub async fn post(
 ) -> impl Responder {
 	let info = info.into_inner();
 
+	// TODO Check auth
+
 	let id = match info.id {
 		// Update article
 		Some(id) => {
@@ -277,7 +280,7 @@ pub async fn post(
 #[derive(Deserialize)]
 pub struct EditorQuery {
 	/// The ID of the article to edit. If `None`, a new article is being created.
-	id: Option<u32>,
+	id: Option<String>,
 }
 
 #[get("/editor")]
@@ -286,14 +289,58 @@ async fn editor(
 	query: web::Query<EditorQuery>,
 	session: Session,
 ) -> impl Responder {
-	let _query = query.into_inner();
+	let db = data.get_database();
 
 	// Check auth
-	// TODO
+	let user_id = session.get::<String>("user_id")
+		.ok()
+		.flatten()
+		.map(|user_id| ObjectId::parse_str(&user_id).ok())
+		.flatten();
+	let admin = match user_id {
+		Some(user_id) => {
+			let user = User::from_id(&db, user_id).await.unwrap(); // TODO handle error
+			user.map(|u| u.admin).unwrap_or(false)
+		}
 
-	// TODO get article from ID if specified
+		None => false,
+	};
+	if !admin {
+		// TODO
+		todo!();
+	}
+
+	// Get article
+	let article_id = query
+		.into_inner()
+		.id
+		.map(|id| ObjectId::parse_str(&id))
+		.transpose()
+		.unwrap(); // TODO handle error
+	let article = match article_id {
+		Some(article_id) => Article::from_id(&db, article_id).await.unwrap(), // TODO handle error
+		None => None,
+	};
+
+	let article_title = article.as_ref()
+		.map(|a| a.title.as_str())
+		.unwrap_or("");
+	let article_desc = article.as_ref()
+		.map(|a| a.desc.as_str())
+		.unwrap_or("");
+	let article_content = article.as_ref()
+		.map(|a| a.content.as_str())
+		.unwrap_or("");
+	let article_public = article.as_ref()
+		.map(|a| a.public)
+		.unwrap_or(false);
 
 	let html = include_str!("../pages/editor.html");
+	let html = html.replace("{article.title}", &article_title);
+	let html = html.replace("{article.desc}", &article_desc);
+	let html = html.replace("{article.content}", &article_content);
+	let html = html.replace("{article.published}", if article_public { "checked" } else { "" });
+
 	HttpResponse::Ok()
 		.content_type(ContentType::html())
 		.body(html)

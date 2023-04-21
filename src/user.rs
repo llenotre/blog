@@ -10,8 +10,6 @@ use actix_session::Session;
 use bson::doc;
 use bson::oid::ObjectId;
 use crate::GlobalData;
-use mongodb::options::UpdateModifications;
-use mongodb::options::UpdateOptions;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -60,15 +58,15 @@ pub struct GithubUser {
 pub struct User {
 	/// The user's id.
 	#[serde(rename = "_id")]
-	id: ObjectId,
+	pub id: ObjectId,
 
 	/// User informations.
-	github_info: GithubUser,
+	pub github_info: GithubUser,
 
 	/// Tells whether the user is admin.
-	admin: bool,
+	pub admin: bool,
 	/// Tells whether the user has been banned.
-	banned: bool,
+	pub banned: bool,
 }
 
 impl User {
@@ -88,31 +86,38 @@ impl User {
 			.await
 	}
 
-	/// Inserts or updates the user in the database.
-	pub async fn upsert(&self, db: &mongodb::Database) -> Result<(), mongodb::error::Error> {
+	/// Returns the user with the given ID.
+	///
+	/// `db` is the database.
+	///
+	/// If the user doesn't exist, the function returns `None`.
+	pub async fn from_id(
+		db: &mongodb::Database,
+		id: ObjectId
+	) -> Result<Option<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("user");
-		let filter = doc!{
-			"github_info.id": self.github_info.id
-		};
-		let modifications = UpdateModifications::Document(doc!{
-			"$set": doc!{
-				"github_info": doc!{
-					"login": self.github_info.login.clone(),
-					"id": self.github_info.id,
-					"avatar_url": self.github_info.avatar_url.clone(),
-					"html_url": self.github_info.html_url.clone(),
-				},
+		collection.find_one(doc!{"_id": id}, None).await
+	}
 
-				"admin": self.admin,
-				"banned": self.banned,
-			}
-		});
-		let options = UpdateOptions::builder()
-			.upsert(Some(true))
-			.build();
-		collection.update_one(filter, modifications, Some(options))
-			.await
-			.map(|_| ())
+	/// Returns the user with the given Github ID.
+	///
+	/// `db` is the database.
+	///
+	/// If the user doesn't exist, the function returns `None`.
+	pub async fn from_github_id(
+		db: &mongodb::Database,
+		id: u64
+	) -> Result<Option<Self>, mongodb::error::Error> {
+		let collection = db.collection::<Self>("user");
+		collection.find_one(doc!{"github_info.id": id as i64}, None).await
+	}
+
+	/// Inserts or updates the user in the database.
+	///
+	/// `db` is the database.
+	pub async fn insert(&self, db: &mongodb::Database) -> Result<(), mongodb::error::Error> {
+		let collection = db.collection::<Self>("user");
+		collection.insert_one(self, None).await.map(|_| ())
 	}
 }
 
@@ -151,23 +156,32 @@ pub async fn oauth(
 		todo!();
 	};
 
-	// Get user informations
+	// Get user ID
 	let github_info = User::query_info(&access_token).await.unwrap(); // TODO handle error
 
-	// Insert or update user
-	let user = User {
-		id: ObjectId::new(),
-
-		github_info,
-
-		admin: false,
-		banned: false,
-	};
 	let db = data.get_database();
-	user.upsert(&db).await.unwrap(); // TODO handle error
+	let user = User::from_github_id(&db, github_info.id as _).await.unwrap(); // TODO handle error
+	let user = match user {
+		Some(user) => user,
+
+		None => {
+			// Insert new user
+			let user = User {
+				id: ObjectId::new(),
+
+				github_info,
+
+				admin: false,
+				banned: false,
+			};
+			user.insert(&db).await.unwrap(); // TODO handle error
+
+			user
+		}
+	};
 
 	// Create user's session
-	session.insert("user_id", user.id).unwrap(); // TODO handle error
+	session.insert("user_id", user.id.to_hex()).unwrap(); // TODO handle error
 	session.insert("user_login", user.github_info.login).unwrap(); // TODO handle error
 
 	// Redirect user

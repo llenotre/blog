@@ -13,13 +13,13 @@
 
 		<div class="section intro">
 			<form method="POST" action="/article">
-				<input name="title" type="text" placeholder="Title"></input>
-				<input name="desc" type="text" placeholder="Description"></input>
+				<input name="title" type="text" value="{article.title}" placeholder="Title"></input>
+				<input name="desc" type="text" value="{article.desc}" placeholder="Description"></input>
 
-				<textarea name="content"></textarea>
+				<textarea name="content">{article.content}</textarea>
 
 				<div>
-					<input name="public" type="checkbox"></input>
+					<input name="public" type="checkbox" {article.published}></input>
 					<label for="public">Publish the article</label>
 				</div>
 
