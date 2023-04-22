@@ -24,6 +24,8 @@ use mongodb::options::FindOptions;
 use serde::Deserialize;
 use serde::Serialize;
 
+// TODO keep previous versions of articles to be able to restore
+
 /// Structure representing an article.
 #[derive(Serialize, Deserialize)]
 pub struct Article {
@@ -125,6 +127,18 @@ impl Article {
 			.await
 			.map(|r| r.inserted_id)
 	}
+
+	/// Updates the articles with the given ID.
+	pub async fn update(
+		db: &mongodb::Database,
+		id: ObjectId,
+		update: bson::Document
+	) -> Result<(), mongodb::error::Error> {
+		let collection = db.collection::<Self>("article");
+		collection.update_one(doc!{ "_id": id }, doc!{ "$set": update }, None)
+			.await
+			.map(|_| ())
+	}
 }
 
 #[get("/article/{id}")]
@@ -138,23 +152,22 @@ pub async fn get(
 
 	let id = ObjectId::parse_str(&id_str).unwrap(); // TODO handle error (http 404)
 
+	let db = data.get_database();
+
 	// Get article
-	let (article, comments) = {
-		let db = data.get_database();
-
-		let article = Article::from_id(&db, id)
-			.await
-			.unwrap(); // TODO handle error (http 500)
-		let comments = Comment::list_for_article(&db, id)
-			.await
-			.unwrap(); // TODO handle error (http 500)
-
-		(article, comments)
-	};
-	let user_login = session.get::<String>("user_login").unwrap(); // TODO handle error
+	let article = Article::from_id(&db, id)
+		.await
+		.unwrap(); // TODO handle error (http 500)
 
 	match article {
 		Some(article) => {
+			// If article is not public, the user must be admin to see it
+			let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+			if !article.public && !admin {
+				// TODO
+				todo!();
+			}
+
 			let markdown = markdown::to_html(&article.content);
 
 			let html = include_str!("../pages/article.html");
@@ -163,6 +176,9 @@ pub async fn get(
 			let html = html.replace("{article.desc}", &article.desc);
 			let html = html.replace("{article.content}", &markdown);
 
+			let user_login = session.get::<String>("user_login")
+				.ok()
+				.flatten();
 			let comment_editor_html = match user_login {
 				Some(user_login) => format!(
 					r#"<p>You are currently logged as <b>{}</b>. <a href="/logout">Logout</a></p>
@@ -176,10 +192,15 @@ pub async fn get(
 
 				None => format!(
 					r#"<p><a href="{}">Login</a> with Github to leave a comment.</p>"#,
-					user::get_auth_url(&data)
+					user::get_auth_url(&data.client_id)
 				),
 			};
 			let html = html.replace("{comment.editor}", &comment_editor_html);
+
+			// Get article comments
+			let comments = Comment::list_for_article(&db, id)
+				.await
+				.unwrap(); // TODO handle error (http 500)
 
 			let comments_count = comments.len();
 			let comments_html: String = comments.into_iter()
@@ -230,22 +251,40 @@ pub struct ArticleEdit {
 	content: String,
 
 	/// Tells whether to publish the article.
-	public: String,
+	public: Option<String>,
 }
 
 #[post("/article")]
 pub async fn post(
 	data: web::Data<GlobalData>,
-	info: web::Form<ArticleEdit>
+	info: web::Form<ArticleEdit>,
+	session: Session,
 ) -> impl Responder {
+	let db = data.get_database();
+
+	// Check auth
+	let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+	if !admin {
+		// TODO
+		todo!();
+	}
+
 	let info = info.into_inner();
-
-	// TODO Check auth
-
 	let id = match info.id {
 		// Update article
 		Some(id) => {
-			// TODO update article
+			Article::update(
+				&db,
+				ObjectId::parse_str(&id).unwrap(), // TODO handle error
+				doc! {
+					"title": info.title,
+					"desc": info.desc,
+
+					"content": info.content,
+
+					"public": info.public.map(|p| p == "on").unwrap_or(false),
+				}
+			).await.unwrap(); // TODO handle error
 
 			id
 		}
@@ -262,7 +301,7 @@ pub async fn post(
 
 				post_date: chrono::offset::Utc::now(),
 
-				public: info.public == "on",
+				public: info.public.map(|p| p == "on").unwrap_or(false),
 				comments_locked: false,
 			};
 
@@ -292,19 +331,7 @@ async fn editor(
 	let db = data.get_database();
 
 	// Check auth
-	let user_id = session.get::<String>("user_id")
-		.ok()
-		.flatten()
-		.map(|user_id| ObjectId::parse_str(&user_id).ok())
-		.flatten();
-	let admin = match user_id {
-		Some(user_id) => {
-			let user = User::from_id(&db, user_id).await.unwrap(); // TODO handle error
-			user.map(|u| u.admin).unwrap_or(false)
-		}
-
-		None => false,
-	};
+	let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
 	if !admin {
 		// TODO
 		todo!();
@@ -322,6 +349,12 @@ async fn editor(
 		None => None,
 	};
 
+	let article_id_html = article.as_ref()
+		.map(|a| format!(
+			"<input name=\"id\" type=\"hidden\" value=\"{}\"></input>",
+			a.id.to_hex()
+		))
+		.unwrap_or(String::new());
 	let article_title = article.as_ref()
 		.map(|a| a.title.as_str())
 		.unwrap_or("");
@@ -336,6 +369,7 @@ async fn editor(
 		.unwrap_or(false);
 
 	let html = include_str!("../pages/editor.html");
+	let html = html.replace("{article.id}", &article_id_html);
 	let html = html.replace("{article.title}", &article_title);
 	let html = html.replace("{article.desc}", &article_desc);
 	let html = html.replace("{article.content}", &article_content);

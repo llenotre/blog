@@ -8,6 +8,7 @@ mod user;
 mod util;
 
 use actix_files::Files;
+use actix_session::Session;
 use actix_session::SessionMiddleware;
 use actix_session::storage::CookieSessionStore;
 use actix_web::{
@@ -22,6 +23,7 @@ use actix_web::{
     middleware,
 };
 use article::Article;
+use crate::user::User;
 use mongodb::Client;
 use mongodb::options::ClientOptions;
 use serde::Deserialize;
@@ -76,7 +78,11 @@ pub struct PageQuery {
 }
 
 #[get("/")]
-async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl Responder {
+async fn root(
+	data: web::Data<GlobalData>,
+	page: web::Query<PageQuery>,
+	session: Session
+) -> impl Responder {
 	let page = page.into_inner()
 		.page
 		.unwrap_or(0);
@@ -90,22 +96,18 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 		"#833471" // purple
 	];
 
+	let db = data.get_database();
+	let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+
 	// Get articles
-	let (total_articles, articles) = {
-		let db = data.get_database();
+	let total_articles = Article::get_total_count(&db)
+		.await
+		.unwrap(); // TODO handle error
+	let articles = Article::list(&db, page, ARTICLES_PER_PAGE, !admin)
+		.await
+		.unwrap(); // TODO handle error
 
-		// TODO handle errors (http 500)
-		let total_articles = Article::get_total_count(&db)
-			.await
-			.unwrap();
-		let articles = Article::list(&db, page, ARTICLES_PER_PAGE, true)
-			.await
-			.unwrap();
-
-		(total_articles, articles)
-	};
 	let pages_count = util::ceil_div(total_articles, ARTICLES_PER_PAGE);
-
 	if page != 0 && page >= pages_count {
 		// TODO http 404
 		todo!();
@@ -121,6 +123,12 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 				"gray"
 			};
 
+			let public_html = match (admin, article.public) {
+				(false, _) => "",
+				(true, false) => "<h6>PRIVATE</h6>",
+				(true, true) => "<h6>PUBLIC</h6>",
+			};
+
 			format!(
 				r#"<div class="article" style="background-color: {};">
 					<h2><a href="/article/{}">{}</a></h2>
@@ -128,11 +136,14 @@ async fn root(data: web::Data<GlobalData>, page: web::Query<PageQuery>) -> impl 
 					<p>
 						{}
 					</p>
+
+					{}
 				</div>"#,
 				color,
 				article.id,
 				article.title,
-				article.desc
+				article.desc,
+				public_html
 			)
 		})
 		.collect();
@@ -219,6 +230,7 @@ async fn main() -> io::Result<()> {
             .service(article::get)
             .service(legal)
             .service(root)
+            .service(user::auth)
             .service(user::logout)
             .service(user::oauth)
     })

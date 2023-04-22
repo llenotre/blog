@@ -19,10 +19,10 @@ const GITHUB_USER_AGENT: &str = "maestro";
 const GITHUB_API_VERSION: &str = "2022-11-28";
 
 /// Returns the authentication URL.
-pub fn get_auth_url(global: &GlobalData) -> String {
+pub fn get_auth_url(client_id: &str) -> String {
 	format!(
 		"https://github.com/login/oauth/authorize?client_id={}",
-		global.client_id
+		client_id
 	)
 }
 
@@ -119,6 +119,34 @@ impl User {
 		let collection = db.collection::<Self>("user");
 		collection.insert_one(self, None).await.map(|_| ())
 	}
+
+	/// Checks the given session has admin permissions.
+	///
+	/// `db` is the database.
+	pub async fn check_admin(
+		db: &mongodb::Database,
+		session: &Session
+	) -> Result<bool, mongodb::error::Error> {
+		let user_id = session.get::<String>("user_id")
+			.ok()
+			.flatten()
+			.map(|user_id| ObjectId::parse_str(&user_id).ok())
+			.flatten();
+
+		match user_id {
+			Some(user_id) => {
+				let user = Self::from_id(&db, user_id).await?;
+				Ok(user.map(|u| u.admin).unwrap_or(false))
+			}
+
+			None => Ok(false),
+		}
+	}
+}
+
+#[get("/auth")]
+pub async fn auth(data: web::Data<GlobalData>) -> impl Responder {
+	Redirect::to(get_auth_url(&data.client_id)).temporary()
 }
 
 #[get("/oauth")]
