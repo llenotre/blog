@@ -8,11 +8,19 @@
 		background: #2f2f2f;
 		color: white;
 	}
+
+	a {
+		color: white;
+	}
 }
 
 @media (prefers-color-scheme: light) {
 	body {
 		background: white;
+		color: black;
+	}
+
+	a {
 		color: black;
 	}
 }
@@ -34,13 +42,15 @@ div.section {
 	}
 }
 
-a {
-	color: black;
-}
-
 .intro {
 	background-color: #006266;
 	color: #fff;
+}
+
+.intro hr {
+	background-color: white;
+	border-color: white;
+	color: white;
 }
 
 .articles-list {
@@ -88,14 +98,56 @@ a.page-button {
 	flex-basis: 40%;
 }
 
-ul.share {
+div.share {
+	margin: 20px 0 20px 0;
 	float: right;
+}
+
+div.share p,ul {
+	margin: 5px;
+}
+
+ul.share {
 	list-style-type: none;
-	white-space:nowrap;
+	white-space: nowrap;
+	float: right;
 }
 
 ul.share li {
+	font-size: 30px;
 	display: inline;
+}
+
+ul.share li:hover {
+	opacity: 0.5;
+}
+
+table {
+	border: 3px solid white;
+	border-spacing: 0;
+	border-collapse: collapse;
+}
+
+code {
+	background: #000;
+	font-family: 'Fira Code', monospace;
+	font-variant-ligatures: none;
+}
+
+pre code {
+	padding: 10px;
+	display: block;
+}
+
+th {
+	border: 1px solid white;
+	border-bottom: 3px solid white;
+	padding: 10px;
+}
+
+td {
+	border: 1px solid white;
+	padding: 10px;
 }
 
 div.reactions {
@@ -128,12 +180,24 @@ input, textarea {
 	font-family: 'Fira Code', monospace;
 }
 
+input[type=checkbox] {
+	width: auto;
+}
+
 *:focus {
     outline: none;
 }
 
 textarea {
+	width: 100%;
+	min-width: 100%;
+	max-width: 100%;
 	height: 300px;
+}
+
+h6.aux {
+	margin: 0;
+	float: right;
 }
 
 button {

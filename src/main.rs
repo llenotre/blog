@@ -89,12 +89,9 @@ async fn root(
 		.unwrap_or(0);
 
 	// Article colors
-	static COLORS: [&str; 5] = [
-		"#ea2027", // red
-		"#ee5a24", // orange
-		"#009432", // green
-		"#0652dd", // blue
-		"#833471" // purple
+	static COLORS: [&str; 2] = [
+		"#006266",
+		"#2f2f2f"
 	];
 
 	let db = data.get_database();

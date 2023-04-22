@@ -184,15 +184,14 @@ pub async fn get(
 				Some(user_login) => format!(
 					r#"<p>You are currently logged as <b>{}</b>. <a href="/logout">Logout</a></p>
 
-					<h6>Markdown is supported</h6>
-
 					<textarea id="comment" placeholder="What are your thoughts?"></textarea>
-					<button id="comment-submit" href="\#">Post comment</button>"#,
+					<button id="comment-submit" href="\#">Post comment</button>
+					<h6 class="aux">Markdown is supported</h6>"#,
 					user_login
 				),
 
 				None => format!(
-					r#"<p><a href="{}">Login</a> with Github to leave a comment.</p>"#,
+					r#"<p><a href="{}">Login with Github</a> to leave a comment.</p>"#,
 					user::get_auth_url(&data.client_id)
 				),
 			};
