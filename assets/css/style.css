@@ -88,6 +88,16 @@ a.page-button {
 	flex-basis: 40%;
 }
 
+ul.share {
+	float: right;
+	list-style-type: none;
+	white-space:nowrap;
+}
+
+ul.share li {
+	display: inline;
+}
+
 div.reactions {
 	width: 100%;
 	display: flex;

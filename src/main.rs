@@ -4,6 +4,7 @@ mod analytics;
 mod article;
 mod comment;
 //mod error;
+mod markdown;
 mod user;
 mod util;
 

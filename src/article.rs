@@ -15,6 +15,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crate::GlobalData;
 use crate::comment::Comment;
+use crate::markdown;
 use crate::user::User;
 use crate::user;
 use crate::util;
