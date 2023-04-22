@@ -26,6 +26,17 @@ pub fn get_auth_url(client_id: &str) -> String {
 	)
 }
 
+/// Returns a redirection to the last article consulted by the session's user.
+pub fn redirect_to_last_article(session: &Session) -> Redirect {
+	let last_article = session.get::<String>("last_article");
+	let uri = match last_article {
+		Ok(Some(last_article)) => format!("/article/{}", last_article),
+		_ => "/".to_owned(),
+	};
+
+	Redirect::to(uri).see_other()
+}
+
 /// The query containing informations returned by Github for OAuth.
 #[derive(Deserialize)]
 pub struct OauthQuery {
@@ -213,12 +224,7 @@ pub async fn oauth(
 	session.insert("user_login", user.github_info.login).unwrap(); // TODO handle error
 
 	// Redirect user
-	let last_article = session.get::<String>("last_article");
-	let uri = match last_article {
-		Ok(Some(last_article)) => format!("/article/{}", last_article),
-		_ => "/".to_owned(),
-	};
-	Redirect::to(uri).see_other()
+	redirect_to_last_article(&session)
 }
 
 #[get("/logout")]
@@ -230,10 +236,5 @@ pub async fn logout(
 	session.remove("user_login").unwrap(); // TODO handle error
 
 	// Redirect user
-	let last_article = session.get::<String>("last_article");
-	let uri = match last_article {
-		Ok(Some(last_article)) => format!("/article/{}", last_article),
-		_ => "/".to_owned(),
-	};
-	Redirect::to(uri).see_other()
+	redirect_to_last_article(&session)
 }

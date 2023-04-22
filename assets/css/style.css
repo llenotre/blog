@@ -199,15 +199,24 @@ h6.aux {
 	float: right;
 }
 
-button {
-	background-color: #1f1f1f;
-	border: none;
-	color: #fff;
-	text-align: center;
-	text-decoration: none;
-	margin: 0;
+div.comment {
+	background: #2f2f2f;
+	margin-bottom: 10px;
+}
+
+div.comment-header {
+	background: #1f1f1f;
 	padding: 10px;
-	cursor: pointer;
+}
+
+img.profile-pic {
+	border-radius: 100%;
+	width: 50px;
+}
+
+div.comment-content {
+	padding: 10px;
+	padding-top: 0;
 }
 
 footer {

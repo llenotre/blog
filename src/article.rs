@@ -182,12 +182,16 @@ pub async fn get(
 				.flatten();
 			let comment_editor_html = match user_login {
 				Some(user_login) => format!(
-					r#"<p>You are currently logged as <b>{}</b>. <a href="/logout">Logout</a></p>
+					r#"<form method="POST" action="/comment">
+						<p>You are currently logged as <b>{}</b>. <a href="/logout">Logout</a></p>
 
-					<textarea id="comment" placeholder="What are your thoughts?"></textarea>
-					<button id="comment-submit" href="\#">Post comment</button>
+						<input name="article_id" type="hidden" value="{}"></input>
+						<textarea name="content" placeholder="What are your thoughts?"></textarea>
+						<input type="submit" value="Post comment"></input>
+					</form>
 					<h6 class="aux">Markdown is supported</h6>"#,
-					user_login
+					user_login,
+					id_str
 				),
 
 				None => format!(
@@ -205,17 +209,28 @@ pub async fn get(
 			let comments_count = comments.len();
 			let comments_html: String = comments.into_iter()
 				.map(|com| {
-					let content = "TODO"; // TODO
+					//let author = User::from_id(&com.author.id).await.unwrap(); // TODO handle error
+					let author_pic = "TODO"; // TODO
+					let author_page = "TODO"; // TODO
+					//author.github_info.login;
+					let author_login = "TODO"; // TODO
+
+					let content = "TODO"; // TODO get latest version
 					let markdown = markdown::to_html(content);
 
 					format!(r#"<div class="comment">
 							<div class="comment-header">
-								{} (posted at {})
+								<img class="profile-pic" src="{}"></img>
+								<a href="{}" target="_blank">{}</a> (posted at {})
 							</div>
 
-							{}
+							<div class="comment-content">
+								{}
+							</div>
 						</div>"#,
-						com.author,
+						author_pic,
+						author_page,
+						author_login,
 						com.post_date.format("%d/%m/%Y %H:%M:%S"),
 						markdown
 					)

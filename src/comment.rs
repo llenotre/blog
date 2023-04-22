@@ -1,7 +1,7 @@
 //! This module handles comments on articles.
 
+use actix_session::Session;
 use actix_web::{
-	HttpResponse,
 	Responder,
 	post,
 	web,
@@ -11,6 +11,7 @@ use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
 use crate::GlobalData;
+use crate::user;
 use crate::util;
 use futures_util::stream::TryStreamExt;
 use mongodb::options::FindOneOptions;
@@ -29,8 +30,8 @@ pub struct Comment {
 	/// The ID of the comment this comment responds to. If `None`, this comment is not a response.
 	pub response_to: Option<ObjectId>,
 
-	/// The author of the comment.
-	pub author: String,
+	/// The ID of author of the comment.
+	pub author_id: ObjectId,
 
 	/// Timestamp since epoch at which the comment has been posted.
 	#[serde(with = "util::serde_date_time")]
@@ -51,7 +52,7 @@ impl Comment {
 		let collection = db.collection::<Self>("comment");
 		collection.find(
 			Some(doc!{
-				"article_id": article_id,
+				"article": article_id,
 				"removed": false,
 			}),
 			None
@@ -132,8 +133,8 @@ pub struct Reaction {
 	/// The ID of the comment.
 	pub comment_id: Option<ObjectId>,
 
-	/// The author of the reaction.
-	pub author: String,
+	/// The ID of author of the reaction.
+	pub author_id: ObjectId,
 
 	/// The reaction.
 	pub reaction: char,
@@ -158,13 +159,21 @@ pub struct PostCommentPayload {
 	content: String,
 }
 
-#[post("/article")]
+// TODO error if article's comments are locked
+#[post("/comment")]
 pub async fn post(
 	data: web::Data<GlobalData>,
-	payload: web::Json<PostCommentPayload>
+	form: web::Form<PostCommentPayload>,
+	session: Session,
 ) -> impl Responder {
-	let payload = payload.into_inner();
-	let article_id = ObjectId::parse_str(payload.article_id).unwrap(); // TODO handle error (http 404)
+	let form = form.into_inner();
+	let article_id = ObjectId::parse_str(form.article_id).unwrap(); // TODO handle error (http 404)
+
+	let Some(user_id) = session.get::<String>("user_id").unwrap() else { // TODO handle error
+		// TODO
+		todo!();
+	};
+	let user_id = ObjectId::parse_str(&user_id).unwrap(); // TODO handle error
 
 	let id = ObjectId::new();
 	let date = chrono::offset::Utc::now();
@@ -173,9 +182,9 @@ pub async fn post(
 		id,
 
 		article: article_id,
-		response_to: payload.response_to,
+		response_to: form.response_to,
 
-		author: "TODO".to_string(), // TODO
+		author_id: user_id,
 
 		post_date: date,
 
@@ -199,5 +208,5 @@ pub async fn post(
 			.unwrap(); // TODO handle error (http 500)
 	}
 
-	HttpResponse::Ok().finish()
+	user::redirect_to_last_article(&session)
 }
