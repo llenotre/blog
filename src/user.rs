@@ -146,7 +146,7 @@ impl User {
 
 #[get("/auth")]
 pub async fn auth(data: web::Data<GlobalData>) -> impl Responder {
-	Redirect::to(get_auth_url(&data.client_id)).temporary()
+	Redirect::to(get_auth_url(&data.client_id)).see_other()
 }
 
 #[get("/oauth")]
@@ -218,7 +218,7 @@ pub async fn oauth(
 		Ok(Some(last_article)) => format!("/article/{}", last_article),
 		_ => "/".to_owned(),
 	};
-	Redirect::to(uri).temporary()
+	Redirect::to(uri).see_other()
 }
 
 #[get("/logout")]
@@ -235,5 +235,5 @@ pub async fn logout(
 		Ok(Some(last_article)) => format!("/article/{}", last_article),
 		_ => "/".to_owned(),
 	};
-	Redirect::to(uri).temporary()
+	Redirect::to(uri).see_other()
 }

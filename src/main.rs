@@ -4,6 +4,7 @@ mod analytics;
 mod article;
 mod comment;
 //mod error;
+mod file;
 mod markdown;
 mod user;
 mod util;
@@ -231,6 +232,9 @@ async fn main() -> io::Result<()> {
             .service(user::auth)
             .service(user::logout)
             .service(user::oauth)
+            .service(file::get)
+            .service(file::manage)
+            .service(file::upload)
     })
     .bind(format!("0.0.0.0:{}", config.port))?
     .run()

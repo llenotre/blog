@@ -5,14 +5,15 @@ edition = "2021"
 
 [dependencies]
 actix-files = "0.6.2"
+actix-multipart = "0.6.0"
 actix-session = { version = "0.7.2", features = ["cookie-session"] }
 actix-web = { version = "4.3.1", features = ["cookies"] }
 bson = "2.6.1"
 chrono = "0.4.24"
 env_logger = "0.10.0"
 futures-util = "0.3.28"
-pulldown-cmark = "0.9.2"
 mongodb = "2.4.0"
+pulldown-cmark = "0.9.2"
 reqwest = { version = "0.11.16", features = ["json"] }
 serde = { version = "1.0.160", features = ["derive"] }
 tokio = "1.27.0"
