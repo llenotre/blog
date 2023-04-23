@@ -15,6 +15,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crate::GlobalData;
 use crate::comment::Comment;
+use crate::comment::CommentContent;
 use crate::markdown;
 use crate::user::User;
 use crate::user;
@@ -205,38 +206,62 @@ pub async fn get(
 			let comments = Comment::list_for_article(&db, id)
 				.await
 				.unwrap(); // TODO handle error (http 500)
-
 			let comments_count = comments.len();
-			let comments_html: String = comments.into_iter()
-				.map(|com| {
-					//let author = User::from_id(&com.author.id).await.unwrap(); // TODO handle error
-					let author_pic = "TODO"; // TODO
-					let author_page = "TODO"; // TODO
-					//author.github_info.login;
-					let author_login = "TODO"; // TODO
 
-					let content = "TODO"; // TODO get latest version
-					let markdown = markdown::to_html(content);
+			let mut comments_html = String::new();
+			for com in comments {
+				// TODO handle error
+				// Get author
+				let Some(author) = User::from_id(&db, com.author).await.unwrap() else {
+					continue;
+				};
 
-					format!(r#"<div class="comment">
+				// TODO handle error
+				// Get content and convert it
+				let Some(content) = CommentContent::get_for(&db, com.id).await.unwrap() else {
+					continue;
+				};
+				let escaped_content = html_escape::encode_text(&content.content);
+				let markdown = markdown::to_html(&escaped_content);
+
+				// TODO use the user's timezome
+				let date_text = if content.edit_date > com.post_date {
+					format!(
+						"posted at {}, last edit at {}",
+						com.post_date.format("%d/%m/%Y %H:%M:%S"),
+						content.edit_date.format("%d/%m/%Y %H:%M:%S")
+					)
+				} else {
+					format!(
+						"posted at {}",
+						com.post_date.format("%d/%m/%Y %H:%M:%S")
+					)
+				};
+
+				// TODO add decoration on comments depending on the sponsoring tier
+				comments_html.push_str(
+					&format!(r#"<div class="comment">
 							<div class="comment-header">
-								<img class="profile-pic" src="{}"></img>
-								<a href="{}" target="_blank">{}</a> (posted at {})
+								<img class="avatar" src="{}"></img>
+								<a href="{}" target="_blank">{}</a>
+
+								<h6>{}</h6>
 							</div>
 
 							<div class="comment-content">
 								{}
 							</div>
 						</div>"#,
-						author_pic,
-						author_page,
-						author_login,
-						com.post_date.format("%d/%m/%Y %H:%M:%S"),
+						author.github_info.avatar_url,
+						author.github_info.html_url,
+						author.github_info.login,
+						date_text,
 						markdown
 					)
-				})
-				.collect();
+				);
+			}
 			let html = html.replace("{comments}", &comments_html);
+
 			let html = html.replace("{comments.count}", &format!("{}", comments_count));
 
 			HttpResponse::Ok()

@@ -55,13 +55,13 @@ pub struct GithubToken {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct GithubUser {
 	/// The user's login.
-	login: String,
+	pub login: String,
 	/// The user's ID.
-	id: i64,
+	pub id: i64,
 	/// The URL to the user's avatar.
-	avatar_url: String,
+	pub avatar_url: String,
 	/// The URL to the user's profile.
-	html_url: String,
+	pub html_url: String,
 }
 
 /// A user, who can post comments, or if admin, administrate the website.

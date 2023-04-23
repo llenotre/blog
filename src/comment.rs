@@ -18,6 +18,8 @@ use mongodb::options::FindOneOptions;
 use serde::Deserialize;
 use serde::Serialize;
 
+// TODO support pinned comments
+
 /// Structure representing a comment on an article.
 #[derive(Serialize, Deserialize)]
 pub struct Comment {
@@ -31,7 +33,7 @@ pub struct Comment {
 	pub response_to: Option<ObjectId>,
 
 	/// The ID of author of the comment.
-	pub author_id: ObjectId,
+	pub author: ObjectId,
 
 	/// Timestamp since epoch at which the comment has been posted.
 	#[serde(with = "util::serde_date_time")]
@@ -86,13 +88,16 @@ pub struct CommentContent {
 	/// Timestamp since epoch at which the comment has been edited.
 	#[serde(with = "util::serde_date_time")]
 	pub edit_date: DateTime<Utc>,
+
+	/// The content of the comment.
+	pub content: String,
 }
 
 impl CommentContent {
 	/// Returns the latest content of the comment with the given ID `id`.
 	///
 	/// `db` is the database.
-	pub async fn get_content(
+	pub async fn get_for(
 		db: &mongodb::Database,
 		id: ObjectId,
 	) -> Result<Option<Self>, mongodb::error::Error> {
@@ -134,7 +139,7 @@ pub struct Reaction {
 	pub comment_id: Option<ObjectId>,
 
 	/// The ID of author of the reaction.
-	pub author_id: ObjectId,
+	pub author: ObjectId,
 
 	/// The reaction.
 	pub reaction: char,
@@ -184,7 +189,7 @@ pub async fn post(
 		article: article_id,
 		response_to: form.response_to,
 
-		author_id: user_id,
+		author: user_id,
 
 		post_date: date,
 
@@ -194,19 +199,18 @@ pub async fn post(
 		comment_id: id,
 
 		edit_date: date,
+
+		content: form.content,
 	};
 
-	{
-		let db = data.get_database();
-
-		comment_content.insert(&db)
-			.await
-			.unwrap(); // TODO handle error (http 500)
-
-		comment.insert(&db)
-			.await
-			.unwrap(); // TODO handle error (http 500)
-	}
+	// Insert comment
+	let db = data.get_database();
+	comment_content.insert(&db)
+		.await
+		.unwrap(); // TODO handle error (http 500)
+	comment.insert(&db)
+		.await
+		.unwrap(); // TODO handle error (http 500)
 
 	user::redirect_to_last_article(&session)
 }
