@@ -190,7 +190,9 @@ pub async fn get(
 						<textarea name="content" placeholder="What are your thoughts?"></textarea>
 						<input type="submit" value="Post comment"></input>
 					</form>
-					<h6 class="aux">Markdown is supported</h6>"#,
+
+					<h6>Markdown is supported</h6>
+					<h6>TODO/10000 characters</h6>"#,
 					user_login,
 					id_str
 				),
@@ -240,9 +242,9 @@ pub async fn get(
 
 				// TODO add decoration on comments depending on the sponsoring tier
 				comments_html.push_str(
-					&format!(r#"<div class="comment">
+					&format!(r##"<div class="comment">
 							<div class="comment-header">
-								<img class="avatar" src="{}"></img>
+								<a href="{}" target="_blank"><img class="avatar" src="{}"></img></a>
 								<a href="{}" target="_blank">{}</a>
 
 								<h6>{}</h6>
@@ -250,8 +252,15 @@ pub async fn get(
 
 							<div class="comment-content">
 								{}
+
+								<ul class="comment-buttons">
+									<li><a class="button" href="#">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>
+									<li><a class="button" href="#">Delete <i class="fa-solid fa-trash"></i></a></li>
+									<li><a class="button" href="#">Reply <i class="fa-solid fa-reply"></i></a></li>
+								</ul>
 							</div>
-						</div>"#,
+						</div>"##,
+						author.github_info.html_url,
 						author.github_info.avatar_url,
 						author.github_info.html_url,
 						author.github_info.login,
@@ -352,7 +361,8 @@ pub async fn post(
 		}
 	};
 
-	web::Redirect::to(format!("/article/{}", id))
+	// Redirect user
+	user::redirect_to_last_article(&session)
 }
 
 /// Editor page query.

@@ -47,12 +47,6 @@ div.section {
 	color: #fff;
 }
 
-.intro hr {
-	background-color: white;
-	border-color: white;
-	color: white;
-}
-
 .articles-list {
 	background-color: #1b1464;
 	color: #fff;
@@ -86,13 +80,20 @@ div.article a {
 	}
 }
 
-a.page-button {
+a.button {
 	background-color: #006266;
 	color: #fff;
 	text-align: center;
 	text-decoration: none;
-	margin: 0;
+	margin: 10px;
 	padding: 10px;
+}
+
+a.button:hover {
+	background-color: #003133;
+}
+
+.page-button {
 	width: 100%;
 	flex-basis: 40%;
 }
@@ -189,14 +190,9 @@ input[type=checkbox] {
 
 textarea {
 	width: 100%;
-	min-width: 100%;
-	max-width: 100%;
 	height: 300px;
-}
-
-h6.aux {
-	margin: 0;
-	float: right;
+	padding: 0;
+	resize: none;
 }
 
 div.comment {
@@ -206,7 +202,11 @@ div.comment {
 
 div.comment-header {
 	background: #1f1f1f;
-	padding: 10px;
+	padding: 20px;
+}
+
+div.comment-header * {
+	display: inline;
 }
 
 img.avatar {
@@ -215,8 +215,18 @@ img.avatar {
 }
 
 div.comment-content {
-	padding: 10px;
+	padding: 20px;
 	padding-top: 0;
+}
+
+ul.comment-buttons {
+	padding: 10px 0 10px 0;
+	list-style-type: none;
+	white-space: nowrap;
+}
+
+ul.comment-buttons li {
+	display: inline;
 }
 
 footer {

@@ -154,14 +154,14 @@ async fn root(
 	let html = html.replace("{articles}", &articles_html);
 
 	let prev_button_html = if page > 0 {
-		format!("<a href=\"?page={}\" class=\"page-button\">Previous Page</a>", page - 1)
+		format!("<a href=\"?page={}\" class=\"button page-button\">Previous Page</a>", page - 1)
 	} else {
 		String::new()
 	};
 	let html = html.replace("{button.prev}", &prev_button_html);
 
 	let next_button_html = if page + 1 < pages_count {
-		format!("<a href=\"?page={}\" class=\"page-button\" style=\"margin-left: auto;\">Next Page</a>", page + 1)
+		format!("<a href=\"?page={}\" class=\"button page-button\" style=\"margin-left: auto;\">Next Page</a>", page + 1)
 	} else {
 		String::new()
 	};
