@@ -15,6 +15,7 @@ use crate::user;
 use crate::util;
 use futures_util::stream::TryStreamExt;
 use mongodb::options::FindOneOptions;
+use mongodb::options::FindOptions;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -45,6 +46,7 @@ pub struct Comment {
 
 impl Comment {
 	/// Returns the list of comments for the article with the given id `article_id`.
+	/// Comments are returns ordered by decreasing post date.
 	///
 	/// `db` is the database.
 	pub async fn list_for_article(
@@ -52,12 +54,15 @@ impl Comment {
 		article_id: ObjectId,
 	) -> Result<Vec<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
+		let options = FindOptions::builder()
+			.sort(doc!{ "post_date": -1 })
+			.build();
 		collection.find(
 			Some(doc!{
 				"article": article_id,
 				"removed": false,
 			}),
-			None
+			Some(options)
 		)
 			.await?
 			.try_collect()
