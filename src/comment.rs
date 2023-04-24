@@ -1,10 +1,11 @@
 //! This module handles comments on articles.
 
+use crate::markdown;
 use crate::user::User;
 use crate::util;
 use crate::GlobalData;
 use actix_session::Session;
-use actix_web::{delete, post, web, HttpResponse, Responder};
+use actix_web::{delete, get, post, web, HttpResponse, Responder};
 use bson::doc;
 use bson::oid::ObjectId;
 use chrono::DateTime;
@@ -277,4 +278,12 @@ pub async fn delete(
 
     // TODO handle errors
     HttpResponse::Ok().finish()
+}
+
+#[get("/comment/preview")]
+pub async fn preview(payload: String) -> impl Responder {
+    let escaped_content = html_escape::encode_text(&payload);
+    let markdown = markdown::to_html(&escaped_content);
+
+    HttpResponse::Ok().body(markdown)
 }

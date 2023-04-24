@@ -174,7 +174,7 @@ pub async fn get(
 
 					<input id="article-id" name="article_id" type="hidden" value="{}"></input>
 					<textarea id="comment-content" name="content" placeholder="What are your thoughts?"></textarea>
-					<input id="comment-submit" type="submit" value="Post comment"></input>
+					<input onclick="post(null)" type="submit" value="Post comment"></input>
 
 					<h6>Markdown is supported</h6>
 					<h6><span id="comment-len">0</span>/{} characters</h6>"#,

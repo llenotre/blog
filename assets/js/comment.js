@@ -3,23 +3,33 @@ var comment_content = document.getElementById("comment-content");
 var comment_submit = document.getElementById("comment-submit");
 var comment_len = document.getElementById("comment-len");
 
-comment_content.addEventListener("input", input);
-comment_submit.addEventListener("click", post);
+comment_content.addEventListener("input", input_event);
 
-function input(event) {
+// Updates the number of characters in the counter
+function input_event(event) {
 	var len = comment_content.value.length;
 	comment_len.innerHTML = len;
 	comment_submit.disabled = (len > 10000);
 }
 
-function post(event) {
+// Returns the preview for the given markdown
+function get_preview(markdown) {
+	var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open("GET", "/comment/preview", false);
+    xmlHttp.send(markdown);
+
+	return xmlHttp.responseText;
+}
+
+// TODO doc
+function post(response_to) {
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("POST", "/comment", false);
     xmlHttp.setRequestHeader("Content-Type", "application/json");
 
 	var payload = JSON.stringify({
 		"article_id": article_id.value,
-		// TODO "response_to": "",
+		"response_to": response_to
 
 		"content": comment_content.value
 	});
@@ -33,12 +43,15 @@ function post(event) {
 	}
 }
 
+// TODO doc
 function edit(comment_id) {
-	// TODO
+	// TODO show editor
 }
 
-// TODO add delete confirm
+// TODO doc
 function del(comment_id) {
+	// TODO add delete confirm
+
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("DELETE", "/comment/" + comment_id, false);
     xmlHttp.send(null);
@@ -46,6 +59,7 @@ function del(comment_id) {
 	location.reload()
 }
 
+// TODO doc
 function reply(comment_id) {
 	// TODO
 }

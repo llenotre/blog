@@ -214,6 +214,7 @@ async fn main() -> io::Result<()> {
             .service(article::post)
             .service(comment::delete)
             .service(comment::post)
+            .service(comment::preview)
             .service(article::editor)
             .service(article::get)
             .service(legal)
