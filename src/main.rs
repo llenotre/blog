@@ -224,6 +224,7 @@ async fn main() -> io::Result<()> {
             .app_data(data.clone())
             .service(Files::new("/assets", "./assets"))
 			.service(article::post)
+			.service(comment::delete)
 			.service(comment::post)
             .service(article::editor)
             .service(article::get)

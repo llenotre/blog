@@ -7,6 +7,7 @@ use actix_web::{
 	http::header::ContentType,
 	post,
 	web,
+	web::Redirect,
 };
 use actix_session::Session;
 use bson::Bson;
@@ -16,6 +17,7 @@ use chrono::Utc;
 use crate::GlobalData;
 use crate::comment::Comment;
 use crate::comment::CommentContent;
+use crate::comment;
 use crate::markdown;
 use crate::user::User;
 use crate::user;
@@ -183,18 +185,17 @@ pub async fn get(
 				.flatten();
 			let comment_editor_html = match user_login {
 				Some(user_login) => format!(
-					r#"<form method="POST" action="/comment">
-						<p>You are currently logged as <b>{}</b>. <a href="/logout">Logout</a></p>
+					r#"<p>You are currently logged as <b>{}</b>. <a href="/logout">Logout</a></p>
 
-						<input name="article_id" type="hidden" value="{}"></input>
-						<textarea name="content" placeholder="What are your thoughts?"></textarea>
-						<input type="submit" value="Post comment"></input>
-					</form>
+					<input id="article-id" name="article_id" type="hidden" value="{}"></input>
+					<textarea id="comment-content" name="content" placeholder="What are your thoughts?"></textarea>
+					<input id="comment-submit" type="submit" value="Post comment"></input>
 
 					<h6>Markdown is supported</h6>
-					<h6>TODO/10000 characters</h6>"#,
+					<h6><span id="comment-len">0</span>/{} characters</h6>"#,
 					user_login,
-					id_str
+					id_str,
+					comment::MAX_CHARS
 				),
 
 				None => format!(
@@ -205,7 +206,7 @@ pub async fn get(
 			let html = html.replace("{comment.editor}", &comment_editor_html);
 
 			// Get article comments
-			let comments = Comment::list_for_article(&db, id)
+			let comments = Comment::list_for_article(&db, id, !admin)
 				.await
 				.unwrap(); // TODO handle error (http 500)
 			let comments_count = comments.len();
@@ -227,7 +228,7 @@ pub async fn get(
 				let markdown = markdown::to_html(&escaped_content);
 
 				// TODO use the user's timezome
-				let date_text = if content.edit_date > com.post_date {
+				let mut date_text = if content.edit_date > com.post_date {
 					format!(
 						"posted at {}, last edit at {}",
 						com.post_date.format("%d/%m/%Y %H:%M:%S"),
@@ -239,6 +240,19 @@ pub async fn get(
 						com.post_date.format("%d/%m/%Y %H:%M:%S")
 					)
 				};
+				if com.removed {
+					date_text.push_str(" - REMOVED");
+				}
+
+				// TODO add access to edit and delete only if the user has access
+				let buttons_html = format!(
+					r##"<li><a class="button" onclick="edit('{}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>
+					<li><a class="button" onclick="del('{}')">Delete <i class="fa-solid fa-trash"></i></a></li>
+					<li><a class="button" onclick="reply('{}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##,
+					com.id,
+					com.id,
+					com.id
+				);
 
 				// TODO add decoration on comments depending on the sponsoring tier
 				comments_html.push_str(
@@ -254,9 +268,7 @@ pub async fn get(
 								{}
 
 								<ul class="comment-buttons">
-									<li><a class="button" href="#">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>
-									<li><a class="button" href="#">Delete <i class="fa-solid fa-trash"></i></a></li>
-									<li><a class="button" href="#">Reply <i class="fa-solid fa-reply"></i></a></li>
+									{}
 								</ul>
 							</div>
 						</div>"##,
@@ -265,12 +277,13 @@ pub async fn get(
 						author.github_info.html_url,
 						author.github_info.login,
 						date_text,
-						markdown
+						markdown,
+						buttons_html
 					)
 				);
 			}
-			let html = html.replace("{comments}", &comments_html);
 
+			let html = html.replace("{comments}", &comments_html);
 			let html = html.replace("{comments.count}", &format!("{}", comments_count));
 
 			HttpResponse::Ok()
@@ -362,7 +375,7 @@ pub async fn post(
 	};
 
 	// Redirect user
-	user::redirect_to_last_article(&session)
+	Redirect::to(format!("/article/{}", id)).see_other()
 }
 
 /// Editor page query.

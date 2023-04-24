@@ -2,7 +2,9 @@
 
 use actix_session::Session;
 use actix_web::{
+	HttpResponse,
 	Responder,
+	delete,
 	post,
 	web,
 };
@@ -11,13 +13,16 @@ use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
 use crate::GlobalData;
-use crate::user;
+use crate::user::User;
 use crate::util;
 use futures_util::stream::TryStreamExt;
 use mongodb::options::FindOneOptions;
 use mongodb::options::FindOptions;
 use serde::Deserialize;
 use serde::Serialize;
+
+/// The maximum length of a comment in characters.
+pub const MAX_CHARS: usize = 10000;
 
 // TODO support pinned comments
 
@@ -48,20 +53,29 @@ impl Comment {
 	/// Returns the list of comments for the article with the given id `article_id`.
 	/// Comments are returns ordered by decreasing post date.
 	///
-	/// `db` is the database.
+	/// Arguments:
+	/// - `db` is the database.
+	/// - `not_removed` tells whether to the function must return only comments that are not
+	/// removed.
 	pub async fn list_for_article(
 		db: &mongodb::Database,
 		article_id: ObjectId,
+		not_removed: bool
 	) -> Result<Vec<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
+		let filter = if not_removed {
+			doc!{
+				"article": article_id,
+				"removed": false,
+			}
+		} else {
+			doc!{"article": article_id}
+		};
 		let options = FindOptions::builder()
 			.sort(doc!{ "post_date": -1 })
 			.build();
 		collection.find(
-			Some(doc!{
-				"article": article_id,
-				"removed": false,
-			}),
+			Some(filter),
 			Some(options)
 		)
 			.await?
@@ -79,6 +93,38 @@ impl Comment {
 	) -> Result<(), mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
 		collection.insert_one(self, None).await.map(|_| ())
+	}
+
+	/// Deletes the comment with the given ID.
+	///
+	/// Arguments:
+	/// - `db` is the database.
+	/// - `comment_id` is the ID of the comment to delete.
+	/// - `user_id` is the ID of the user trying to delete the comment.
+	/// - `bypass_perm` tells whether the function can bypass user's permissions.
+	pub async fn delete(
+		db: &mongodb::Database,
+		comment_id: &ObjectId,
+		user_id: &ObjectId,
+		bypass_perm: bool
+	) -> Result<(), mongodb::error::Error> {
+		let collection = db.collection::<Self>("comment");
+		let filter = if !bypass_perm {
+			doc!{
+				"_id": comment_id,
+				"author": user_id,
+			}
+		} else {
+			doc!{"_id": comment_id}
+		};
+
+		collection.update_one(
+			filter,
+			doc!{"$set": {"removed": true}},
+			None
+		).await?;
+
+		Ok(())
 	}
 }
 
@@ -173,11 +219,18 @@ pub struct PostCommentPayload {
 #[post("/comment")]
 pub async fn post(
 	data: web::Data<GlobalData>,
-	form: web::Form<PostCommentPayload>,
+	info: web::Json<PostCommentPayload>,
 	session: Session,
 ) -> impl Responder {
-	let form = form.into_inner();
-	let article_id = ObjectId::parse_str(form.article_id).unwrap(); // TODO handle error (http 404)
+	let info = info.into_inner();
+	let article_id = ObjectId::parse_str(info.article_id).unwrap(); // TODO handle error (http 404)
+
+	if info.content.is_empty() {
+		return HttpResponse::BadRequest().finish();
+	}
+	if info.content.len() > MAX_CHARS {
+		return HttpResponse::PayloadTooLarge().finish();
+	}
 
 	let Some(user_id) = session.get::<String>("user_id").unwrap() else { // TODO handle error
 		// TODO
@@ -192,7 +245,7 @@ pub async fn post(
 		id,
 
 		article: article_id,
-		response_to: form.response_to,
+		response_to: info.response_to,
 
 		author: user_id,
 
@@ -205,7 +258,7 @@ pub async fn post(
 
 		edit_date: date,
 
-		content: form.content,
+		content: info.content,
 	};
 
 	// Insert comment
@@ -217,5 +270,30 @@ pub async fn post(
 		.await
 		.unwrap(); // TODO handle error (http 500)
 
-	user::redirect_to_last_article(&session)
+	HttpResponse::Ok().finish()
+}
+
+#[delete("/comment/{id}")]
+pub async fn delete(
+	data: web::Data<GlobalData>,
+	comment_id: web::Path<String>,
+	session: Session,
+) -> impl Responder {
+	let comment_id = comment_id.into_inner();
+	let comment_id = ObjectId::parse_str(&comment_id).unwrap(); // TODO handle error
+
+	let Some(user_id) = session.get::<String>("user_id").unwrap() else { // TODO handle error
+		// TODO
+		todo!();
+	};
+	let user_id = ObjectId::parse_str(&user_id).unwrap(); // TODO handle error
+
+	let db = data.get_database();
+
+	// Delete if the user has permission
+	let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+	Comment::delete(&db, &comment_id, &user_id, admin).await.unwrap(); // TODO handle error
+
+	// TODO handle errors
+	HttpResponse::Ok().finish()
 }

@@ -87,6 +87,7 @@ a.button {
 	text-decoration: none;
 	margin: 10px;
 	padding: 10px;
+	cursor: pointer;
 }
 
 a.button:hover {
