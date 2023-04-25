@@ -3,7 +3,6 @@
 mod analytics;
 mod article;
 mod comment;
-//mod error;
 mod file;
 mod markdown;
 mod user;
@@ -15,8 +14,9 @@ use actix_session::storage::CookieSessionStore;
 use actix_session::Session;
 use actix_session::SessionMiddleware;
 use actix_web::{
-    cookie::Key, error, get, http::header::ContentType, middleware, web, App, HttpResponse,
-    HttpServer, Responder,
+    body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, error, get,
+    http::header::ContentType, middleware, middleware::ErrorHandlerResponse,
+    middleware::ErrorHandlers, web, App, HttpResponse, HttpServer, Responder,
 };
 use article::Article;
 use mongodb::options::ClientOptions;
@@ -127,9 +127,11 @@ async fn root(
 						{}
 					</p>
 
+					<a class="read-button" href="/article/{}">Read <i class="fa-solid fa-arrow-right"></i></a>
+
 					{}
 				</div>"#,
-                color, article.id, article.title, article.desc, public_html
+                color, article.id, article.title, article.desc, article.id, public_html
             )
         })
         .collect();
@@ -168,6 +170,23 @@ async fn legal() -> impl Responder {
     HttpResponse::Ok()
         .content_type(ContentType::html())
         .body(html)
+}
+
+fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
+    let status = res.status();
+
+    let html = include_str!("../pages/error.html");
+    let html = html.replace("{error.code}", &format!("{}", status.as_u16()));
+    let html = html.replace("{error.reason}", status.canonical_reason().unwrap());
+
+    let (req, res) = res.into_parts();
+    let res = res.map_body(|_, _| EitherBody::Right {
+        body: BoxBody::new(html),
+    });
+
+    Ok(ErrorHandlerResponse::Response(ServiceResponse::new(
+        req, res,
+    )))
 }
 
 #[actix_web::main]
@@ -212,7 +231,7 @@ async fn main() -> io::Result<()> {
                 CookieSessionStore::default(),
                 Key::from(config.session_secret_key.as_bytes()), // TODO parse hex
             ))
-            //.wrap(error::ErrorHandling)
+            .wrap(ErrorHandlers::new().default_handler(error_handler))
             .app_data(data.clone())
             .service(Files::new("/assets", "./assets"))
             .service(article::post)

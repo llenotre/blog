@@ -47,6 +47,27 @@ div.section {
 	color: #fff;
 }
 
+div.bio {
+	flex-direction: row;
+	flex-wrap: wrap;
+	display: flex;
+}
+
+div.bio-half {
+	padding: 10px;
+	width: 100%;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	flex-basis: 100%;
+}
+
+@media(min-width: 1024px) {
+	div.bio-half {
+		flex-basis: 50%;
+	}
+}
+
 .articles-list {
 	background-color: #1b1464;
 	color: #fff;
@@ -78,6 +99,19 @@ div.article a {
 	div.article {
 		flex-basis: 50%;
 	}
+}
+
+.read-button {
+	background: #006266;
+	border: 1px solid white;
+	border-radius: 10px;
+	padding: 10px;
+	float: right;
+}
+
+.read-button:hover {
+	background: white;
+	color: #006266;
 }
 
 a.button {
