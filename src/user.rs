@@ -2,7 +2,7 @@
 
 use crate::GlobalData;
 use actix_session::Session;
-use actix_web::{get, web, web::Redirect, Responder};
+use actix_web::{error, get, web, web::Redirect, Responder};
 use bson::doc;
 use bson::oid::ObjectId;
 use serde::Deserialize;
@@ -183,23 +183,24 @@ pub async fn oauth(
         .header("X-GitHub-Api-Version", GITHUB_API_VERSION)
         .send()
         .await
-        .unwrap() // TODO handle error
+        .map_err(|_| error::ErrorInternalServerError(""))?
         .json()
         .await
-        .unwrap(); // TODO handle error
+        .map_err(|_| error::ErrorInternalServerError(""))?;
 
     let Some(access_token) = body.access_token else {
-		// TODO error
-		todo!();
+		return Err(error::ErrorInternalServerError(""));
 	};
 
     // Get user ID
-    let github_info = User::query_info(&access_token).await.unwrap(); // TODO handle error
+    let github_info = User::query_info(&access_token)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
 
     let db = data.get_database();
     let user = User::from_github_id(&db, github_info.id as _)
         .await
-        .unwrap(); // TODO handle error
+        .map_err(|_| error::ErrorInternalServerError(""))?;
     let user = match user {
         Some(user) => user,
 
@@ -213,28 +214,28 @@ pub async fn oauth(
                 admin: false,
                 banned: false,
             };
-            user.insert(&db).await.unwrap(); // TODO handle error
+            user.insert(&db)
+                .await
+                .map_err(|_| error::ErrorInternalServerError(""))?;
 
             user
         }
     };
 
     // Create user's session
-    session.insert("user_id", user.id.to_hex()).unwrap(); // TODO handle error
-    session
-        .insert("user_login", user.github_info.login)
-        .unwrap(); // TODO handle error
+    session.insert("user_id", user.id.to_hex())?;
+    session.insert("user_login", user.github_info.login)?;
 
     // Redirect user
-    redirect_to_last_article(&session)
+    Ok(redirect_to_last_article(&session))
 }
 
 #[get("/logout")]
-pub async fn logout(session: Session) -> impl Responder {
+pub async fn logout(session: Session) -> actix_web::Result<impl Responder> {
     // End session
-    session.remove("user_id").unwrap(); // TODO handle error
-    session.remove("user_login").unwrap(); // TODO handle error
+    let _ = session.remove("user_id");
+    let _ = session.remove("user_login");
 
     // Redirect user
-    redirect_to_last_article(&session)
+    Ok(redirect_to_last_article(&session))
 }

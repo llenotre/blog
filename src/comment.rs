@@ -5,7 +5,7 @@ use crate::user::User;
 use crate::util;
 use crate::GlobalData;
 use actix_session::Session;
-use actix_web::{delete, get, post, web, HttpResponse, Responder};
+use actix_web::{delete, error, get, post, web, HttpResponse, Responder};
 use bson::doc;
 use bson::oid::ObjectId;
 use chrono::DateTime;
@@ -205,22 +205,21 @@ pub async fn post(
     data: web::Data<GlobalData>,
     info: web::Json<PostCommentPayload>,
     session: Session,
-) -> impl Responder {
+) -> actix_web::Result<impl Responder> {
     let info = info.into_inner();
-    let article_id = ObjectId::parse_str(info.article_id).unwrap(); // TODO handle error (http 404)
+    let article_id = ObjectId::parse_str(info.article_id).map_err(|_| error::ErrorNotFound(""))?;
 
     if info.content.is_empty() {
-        return HttpResponse::BadRequest().finish();
+        return Err(error::ErrorBadRequest(""));
     }
     if info.content.len() > MAX_CHARS {
-        return HttpResponse::PayloadTooLarge().finish();
+        return Err(error::ErrorPayloadTooLarge(""));
     }
 
-    let Some(user_id) = session.get::<String>("user_id").unwrap() else { // TODO handle error
-		// TODO
-		todo!();
+    let Some(user_id) = session.get::<String>("user_id").unwrap() else {
+		return Err(error::ErrorForbidden(""));
 	};
-    let user_id = ObjectId::parse_str(&user_id).unwrap(); // TODO handle error
+    let user_id = ObjectId::parse_str(&user_id).map_err(|_| error::ErrorBadRequest(""))?;
 
     let id = ObjectId::new();
     let date = chrono::offset::Utc::now();
@@ -247,10 +246,16 @@ pub async fn post(
 
     // Insert comment
     let db = data.get_database();
-    comment_content.insert(&db).await.unwrap(); // TODO handle error (http 500)
-    comment.insert(&db).await.unwrap(); // TODO handle error (http 500)
+    comment_content
+        .insert(&db)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
+    comment
+        .insert(&db)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
 
-    HttpResponse::Ok().finish()
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[delete("/comment/{id}")]
@@ -260,24 +265,25 @@ pub async fn delete(
     session: Session,
 ) -> impl Responder {
     let comment_id = comment_id.into_inner();
-    let comment_id = ObjectId::parse_str(&comment_id).unwrap(); // TODO handle error
+    let comment_id = ObjectId::parse_str(&comment_id).map_err(|_| error::ErrorBadRequest(""))?;
 
-    let Some(user_id) = session.get::<String>("user_id").unwrap() else { // TODO handle error
-		// TODO
-		todo!();
+    let Some(user_id) = session.get::<String>("user_id").unwrap() else {
+		return Err(error::ErrorForbidden(""));
 	};
-    let user_id = ObjectId::parse_str(&user_id).unwrap(); // TODO handle error
+    let user_id = ObjectId::parse_str(&user_id).map_err(|_| error::ErrorBadRequest(""))?;
 
     let db = data.get_database();
 
     // Delete if the user has permission
-    let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+    let admin = User::check_admin(&db, &session)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
     Comment::delete(&db, &comment_id, &user_id, admin)
         .await
-        .unwrap(); // TODO handle error
+        .map_err(|_| error::ErrorInternalServerError(""))?;
 
-    // TODO handle errors
-    HttpResponse::Ok().finish()
+    // TODO change status according to error (not found, forbidden, etc...)
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[get("/comment/preview")]

@@ -5,7 +5,7 @@ use crate::GlobalData;
 use actix_multipart::Multipart;
 use actix_session::Session;
 use actix_web::{
-    get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
+    error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
 };
 use bson::doc;
 use bson::oid::ObjectId;
@@ -25,34 +25,44 @@ pub async fn get(
     data: web::Data<GlobalData>,
     id: web::Path<String>,
     session: Session,
-) -> impl Responder {
-    let id = ObjectId::parse_str(&id.into_inner()).unwrap(); // TODO handle error
+) -> actix_web::Result<impl Responder> {
+    let id = ObjectId::parse_str(&id.into_inner()).map_err(|_| error::ErrorBadRequest(""))?;
     let db = data.get_database();
 
     let bucket = db.gridfs_bucket(None);
-    let _stream = bucket.open_download_stream(id.into()).await.unwrap(); // TODO handle error
+    let _stream = bucket
+        .open_download_stream(id.into())
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
 
     // TODO
     //HttpResponse::Ok().streaming(stream)
-    HttpResponse::Ok().finish()
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[get("/file")]
-pub async fn manage(data: web::Data<GlobalData>, session: Session) -> impl Responder {
+pub async fn manage(
+    data: web::Data<GlobalData>,
+    session: Session,
+) -> actix_web::Result<impl Responder> {
     let db = data.get_database();
 
     // Check auth
-    let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+    let admin = User::check_admin(&db, &session)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
     if !admin {
-        // TODO
-        todo!();
+        return Err(error::ErrorForbidden(""));
     }
 
     let html = include_str!("../pages/file_manage.html");
 
     let bucket = db.gridfs_bucket(None);
 
-    let files = bucket.find(doc! {}, None).await.unwrap(); // TODO handle error
+    let files = bucket
+        .find(doc! {}, None)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
     let files_html = files
         .map(|file| {
             let file = file.unwrap(); // TODO handle error
@@ -81,9 +91,9 @@ pub async fn manage(data: web::Data<GlobalData>, session: Session) -> impl Respo
         .await;
     let html = html.replace("{file.list}", &files_html);
 
-    HttpResponse::Ok()
+    Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
-        .body(html)
+        .body(html))
 }
 
 // TODO if uploaded file has size zero, cancel
@@ -92,17 +102,18 @@ pub async fn upload(
     data: web::Data<GlobalData>,
     mut multipart: Multipart,
     session: Session,
-) -> impl Responder {
+) -> actix_web::Result<impl Responder> {
     let db = data.get_database();
 
     // Check auth
-    let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+    let admin = User::check_admin(&db, &session)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
     if !admin {
-        // TODO
-        todo!();
+        return Err(error::ErrorInternalServerError(""));
     }
 
-    let mut file_stream = multipart.next().await.unwrap().unwrap(); // TODO handle error
+    let mut file_stream = multipart.next().await.unwrap()?; // TODO handle none
     let file_name = "TODO"; // TODO
 
     let bucket = db.gridfs_bucket(None);
@@ -110,11 +121,11 @@ pub async fn upload(
     // Upload file to database
     let mut db_stream = bucket.open_upload_stream(file_name, None);
     while let Some(chunk) = file_stream.next().await {
-        let chunk = chunk.unwrap(); // TODO handle error
-        db_stream.write_all(&chunk).await.unwrap(); // TODO handle error
+        let chunk = chunk?;
+        db_stream.write_all(&chunk).await?;
     }
-    db_stream.close().await.unwrap(); // TODO handle error
+    db_stream.close().await?;
 
     // Redirect user
-    Redirect::to("/file").see_other()
+    Ok(Redirect::to("/file").see_other())
 }

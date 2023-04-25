@@ -10,7 +10,7 @@ use crate::util;
 use crate::GlobalData;
 use actix_session::Session;
 use actix_web::{
-    get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
+    error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
 };
 use bson::oid::ObjectId;
 use bson::Bson;
@@ -139,24 +139,27 @@ pub async fn get(
     data: web::Data<GlobalData>,
     id: web::Path<String>,
     session: Session,
-) -> impl Responder {
+) -> actix_web::Result<impl Responder> {
     let id_str = id.into_inner();
-    session.insert("last_article", id_str.clone()).unwrap(); // TODO handle error
+    session.insert("last_article", id_str.clone())?;
 
-    let id = ObjectId::parse_str(&id_str).unwrap(); // TODO handle error (http 404)
+    let id = ObjectId::parse_str(&id_str).map_err(|_| error::ErrorBadRequest(""))?;
 
     let db = data.get_database();
 
     // Get article
-    let article = Article::from_id(&db, id).await.unwrap(); // TODO handle error (http 500)
+    let article = Article::from_id(&db, id)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
 
     match article {
         Some(article) => {
             // If article is not public, the user must be admin to see it
-            let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+            let admin = User::check_admin(&db, &session)
+                .await
+                .map_err(|_| error::ErrorInternalServerError(""))?;
             if !article.public && !admin {
-                // TODO
-                todo!();
+                return Err(error::ErrorNotFound(""));
             }
 
             let markdown = markdown::to_html(&article.content);
@@ -191,20 +194,26 @@ pub async fn get(
             let html = html.replace("{comment.editor}", &comment_editor_html);
 
             // Get article comments
-            let comments = Comment::list_for_article(&db, id, !admin).await.unwrap(); // TODO handle error (http 500)
+            let comments = Comment::list_for_article(&db, id, !admin)
+                .await
+                .map_err(|_| error::ErrorInternalServerError(""))?;
             let comments_count = comments.len();
 
             let mut comments_html = String::new();
             for com in comments {
-                // TODO handle error
                 // Get author
-                let Some(author) = User::from_id(&db, com.author).await.unwrap() else {
+                let author = User::from_id(&db, com.author)
+                    .await
+                    .map_err(|_| error::ErrorInternalServerError(""))?;
+                let Some(author) = author else {
 					continue;
 				};
 
-                // TODO handle error
                 // Get content and convert it
-                let Some(content) = CommentContent::get_for(&db, com.id).await.unwrap() else {
+                let content = CommentContent::get_for(&db, com.id)
+                    .await
+                    .map_err(|_| error::ErrorInternalServerError(""))?;
+                let Some(content) = content else {
 					continue;
 				};
                 let escaped_content = html_escape::encode_text(&content.content);
@@ -263,15 +272,12 @@ pub async fn get(
             let html = html.replace("{comments}", &comments_html);
             let html = html.replace("{comments.count}", &format!("{}", comments_count));
 
-            HttpResponse::Ok()
+            Ok(HttpResponse::Ok()
                 .content_type(ContentType::html())
-                .body(html)
+                .body(html))
         }
 
-        None => {
-            // TODO 404
-            todo!();
-        }
+        None => Err(error::ErrorNotFound("")),
     }
 }
 
@@ -298,23 +304,26 @@ pub async fn post(
     data: web::Data<GlobalData>,
     info: web::Form<ArticleEdit>,
     session: Session,
-) -> impl Responder {
+) -> actix_web::Result<impl Responder> {
     let db = data.get_database();
 
     // Check auth
-    let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+    let admin = User::check_admin(&db, &session)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
     if !admin {
-        // TODO
-        todo!();
+        return Err(error::ErrorForbidden(""));
     }
 
     let info = info.into_inner();
     let id = match info.id {
         // Update article
-        Some(id) => {
+        Some(id_str) => {
+            let id = ObjectId::parse_str(&id_str).map_err(|_| error::ErrorBadRequest(""))?;
+
             Article::update(
                 &db,
-                ObjectId::parse_str(&id).unwrap(), // TODO handle error
+                id,
                 doc! {
                     "title": info.title,
                     "desc": info.desc,
@@ -325,9 +334,9 @@ pub async fn post(
                 },
             )
             .await
-            .unwrap(); // TODO handle error
+            .map_err(|_| error::ErrorInternalServerError(""))?;
 
-            id
+            id_str
         }
 
         // Create article
@@ -347,14 +356,17 @@ pub async fn post(
             };
 
             let db = data.get_database();
-            let id = a.insert(&db).await.unwrap(); // TODO handle error
+            let id = a
+                .insert(&db)
+                .await
+                .map_err(|_| error::ErrorInternalServerError(""))?;
 
             id.as_object_id().unwrap().to_string()
         }
     };
 
     // Redirect user
-    Redirect::to(format!("/article/{}", id)).see_other()
+    Ok(Redirect::to(format!("/article/{}", id)).see_other())
 }
 
 /// Editor page query.
@@ -369,14 +381,15 @@ async fn editor(
     data: web::Data<GlobalData>,
     query: web::Query<EditorQuery>,
     session: Session,
-) -> impl Responder {
+) -> actix_web::Result<impl Responder> {
     let db = data.get_database();
 
     // Check auth
-    let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+    let admin = User::check_admin(&db, &session)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
     if !admin {
-        // TODO
-        todo!();
+        return Err(error::ErrorNotFound(""));
     }
 
     // Get article
@@ -385,9 +398,11 @@ async fn editor(
         .id
         .map(|id| ObjectId::parse_str(&id))
         .transpose()
-        .unwrap(); // TODO handle error
+        .map_err(|_| error::ErrorBadRequest(""))?;
     let article = match article_id {
-        Some(article_id) => Article::from_id(&db, article_id).await.unwrap(), // TODO handle error
+        Some(article_id) => Article::from_id(&db, article_id)
+            .await
+            .map_err(|_| error::ErrorInternalServerError(""))?,
         None => None,
     };
 
@@ -415,7 +430,7 @@ async fn editor(
         if article_public { "checked" } else { "" },
     );
 
-    HttpResponse::Ok()
+    Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
-        .body(html)
+        .body(html))
 }

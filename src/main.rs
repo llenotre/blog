@@ -15,8 +15,8 @@ use actix_session::storage::CookieSessionStore;
 use actix_session::Session;
 use actix_session::SessionMiddleware;
 use actix_web::{
-    cookie::Key, get, http::header::ContentType, middleware, web, App, HttpResponse, HttpServer,
-    Responder,
+    cookie::Key, error, get, http::header::ContentType, middleware, web, App, HttpResponse,
+    HttpServer, Responder,
 };
 use article::Article;
 use mongodb::options::ClientOptions;
@@ -77,20 +77,24 @@ async fn root(
     data: web::Data<GlobalData>,
     page: web::Query<PageQuery>,
     session: Session,
-) -> impl Responder {
+) -> actix_web::Result<impl Responder> {
     let page = page.into_inner().page.unwrap_or(0);
 
     // Article colors
     static COLORS: [&str; 2] = ["#006266", "#2f2f2f"];
 
     let db = data.get_database();
-    let admin = User::check_admin(&db, &session).await.unwrap(); // TODO handle error
+    let admin = User::check_admin(&db, &session)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
 
     // Get articles
-    let total_articles = Article::get_total_count(&db).await.unwrap(); // TODO handle error
+    let total_articles = Article::get_total_count(&db)
+        .await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
     let articles = Article::list(&db, page, ARTICLES_PER_PAGE, !admin)
         .await
-        .unwrap(); // TODO handle error
+        .map_err(|_| error::ErrorInternalServerError(""))?;
 
     let pages_count = util::ceil_div(total_articles, ARTICLES_PER_PAGE);
     if page != 0 && page >= pages_count {
@@ -153,9 +157,9 @@ async fn root(
     };
     let html = html.replace("{button.next}", &next_button_html);
 
-    HttpResponse::Ok()
+    Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
-        .body(html)
+        .body(html))
 }
 
 #[get("/legal")]
