@@ -29,7 +29,7 @@ function post(response_to) {
 
 	var payload = JSON.stringify({
 		"article_id": article_id.value,
-		"response_to": response_to
+		"response_to": response_to,
 
 		"content": comment_content.value
 	});
