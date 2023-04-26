@@ -134,6 +134,23 @@ impl Article {
     }
 }
 
+/// Returns the HTML code for a comment editor.
+///
+/// TODO doc arguments
+fn get_comment_editor(article_id: &str, action_type: &str, comment_id: Option<&str>) -> String {
+	let comment_id = comment_id
+		.map(|s| format!("\"{}\"", s))
+		.unwrap_or("null".to_string());
+	let max_chars = comment::MAX_CHARS;
+
+	format!(r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
+		<textarea id="comment-content" name="content" placeholder="What are your thoughts?"></textarea>
+		<input onclick="post(comment_id)" type="submit" value="Post"></input>
+
+		<h6>Markdown is supported</h6>
+		<h6><span id="comment-len">0</span>/{max_chars} characters</h6>"#)
+}
+
 #[get("/article/{id}")]
 pub async fn get(
     data: web::Data<GlobalData>,
@@ -162,28 +179,28 @@ pub async fn get(
                 return Err(error::ErrorNotFound(""));
             }
 
+            let user_id = session.get::<String>("user_id")?;
+            let user_login = session.get::<String>("user_login")?;
+
             let markdown = markdown::to_html(&article.content);
 
             let html = include_str!("../pages/article.html");
             let html = html.replace("{article.id}", &id_str);
             let html = html.replace("{article.title}", &article.title);
             let html = html.replace("{article.desc}", &article.desc);
+            let html = html.replace("{article.date}", &format!(
+				"{}",
+				article.post_date.format("%d/%m/%Y %H:%M:%S") // TODO use user's timezone
+			));
             let html = html.replace("{article.content}", &markdown);
 
-            let user_login = session.get::<String>("user_login").ok().flatten();
             let comment_editor_html = match user_login {
                 Some(user_login) => format!(
                     r#"<p>You are currently logged as <b>{}</b>. <a href="/logout">Logout</a></p>
 
-					<input id="article-id" name="article_id" type="hidden" value="{}"></input>
-					<textarea id="comment-content" name="content" placeholder="What are your thoughts?"></textarea>
-					<input onclick="post(null)" type="submit" value="Post comment"></input>
-
-					<h6>Markdown is supported</h6>
-					<h6><span id="comment-len">0</span>/{} characters</h6>"#,
+					{}"#,
                     user_login,
-                    id_str,
-                    comment::MAX_CHARS
+                    get_comment_editor(&article.id.to_hex(), "post", None)
                 ),
 
                 None => format!(
@@ -209,6 +226,10 @@ pub async fn get(
 					continue;
 				};
 
+				let html_url = author.github_info.html_url;
+				let avatar_url = author.github_info.avatar_url;
+				let login = author.github_info.login;
+
                 // Get content and convert it
                 let content = CommentContent::get_for(&db, com.id)
                     .await
@@ -233,39 +254,53 @@ pub async fn get(
                     date_text.push_str(" - REMOVED");
                 }
 
-                // TODO add access to edit and delete only if the user has access
-                let buttons_html = format!(
-                    r##"<li><a class="button" onclick="edit('{}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>
-					<li><a class="button" onclick="del('{}')">Delete <i class="fa-solid fa-trash"></i></a></li>
-					<li><a class="button" onclick="reply('{}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##,
-                    com.id, com.id, com.id
-                );
+                let buttons_html = if admin || user_id == Some(com.author.to_hex()) {
+					format!(
+						r##"<li><a class="button" onclick="edit('{}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>
+						<li><a class="button" onclick="del('{}')">Delete <i class="fa-solid fa-trash"></i></a></li>
+						<li><a class="button" onclick="reply('{}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##,
+						com.id, com.id, com.id
+					)
+				} else {
+					format!(
+						r##"<li><a class="button" onclick="reply('{}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##,
+						com.id
+					)
+				};
+
+				let edit_editor = get_comment_editor(&article.id.to_hex(), "edit", Some(&com.id.to_hex()));
+				let reply_editor = get_comment_editor(&article.id.to_hex(), "reply", Some(&com.id.to_hex()));
 
                 // TODO add decoration on comments depending on the sponsoring tier
                 comments_html.push_str(&format!(
                     r##"<div class="comment">
-							<div class="comment-header">
-								<a href="{}" target="_blank"><img class="avatar" src="{}"></img></a>
-								<a href="{}" target="_blank">{}</a>
+						<div class="comment-header">
+							<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
+							<a href="{html_url}" target="_blank">{login}</a>
 
-								<h6>{}</h6>
+							<h6>{date_text}</h6>
+						</div>
+
+						<div class="comment-content">
+							{markdown}
+
+							<ul class="comment-buttons">
+								{buttons_html}
+							</ul>
+
+							<div hidden>
+								<h2>Edit comment</h2>
+
+								{edit_editor}
 							</div>
 
-							<div class="comment-content">
-								{}
+							<div hidden>
+								<h2>Reply</h2>
 
-								<ul class="comment-buttons">
-									{}
-								</ul>
+								{reply_editor}
 							</div>
-						</div>"##,
-                    author.github_info.html_url,
-                    author.github_info.avatar_url,
-                    author.github_info.html_url,
-                    author.github_info.login,
-                    date_text,
-                    markdown,
-                    buttons_html
+						</div>
+					</div>"##
                 ));
             }
 
