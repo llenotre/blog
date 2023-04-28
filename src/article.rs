@@ -138,17 +138,19 @@ impl Article {
 ///
 /// TODO doc arguments
 fn get_comment_editor(article_id: &str, action_type: &str, comment_id: Option<&str>) -> String {
-	let comment_id = comment_id
-		.map(|s| format!("\"{}\"", s))
-		.unwrap_or("null".to_string());
-	let max_chars = comment::MAX_CHARS;
+    let comment_id = comment_id
+        .map(|s| format!("{}", s))
+        .unwrap_or("null".to_string());
+    let max_chars = comment::MAX_CHARS;
 
-	format!(r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
-		<textarea id="comment-content" name="content" placeholder="What are your thoughts?"></textarea>
-		<input onclick="post(comment_id)" type="submit" value="Post"></input>
+    format!(
+        r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
+		<textarea id="comment-{comment_id}-content" name="content" placeholder="What are your thoughts?" oninput="input('{comment_id}')"></textarea>
+		<input id="comment-{comment_id}-submit" type="submit" value="Post" onclick="post('{comment_id}')"></input>
 
 		<h6>Markdown is supported</h6>
-		<h6><span id="comment-len">0</span>/{max_chars} characters</h6>"#)
+		<h6><span id="comment-{comment_id}-len">0</span>/{max_chars} characters</h6>"#
+    )
 }
 
 #[get("/article/{id}")]
@@ -188,10 +190,13 @@ pub async fn get(
             let html = html.replace("{article.id}", &id_str);
             let html = html.replace("{article.title}", &article.title);
             let html = html.replace("{article.desc}", &article.desc);
-            let html = html.replace("{article.date}", &format!(
-				"{}",
-				article.post_date.format("%d/%m/%Y %H:%M:%S") // TODO use user's timezone
-			));
+            let html = html.replace(
+                "{article.date}",
+                &format!(
+                    "{}",
+                    article.post_date.format("%d/%m/%Y %H:%M:%S") // TODO use user's timezone
+                ),
+            );
             let html = html.replace("{article.content}", &markdown);
 
             let comment_editor_html = match user_login {
@@ -218,6 +223,8 @@ pub async fn get(
 
             let mut comments_html = String::new();
             for com in comments {
+                let com_id = com.id;
+
                 // Get author
                 let author = User::from_id(&db, com.author)
                     .await
@@ -226,12 +233,12 @@ pub async fn get(
 					continue;
 				};
 
-				let html_url = author.github_info.html_url;
-				let avatar_url = author.github_info.avatar_url;
-				let login = author.github_info.login;
+                let html_url = author.github_info.html_url;
+                let avatar_url = author.github_info.avatar_url;
+                let login = author.github_info.login;
 
                 // Get content and convert it
-                let content = CommentContent::get_for(&db, com.id)
+                let content = CommentContent::get_for(&db, com_id)
                     .await
                     .map_err(|_| error::ErrorInternalServerError(""))?;
                 let Some(content) = content else {
@@ -255,21 +262,21 @@ pub async fn get(
                 }
 
                 let buttons_html = if admin || user_id == Some(com.author.to_hex()) {
-					format!(
-						r##"<li><a class="button" onclick="edit('{}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>
-						<li><a class="button" onclick="del('{}')">Delete <i class="fa-solid fa-trash"></i></a></li>
-						<li><a class="button" onclick="reply('{}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##,
-						com.id, com.id, com.id
-					)
-				} else {
-					format!(
-						r##"<li><a class="button" onclick="reply('{}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##,
-						com.id
-					)
-				};
+                    format!(
+                        r##"<li><a class="button" onclick="edit('{com_id}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>
+						<li><a class="button" onclick="del('{com_id}')">Delete <i class="fa-solid fa-trash"></i></a></li>
+						<li><a class="button" onclick="reply('{com_id}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##
+                    )
+                } else {
+                    format!(
+                        r##"<li><a class="button" onclick="reply('{com_id}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##
+                    )
+                };
 
-				let edit_editor = get_comment_editor(&article.id.to_hex(), "edit", Some(&com.id.to_hex()));
-				let reply_editor = get_comment_editor(&article.id.to_hex(), "reply", Some(&com.id.to_hex()));
+                let edit_editor =
+                    get_comment_editor(&article.id.to_hex(), "edit", Some(&com_id.to_hex()));
+                let reply_editor =
+                    get_comment_editor(&article.id.to_hex(), "reply", Some(&com_id.to_hex()));
 
                 // TODO add decoration on comments depending on the sponsoring tier
                 comments_html.push_str(&format!(
@@ -288,13 +295,13 @@ pub async fn get(
 								{buttons_html}
 							</ul>
 
-							<div hidden>
+							<div id="edit-editor-{com_id}" hidden>
 								<h2>Edit comment</h2>
 
 								{edit_editor}
 							</div>
 
-							<div hidden>
+							<div id="reply-editor-{com_id}" hidden>
 								<h2>Reply</h2>
 
 								{reply_editor}

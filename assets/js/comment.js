@@ -1,12 +1,11 @@
 var article_id = document.getElementById("article-id");
-var comment_content = document.getElementById("comment-content");
-var comment_submit = document.getElementById("comment-submit");
-var comment_len = document.getElementById("comment-len");
-
-comment_content.addEventListener("input", input_event);
 
 // Updates the number of characters in the counter
-function input_event(event) {
+function input(comment_id) {
+	var comment_content = document.getElementById("comment-" + comment_id + "-content");
+	var comment_submit = document.getElementById("comment-" + comment_id + "-submit");
+	var comment_len = document.getElementById("comment-" + comment_id + "-len");
+
 	var len = comment_content.value.length;
 	comment_len.innerHTML = len;
 	comment_submit.disabled = (len > 10000);
@@ -23,6 +22,8 @@ function get_preview(markdown) {
 
 // TODO doc
 function post(response_to) {
+	var comment_content = document.getElementById("comment-" + response_to + "-content");
+
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("POST", "/comment", false);
     xmlHttp.setRequestHeader("Content-Type", "application/json");
@@ -45,7 +46,11 @@ function post(response_to) {
 
 // TODO doc
 function edit(comment_id) {
-	// TODO show editor
+	var edit_editor_div = document.getElementById("edit-editor-" + comment_id);
+	var reply_editor_div = document.getElementById("reply-editor-" + comment_id);
+
+	edit_editor_div.hidden = !edit_editor_div.hidden;
+	reply_editor_div.hidden = true;
 }
 
 // TODO doc
@@ -56,10 +61,14 @@ function del(comment_id) {
     xmlHttp.open("DELETE", "/comment/" + comment_id, false);
     xmlHttp.send(null);
 
-	location.reload()
+	location.reload();
 }
 
 // TODO doc
 function reply(comment_id) {
-	// TODO
+	var edit_editor_div = document.getElementById("edit-editor-" + comment_id);
+	var reply_editor_div = document.getElementById("reply-editor-" + comment_id);
+
+	edit_editor_div.hidden = true;
+	reply_editor_div.hidden = !reply_editor_div.hidden;
 }
