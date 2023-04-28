@@ -137,16 +137,22 @@ impl Article {
 /// Returns the HTML code for a comment editor.
 ///
 /// TODO doc arguments
-fn get_comment_editor(article_id: &str, action_type: &str, comment_id: Option<&str>) -> String {
+fn get_comment_editor(
+    article_id: &str,
+    action_type: &str,
+    comment_id: Option<&str>,
+    content: Option<&str>,
+) -> String {
     let comment_id = comment_id
         .map(|s| format!("{}", s))
         .unwrap_or("null".to_string());
+    let content = content.unwrap_or("");
     let max_chars = comment::MAX_CHARS;
 
     format!(
         r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
-		<textarea id="comment-{comment_id}-content" name="content" placeholder="What are your thoughts?" oninput="input('{comment_id}')"></textarea>
-		<input id="comment-{comment_id}-submit" type="submit" value="Post" onclick="post('{comment_id}')"></input>
+		<textarea id="comment-{comment_id}-content" name="content" placeholder="What are your thoughts?" oninput="input('{comment_id}')">{content}</textarea>
+		<input id="comment-{comment_id}-submit" type="submit" value="Post" onclick="{action_type}('{comment_id}')"></input>
 
 		<h6>Markdown is supported</h6>
 		<h6><span id="comment-{comment_id}-len">0</span>/{max_chars} characters</h6>"#
@@ -205,7 +211,7 @@ pub async fn get(
 
 					{}"#,
                     user_login,
-                    get_comment_editor(&article.id.to_hex(), "post", None)
+                    get_comment_editor(&article.id.to_hex(), "post", None, None)
                 ),
 
                 None => format!(
@@ -273,10 +279,14 @@ pub async fn get(
                     )
                 };
 
-                let edit_editor =
-                    get_comment_editor(&article.id.to_hex(), "edit", Some(&com_id.to_hex()));
+                let edit_editor = get_comment_editor(
+                    &article.id.to_hex(),
+                    "edit",
+                    Some(&com_id.to_hex()),
+                    Some(&content.content),
+                );
                 let reply_editor =
-                    get_comment_editor(&article.id.to_hex(), "reply", Some(&com_id.to_hex()));
+                    get_comment_editor(&article.id.to_hex(), "reply", Some(&com_id.to_hex()), None);
 
                 // TODO add decoration on comments depending on the sponsoring tier
                 comments_html.push_str(&format!(
