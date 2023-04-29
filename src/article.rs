@@ -1,5 +1,7 @@
 //! This module handles articles.
 
+use std::collections::HashMap;
+use async_recursion::async_recursion;
 use crate::comment;
 use crate::comment::Comment;
 use crate::comment::CommentContent;
@@ -163,6 +165,165 @@ fn get_comment_editor(
 	)
 }
 
+/// Groups all comments into a list of comment-replies pairs.
+fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
+	let mut base = HashMap::new();
+	let mut replies = Vec::new();
+
+	// Partition comments
+	for com in comments {
+		if com.response_to.is_none() {
+			base.insert(com.id, (com, vec![]));
+		} else {
+			replies.push(com);
+		}
+	}
+
+	// Assign replies to comments
+	for reply in replies {
+		let base_id = reply.response_to.as_ref().unwrap();
+
+		if let Some(base) = base.get_mut(base_id) {
+			base.1.push(reply);
+		}
+	}
+
+	base.into_iter()
+		.map(|(_, c)| c)
+		.collect()
+}
+
+/// Returns the HTML for the given comment-replies pair.
+///
+/// Arguments:
+/// - `db` is the database.
+/// - `comment` is the comment.
+/// - `replies` is the list of replies. If `None`, the comment itself is a reply.
+/// - `user_id` is the ID of the current user. If not logged, the value is `None`.
+/// - `article_id` is the ID of the current article.
+/// - `admin` tells whether the current user is admin.
+#[async_recursion]
+async fn comment_to_html(
+	db: &mongodb::Database,
+	comment: &Comment,
+	replies: Option<&'async_recursion [Comment]>,
+	user_id: Option<&'async_recursion ObjectId>,
+	article_id: &ObjectId,
+	admin: bool,
+) -> actix_web::Result<String> {
+	let com_id = comment.id;
+
+	// Get author
+	let author = User::from_id(&db, comment.author)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(author) = author else {
+		return Ok(String::new());
+	};
+
+	let html_url = author.github_info.html_url;
+	let avatar_url = author.github_info.avatar_url;
+	let login = author.github_info.login;
+
+	// Get content and convert it
+	let content = CommentContent::get_for(&db, com_id)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(content) = content else {
+		return Ok(String::new());
+	};
+	let escaped_content = html_escape::encode_text(&content.content);
+	let markdown = markdown::to_html(&escaped_content);
+
+	// TODO use the user's timezome
+	let mut date_text = if content.edit_date > comment.post_date {
+		format!(
+			"posted at {}, last edit at {}",
+			comment.post_date.format("%d/%m/%Y %H:%M:%S"),
+			content.edit_date.format("%d/%m/%Y %H:%M:%S")
+		)
+	} else {
+		format!("posted at {}", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
+	};
+	if comment.removed {
+		date_text.push_str(" - REMOVED");
+	}
+
+	let mut buttons = vec![];
+	if user_id == Some(&comment.author) || admin {
+		buttons.push(format!(
+			r#"<li><a class="button" onclick="toggle_edit('{com_id}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>"#
+		));
+		buttons.push(format!(
+			r#"<li><a class="button" onclick="del('{com_id}')">Delete <i class="fa-solid fa-trash"></i></a></li>"#
+		));
+	}
+	if user_id.is_some() && replies.is_some() {
+		buttons.push(format!(
+			r#"<li><a class="button" onclick="set_reply('{com_id}')">Reply <i class="fa-solid fa-reply"></i></a></li>"#
+		));
+	}
+	let buttons_html = if !buttons.is_empty() {
+		let buttons_html: String = buttons.into_iter().collect();
+		format!(r#"<ul class="comment-buttons">
+			{buttons_html}
+			</ul>"#)
+	} else {
+		String::new()
+	};
+
+	let edit_editor = get_comment_editor(
+		&article_id.to_hex(),
+		"edit",
+		Some(&com_id.to_hex()),
+		Some(&content.content),
+	);
+
+	let mut replies_html = String::new();
+	if let Some(replies) = replies {
+		if !replies.is_empty() {
+			replies_html.push_str("<hr><h3>Replies</h3>");
+		}
+
+		for com in replies {
+			replies_html.push_str(&comment_to_html(
+				db,
+				com,
+				None,
+				user_id,
+				article_id,
+				admin
+			).await?);
+		}
+	}
+
+	// TODO add decoration on comments depending on the sponsoring tier
+	Ok(format!(
+		r##"<div class="comment">
+			<div class="comment-header">
+				<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
+				<a href="{html_url}" target="_blank">{login}</a>
+
+				<h6>{date_text}</h6>
+			</div>
+
+			<div class="comment-content">
+				{markdown}
+
+				{buttons_html}
+
+				<div id="editor-{com_id}" hidden>
+					<h2>Edit comment</h2>
+
+					{edit_editor}
+				</div>
+
+				{replies_html}
+			</div>
+		</div>"##
+	))
+}
+
 #[get("/article/{id}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
@@ -191,7 +352,11 @@ pub async fn get(
 				return Err(error::ErrorNotFound(""));
 			}
 
-			let user_id = session.get::<String>("user_id")?;
+			let user_id = session.get::<String>("user_id")?
+				.map(|id| ObjectId::parse_str(&id)
+					.map_err(|_| error::ErrorBadRequest("")))
+				.transpose()?;
+
 			let user_login = session.get::<String>("user_login")?;
 
 			let markdown = markdown::to_html(&article.content);
@@ -233,90 +398,18 @@ pub async fn get(
 				.map_err(|_| error::ErrorInternalServerError(""))?;
 			let comments_count = comments.len();
 
+			let comments = group_comments(comments);
+
 			let mut comments_html = String::new();
-			for com in comments {
-				let com_id = com.id;
-
-				// Get author
-				let author = User::from_id(&db, com.author)
-					.await
-					.map_err(|_| error::ErrorInternalServerError(""))?;
-				let Some(author) = author else {
-					continue;
-				};
-
-				let html_url = author.github_info.html_url;
-				let avatar_url = author.github_info.avatar_url;
-				let login = author.github_info.login;
-
-				// Get content and convert it
-				let content = CommentContent::get_for(&db, com_id)
-					.await
-					.map_err(|_| error::ErrorInternalServerError(""))?;
-				let Some(content) = content else {
-					continue;
-				};
-				let escaped_content = html_escape::encode_text(&content.content);
-				let markdown = markdown::to_html(&escaped_content);
-
-				// TODO use the user's timezome
-				let mut date_text = if content.edit_date > com.post_date {
-					format!(
-						"posted at {}, last edit at {}",
-						com.post_date.format("%d/%m/%Y %H:%M:%S"),
-						content.edit_date.format("%d/%m/%Y %H:%M:%S")
-					)
-				} else {
-					format!("posted at {}", com.post_date.format("%d/%m/%Y %H:%M:%S"))
-				};
-				if com.removed {
-					date_text.push_str(" - REMOVED");
-				}
-
-				let buttons_html = if admin || user_id == Some(com.author.to_hex()) {
-					format!(
-						r##"<li><a class="button" onclick="toggle_edit('{com_id}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>
-						<li><a class="button" onclick="del('{com_id}')">Delete <i class="fa-solid fa-trash"></i></a></li>
-						<li><a class="button" onclick="set_reply('{com_id}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##
-					)
-				} else {
-					format!(
-						r##"<li><a class="button" onclick="toggle_reply('{com_id}')">Reply <i class="fa-solid fa-reply"></i></a></li>"##
-					)
-				};
-
-				let edit_editor = get_comment_editor(
-					&article.id.to_hex(),
-					"edit",
-					Some(&com_id.to_hex()),
-					Some(&content.content),
-				);
-
-				// TODO add decoration on comments depending on the sponsoring tier
-				comments_html.push_str(&format!(
-					r##"<div class="comment">
-						<div class="comment-header">
-							<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
-							<a href="{html_url}" target="_blank">{login}</a>
-
-							<h6>{date_text}</h6>
-						</div>
-
-						<div class="comment-content">
-							{markdown}
-
-							<ul class="comment-buttons">
-								{buttons_html}
-							</ul>
-
-							<div id="editor-{com_id}" hidden>
-								<h2>Edit comment</h2>
-
-								{edit_editor}
-							</div>
-						</div>
-					</div>"##
-				));
+			for (com, replies) in comments {
+				comments_html.push_str(&comment_to_html(
+					&db,
+					&com,
+					Some(&replies),
+					user_id.as_ref(),
+					&article.id,
+					admin
+				).await?);
 			}
 
 			let html = html.replace("{comments}", &comments_html);
