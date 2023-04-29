@@ -1,5 +1,3 @@
-#![feature(async_closure)]
-
 mod analytics;
 mod article;
 mod comment;
