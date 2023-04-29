@@ -288,8 +288,6 @@ pub async fn delete(
 
 #[get("/comment/preview")]
 pub async fn preview(payload: String) -> impl Responder {
-	let escaped_content = html_escape::encode_text(&payload);
-	let markdown = markdown::to_html(&escaped_content);
-
+	let markdown = markdown::to_html(&payload, true);
 	HttpResponse::Ok().body(markdown)
 }

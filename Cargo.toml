@@ -8,12 +8,12 @@ actix-files = "0.6.2"
 actix-multipart = "0.6.0"
 actix-session = { version = "0.7.2", features = ["cookie-session"] }
 actix-web = { version = "4.3.1", features = ["cookies"] }
+ammonia = "3.3.0"
 async-recursion = "1.0.4"
 bson = "2.6.1"
 chrono = "0.4.24"
 env_logger = "0.10.0"
 futures-util = "0.3.28"
-html-escape = "0.2.13"
 mongodb = "2.4.0"
 pulldown-cmark = "0.9.2"
 reqwest = { version = "0.11.16", features = ["json"] }

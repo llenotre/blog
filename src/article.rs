@@ -234,8 +234,7 @@ async fn comment_to_html(
 	let Some(content) = content else {
 		return Ok(String::new());
 	};
-	let escaped_content = html_escape::encode_text(&content.content);
-	let markdown = markdown::to_html(&escaped_content);
+	let markdown = markdown::to_html(&content.content, true);
 
 	// TODO use the user's timezome
 	let mut date_text = if content.edit_date > comment.post_date {
@@ -361,7 +360,7 @@ pub async fn get(
 
 			let user_login = session.get::<String>("user_login")?;
 
-			let markdown = markdown::to_html(&article.content);
+			let markdown = markdown::to_html(&article.content, false);
 
 			let html = include_str!("../pages/article.html");
 			let html = html.replace("{article.id}", &id_str);
