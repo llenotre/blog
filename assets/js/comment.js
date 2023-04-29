@@ -1,5 +1,8 @@
 var article_id = document.getElementById("article-id");
 
+// The comment to reply to.
+var reply_to = null;
+
 // Updates the number of characters in the counter
 function input(comment_id) {
 	var comment_content = document.getElementById("comment-" + comment_id + "-content");
@@ -20,9 +23,9 @@ function get_preview(markdown) {
 	return xmlHttp.responseText;
 }
 
-// TODO doc
-function post(response_to) {
-	var comment_content = document.getElementById("comment-" + response_to + "-content");
+// Posts a comment.
+function post(_) {
+	var comment_content = document.getElementById("comment-null-content");
 
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("POST", "/comment", false);
@@ -30,7 +33,7 @@ function post(response_to) {
 
 	var payload = JSON.stringify({
 		"article_id": article_id.value,
-		"response_to": response_to,
+		"response_to": reply_to,
 
 		"content": comment_content.value
 	});
@@ -44,13 +47,15 @@ function post(response_to) {
 	}
 }
 
-// TODO doc
-function edit(comment_id) {
-	var edit_editor_div = document.getElementById("edit-editor-" + comment_id);
-	var reply_editor_div = document.getElementById("reply-editor-" + comment_id);
+// Toggles visibility of the edit editor for the comment with the given ID.
+function toggle_edit(comment_id) {
+	var editor_div = document.getElementById("editor-" + comment_id);
+	editor_div.hidden = !editor_div.hidden;
+}
 
-	edit_editor_div.hidden = !edit_editor_div.hidden;
-	reply_editor_div.hidden = true;
+// Edits the comment with the given ID.
+function edit(comment_id) {
+	// TODO
 }
 
 // TODO doc
@@ -64,11 +69,13 @@ function del(comment_id) {
 	location.reload();
 }
 
-// TODO doc
-function reply(comment_id) {
-	var edit_editor_div = document.getElementById("edit-editor-" + comment_id);
-	var reply_editor_div = document.getElementById("reply-editor-" + comment_id);
+/// Sets the comment to be replied to.
+function set_reply(comment_id) {
+	reply_to = comment_id;
 
-	edit_editor_div.hidden = true;
-	reply_editor_div.hidden = !reply_editor_div.hidden;
+	var reply_to_elem = document.getElementById("reply-to");
+	// TODO onclick, scroll to comment
+	reply_to_elem.innerHTML = "Reply to comment <a href=\"#\">#" + reply_to + "</a>";
+	reply_to_elem.hidden = false;
+	reply_to_elem.scrollIntoView();
 }
