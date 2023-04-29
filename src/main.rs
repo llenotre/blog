@@ -97,8 +97,7 @@ async fn root(
 
 	let pages_count = util::ceil_div(total_articles, ARTICLES_PER_PAGE);
 	if page != 0 && page >= pages_count {
-		// TODO http 404
-		todo!();
+		return Err(error::ErrorNotFound(""));
 	}
 
 	// Produce articles HTML

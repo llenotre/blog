@@ -138,7 +138,11 @@ impl Article {
 
 /// Returns the HTML code for a comment editor.
 ///
-/// TODO doc arguments
+/// Arguments:
+/// - `article_id` is the ID of the article.
+/// - `article_type` is the name of the action to perform on click.
+/// - `comment_id` is the ID of the comment for which the action is performed.
+/// - `content` is the default content of the editor.
 fn get_comment_editor(
 	article_id: &str,
 	action_type: &str,
@@ -186,7 +190,7 @@ fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 		if let Some(base) = base.get_mut(base_id) {
 			base.1.push(reply);
 		} else {
-			// TODO
+			// TODO add a dummy comment to allow displaying responses to deleted comments
 		}
 	}
 

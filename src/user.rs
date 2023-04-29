@@ -1,4 +1,4 @@
-//! TODO doc
+//! This module implements user accounts.
 
 use crate::GlobalData;
 use actix_session::Session;
@@ -164,10 +164,9 @@ pub async fn oauth(
 	data: web::Data<GlobalData>,
 	query: web::Query<OauthQuery>,
 	session: Session,
-) -> impl Responder {
+) -> actix_web::Result<impl Responder> {
 	let Some(code) = query.into_inner().code else {
-		// TODO error?
-		todo!();
+		return Err(error::ErrorBadRequest(""));
 	};
 
 	// Make call to Github to retrieve token

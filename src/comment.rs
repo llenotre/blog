@@ -187,7 +187,7 @@ pub struct Reaction {
 	pub removed: bool,
 }
 
-/// TODO doc
+/// The payload for the request allowing to post a comment.
 #[derive(Deserialize)]
 pub struct PostCommentPayload {
 	/// The ID of the article.
@@ -200,6 +200,7 @@ pub struct PostCommentPayload {
 }
 
 // TODO error if article's comments are locked
+// TODO error if the article doesn't exist
 #[post("/comment")]
 pub async fn post(
 	data: web::Data<GlobalData>,

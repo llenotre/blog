@@ -1,6 +1,6 @@
 //! Module implementing utilities.
 
-/// TODO doc
+/// Ceil division.
 pub fn ceil_div(a: u32, b: u32) -> u32 {
 	if a % b != 0 {
 		a / b + 1

@@ -73,7 +73,6 @@ where
 	}
 }
 
-/// TODO doc
 pub struct AnalyticsMiddleware<S> {
 	global: Arc<GlobalData>,
 	service: S,
