@@ -185,6 +185,8 @@ fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 
 		if let Some(base) = base.get_mut(base_id) {
 			base.1.push(reply);
+		} else {
+			// TODO
 		}
 	}
 
