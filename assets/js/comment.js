@@ -98,3 +98,12 @@ function set_reply(comment_id) {
 	reply_to_elem.hidden = false;
 	reply_to_elem.scrollIntoView();
 }
+
+function clipboard(content) {
+	navigator.clipboard.writeText(content);
+	// TODO signal operation success
+}
+
+function expand_editor(id) {
+	document.getElementById("comment-" + id + "-content").style.height = "300px";
+}

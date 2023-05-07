@@ -161,7 +161,7 @@ fn get_comment_editor(
 
 	format!(
 		r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
-		<textarea id="comment-{id}-content" name="content" placeholder="What are your thoughts?" oninput="input({id_quoted})">{content}</textarea>
+		<textarea id="comment-{id}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
 		<input id="comment-{id}-submit" type="submit" value="Post" onclick="{action_type}({id_quoted})"></input>
 
 		<h6>Markdown is supported</h6>
@@ -334,12 +334,13 @@ async fn comment_to_html(
 		};
 
 		Ok(format!(
-			r##"<div class="comment">
+			r##"<div class="comment" id="{com_id}">
 				<div class="comment-header{tier}">
 					<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
 					<a href="{html_url}" target="_blank">{login}</a>
 					<h6>{date_text}</h6>
 					{tier_logo}
+					<a href="#" onclick="clipboard('https://blog.lenot.re/article/{article_id}#{com_id}')" class="button" alt="Copy link"><i class="fa-solid fa-link"></i></a>
 				</div>
 
 				<div class="comment-content">
