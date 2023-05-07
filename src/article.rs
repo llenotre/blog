@@ -422,6 +422,10 @@ pub async fn get(
 			};
 			let html = html.replace("{comment.editor}", &comment_editor_html);
 
+			// Get article reactions
+			// TODO
+			let html = html.replace("{reactions}", "TODO");
+
 			// Get article comments
 			let comments = Comment::list_for_article(&db, id, !admin)
 				.await
