@@ -1,18 +1,18 @@
 //! This module handles comments on articles.
 
-use crate::markdown;
-use crate::user::User;
-use crate::util;
-use crate::GlobalData;
 use actix_session::Session;
 use actix_web::{delete, error, get, post, web, HttpResponse, Responder};
 use bson::doc;
 use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
+use crate::GlobalData;
+use crate::article::Article;
+use crate::markdown;
+use crate::user::User;
+use crate::util;
 use futures_util::stream::TryStreamExt;
 use mongodb::options::FindOneOptions;
-use mongodb::options::FindOptions;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -22,7 +22,7 @@ pub const MAX_CHARS: usize = 10000;
 // TODO support pinned comments
 
 /// Structure representing a comment on an article.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Comment {
 	/// The comment's id.
 	#[serde(rename = "_id")]
@@ -45,6 +45,22 @@ pub struct Comment {
 }
 
 impl Comment {
+	/// Returns a placeholder for a deleted comment.
+	pub fn deleted(id: ObjectId) -> Self {
+		Self {
+			id,
+
+			article: ObjectId::new(),
+			response_to: None,
+
+			author: ObjectId::new(),
+
+			post_date: DateTime::<Utc>::default(),
+
+			removed: true,
+		}
+	}
+
 	/// Returns the list of comments for the article with the given id `article_id`.
 	/// Comments are returns ordered by decreasing post date.
 	///
@@ -66,11 +82,8 @@ impl Comment {
 		} else {
 			doc! {"article": article_id}
 		};
-		let options = FindOptions::builder()
-			.sort(doc! { "post_date": -1 })
-			.build();
 		collection
-			.find(Some(filter), Some(options))
+			.find(Some(filter), None)
 			.await?
 			.try_collect()
 			.await
@@ -200,7 +213,6 @@ pub struct PostCommentPayload {
 }
 
 // TODO error if article's comments are locked
-// TODO error if the article doesn't exist
 #[post("/comment")]
 pub async fn post(
 	data: web::Data<GlobalData>,
@@ -208,13 +220,29 @@ pub async fn post(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let info = info.into_inner();
-	let article_id = ObjectId::parse_str(info.article_id).map_err(|_| error::ErrorNotFound(""))?;
 
 	if info.content.is_empty() {
 		return Err(error::ErrorBadRequest(""));
 	}
 	if info.content.len() > MAX_CHARS {
 		return Err(error::ErrorPayloadTooLarge(""));
+	}
+
+	let db = data.get_database();
+
+	let admin = User::check_admin(&db, &session)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	// Check article exists
+	let article_id = ObjectId::parse_str(info.article_id).map_err(|_| error::ErrorNotFound(""))?;
+	let article = Article::from_id(&db, &article_id).await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(article) = article else {
+		return Err(error::ErrorNotFound(""));
+	};
+	if !article.public && !admin {
+		return Err(error::ErrorNotFound(""));
 	}
 
 	let Some(user_id) = session.get::<String>("user_id").unwrap() else {
@@ -246,7 +274,6 @@ pub async fn post(
 	};
 
 	// Insert comment
-	let db = data.get_database();
 	comment_content
 		.insert(&db)
 		.await

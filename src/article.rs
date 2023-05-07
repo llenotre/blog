@@ -103,7 +103,7 @@ impl Article {
 	/// - `id` is the ID of the article.
 	pub async fn from_id(
 		db: &mongodb::Database,
-		id: ObjectId,
+		id: &ObjectId,
 	) -> Result<Option<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("article");
 		collection.find_one(Some(doc! {"_id": id}), None).await
@@ -187,16 +187,24 @@ fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 	for reply in replies {
 		let base_id = reply.response_to.as_ref().unwrap();
 
-		if let Some(base) = base.get_mut(base_id) {
-			base.1.push(reply);
+		if let Some(b) = base.get_mut(base_id) {
+			b.1.push(reply);
 		} else {
-			// TODO add a dummy comment to allow displaying responses to deleted comments
+			// Insert dummy comment to allow printing replies to deleted comments
+			base.insert(base_id.clone(), (Comment::deleted(base_id.clone()), vec![reply]));
 		}
 	}
 
-	base.into_iter()
+	let mut comments: Vec<_> = base.into_iter()
 		.map(|(_, c)| c)
-		.collect()
+		.collect();
+
+	comments.sort_unstable_by(|c0, c1| c0.0.post_date.cmp(&c1.0.post_date));
+	for c in &mut comments {
+		c.1.sort_unstable_by(|c0, c1| c0.post_date.cmp(&c1.post_date));
+	}
+
+	comments
 }
 
 /// Returns the HTML for the given comment-replies pair.
@@ -219,43 +227,28 @@ async fn comment_to_html(
 ) -> actix_web::Result<String> {
 	let com_id = comment.id;
 
-	// Get author
-	let author = User::from_id(&db, comment.author)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-	let Some(author) = author else {
-		return Ok(String::new());
-	};
+	// HTML for comment's replies
+	let mut replies_html = String::new();
+	if let Some(replies) = replies {
+		if !replies.is_empty() {
+			replies_html.push_str("<h3>Replies</h3>");
+		}
 
-	let html_url = author.github_info.html_url;
-	let avatar_url = author.github_info.avatar_url;
-	let login = author.github_info.login;
-
-	// Get content and convert it
-	let content = CommentContent::get_for(&db, com_id)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-	let Some(content) = content else {
-		return Ok(String::new());
-	};
-	let markdown = markdown::to_html(&content.content, true);
-
-	// TODO use the user's timezome
-	let mut date_text = if content.edit_date > comment.post_date {
-		format!(
-			"posted at {}, last edit at {}",
-			comment.post_date.format("%d/%m/%Y %H:%M:%S"),
-			content.edit_date.format("%d/%m/%Y %H:%M:%S")
-		)
-	} else {
-		format!("posted at {}", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
-	};
-	if comment.removed {
-		date_text.push_str(" - REMOVED");
+		for com in replies {
+			replies_html.push_str(&comment_to_html(
+				db,
+				com,
+				None,
+				user_id,
+				article_id,
+				admin
+			).await?);
+		}
 	}
 
+	// HTML for comment's buttons
 	let mut buttons = vec![];
-	if user_id == Some(&comment.author) || admin {
+	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(
 			r#"<li><a class="button" onclick="toggle_edit('{com_id}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>"#
 		));
@@ -277,56 +270,88 @@ async fn comment_to_html(
 		String::new()
 	};
 
-	let edit_editor = get_comment_editor(
-		&article_id.to_hex(),
-		"edit",
-		Some(&com_id.to_hex()),
-		Some(&content.content),
-	);
+	if !comment.removed || admin {
+		// Get author
+		let author = User::from_id(&db, comment.author)
+			.await
+			.map_err(|_| error::ErrorInternalServerError(""))?;
+		let Some(author) = author else {
+			return Ok(String::new());
+		};
+		let html_url = author.github_info.html_url;
+		let avatar_url = author.github_info.avatar_url;
+		let login = author.github_info.login;
 
-	let mut replies_html = String::new();
-	if let Some(replies) = replies {
-		if !replies.is_empty() {
-			replies_html.push_str("<hr><h3>Replies</h3>");
+		// Get content of comment
+		let content = CommentContent::get_for(&db, com_id)
+			.await
+			.map_err(|_| error::ErrorInternalServerError(""))?;
+		let Some(content) = content else {
+			return Ok(String::new());
+		};
+		let markdown = markdown::to_html(&content.content, true);
+
+		// TODO use the user's timezome
+		let mut date_text = if content.edit_date > comment.post_date {
+			format!(
+				"posted at {}, last edit at {}",
+				comment.post_date.format("%d/%m/%Y %H:%M:%S"),
+				content.edit_date.format("%d/%m/%Y %H:%M:%S")
+			)
+		} else {
+			format!("posted at {}", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
+		};
+		if comment.removed && admin {
+			date_text.push_str(" - REMOVED");
 		}
 
-		for com in replies {
-			replies_html.push_str(&comment_to_html(
-				db,
-				com,
-				None,
-				user_id,
-				article_id,
-				admin
-			).await?);
-		}
-	}
+		let edit_editor = get_comment_editor(
+			&article_id.to_hex(),
+			"edit",
+			Some(&com_id.to_hex()),
+			Some(&content.content)
+		);
 
-	// TODO add decoration on comments depending on the sponsoring tier
-	Ok(format!(
-		r##"<div class="comment">
-			<div class="comment-header">
-				<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
-				<a href="{html_url}" target="_blank">{login}</a>
+		// TODO add decoration on comments depending on the sponsoring tier
+		Ok(format!(
+			r##"<div class="comment">
+				<div class="comment-header">
+					<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
+					<a href="{html_url}" target="_blank">{login}</a>
 
-				<h6>{date_text}</h6>
-			</div>
-
-			<div class="comment-content">
-				{markdown}
-
-				{buttons_html}
-
-				<div id="editor-{com_id}" hidden>
-					<h2>Edit comment</h2>
-
-					{edit_editor}
+					<h6>{date_text}</h6>
 				</div>
 
-				{replies_html}
-			</div>
-		</div>"##
-	))
+				<div class="comment-content">
+					{markdown}
+
+					{buttons_html}
+
+					<div id="editor-{com_id}" hidden>
+						<h2>Edit comment</h2>
+
+						{edit_editor}
+					</div>
+
+					{replies_html}
+				</div>
+			</div>"##
+		))
+	} else {
+		Ok(format!(
+			r##"<div class="comment">
+				<div class="comment-header">
+					<p>deleted comment</p>
+				</div>
+
+				<div class="comment-content">
+					{buttons_html}
+
+					{replies_html}
+				</div>
+			</div>"##
+		))
+	}
 }
 
 #[get("/article/{id}")]
@@ -343,7 +368,7 @@ pub async fn get(
 	let db = data.get_database();
 
 	// Get article
-	let article = Article::from_id(&db, id)
+	let article = Article::from_id(&db, &id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -548,7 +573,7 @@ async fn editor(
 		.transpose()
 		.map_err(|_| error::ErrorBadRequest(""))?;
 	let article = match article_id {
-		Some(article_id) => Article::from_id(&db, article_id)
+		Some(article_id) => Article::from_id(&db, &article_id)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?,
 		None => None,
