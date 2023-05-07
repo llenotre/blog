@@ -294,12 +294,12 @@ async fn comment_to_html(
 		// TODO use the user's timezome
 		let mut date_text = if content.edit_date > comment.post_date {
 			format!(
-				"posted at {}, last edit at {}",
+				"post: {}, edit: {}",
 				comment.post_date.format("%d/%m/%Y %H:%M:%S"),
 				content.edit_date.format("%d/%m/%Y %H:%M:%S")
 			)
 		} else {
-			format!("posted at {}", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
+			format!("post: {}", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
 		};
 		if comment.removed && admin {
 			date_text.push_str(" - REMOVED");
@@ -313,13 +313,33 @@ async fn comment_to_html(
 		);
 
 		// TODO add decoration on comments depending on the sponsoring tier
+		let tier = 0; // TODO
+		let (tier, tier_logo) = match tier {
+			i @ (1..=3) => {
+				let emoji = match i {
+					1 => "❤️",
+					2 => "🚀",
+					3 => "⭐",
+
+					_ => unreachable!(),
+				};
+
+				(
+					format!(" tier-{i}"),
+					format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>")
+				)
+			},
+
+			_ => (String::new(), String::new()),
+		};
+
 		Ok(format!(
 			r##"<div class="comment">
-				<div class="comment-header">
+				<div class="comment-header{tier}">
 					<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
 					<a href="{html_url}" target="_blank">{login}</a>
-
 					<h6>{date_text}</h6>
+					{tier_logo}
 				</div>
 
 				<div class="comment-content">
