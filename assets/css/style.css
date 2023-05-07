@@ -240,6 +240,79 @@ div.comment-header {
 	padding: 20px;
 }
 
+div.comment-header.tier-1 {
+	background: linear-gradient(45deg, #1f1f1f 70%, #ea2027 90%);
+}
+
+.tier-1-logo {
+	text-align: center;
+	font-size: 30px;
+}
+
+div.comment:hover .tier-1-logo {
+	animation: 1s ease-in-out 0s infinite alternate heartbeat;
+}
+
+@keyframes heartbeat {
+	from {
+		font-size: 30px;
+	}
+
+	to {
+		font-size: 40px;
+	}
+}
+
+div.comment-header.tier-2 {
+	background: linear-gradient(45deg, #1f1f1f 70%, #1b1464 90%);
+}
+
+.tier-2-logo {
+	text-align: center;
+	font-size: 30px;
+	overflow: hidden;
+	position: relative;
+}
+
+div.comment:hover .tier-2-logo {
+	animation: 1s ease-in 0s infinite normal rocket;
+}
+
+@keyframes rocket {
+	from {
+		left: 0;
+		bottom: 0;
+	}
+
+	to {
+		left: 30px;
+		bottom: 30px;
+	}
+}
+
+div.comment.tier-3 {
+	background: linear-gradient(45deg, #1f1f1f 70%, #ffc312 90%);
+}
+
+.tier-3-logo {
+	text-align: center;
+	font-size: 30px;
+}
+
+div.comment-header:hover .tier-3-logo {
+	animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+
+	to {
+		transform: rotate(359deg);
+	}
+}
+
 div.comment-header * {
 	display: inline;
 }
