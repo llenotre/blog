@@ -1,7 +1,7 @@
 //! This module handles comments on articles.
 
 use actix_session::Session;
-use actix_web::{delete, error, get, post, web, HttpResponse, Responder};
+use actix_web::{delete, error, patch, get, post, web, HttpResponse, Responder};
 use bson::doc;
 use bson::oid::ObjectId;
 use chrono::DateTime;
@@ -59,6 +59,19 @@ impl Comment {
 
 			removed: true,
 		}
+	}
+
+	/// Returns the comment with the given ID.
+	///
+	/// Arguments:
+	/// - `db` is the database.
+	/// - `id` is the ID of the comment.
+	pub async fn from_id(
+		db: &mongodb::Database,
+		id: &ObjectId,
+	) -> Result<Option<Self>, mongodb::error::Error> {
+		let collection = db.collection::<Self>("comment");
+		collection.find_one(Some(doc! {"_id": id}), None).await
 	}
 
 	/// Returns the list of comments for the article with the given id `article_id`.
@@ -279,6 +292,73 @@ pub async fn post(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	comment
+		.insert(&db)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	Ok(HttpResponse::Ok().finish())
+}
+
+/// The payload for the request allowing to edit a comment.
+#[derive(Deserialize)]
+pub struct EditCommentPayload {
+	/// The ID of the comment.
+	comment_id: String,
+
+	/// The new content of the comment in markdown.
+	content: String,
+}
+
+#[patch("/comment")]
+pub async fn edit(
+	data: web::Data<GlobalData>,
+	info: web::Json<EditCommentPayload>,
+	session: Session,
+) -> actix_web::Result<impl Responder> {
+	let info = info.into_inner();
+
+	if info.content.is_empty() {
+		return Err(error::ErrorBadRequest(""));
+	}
+	if info.content.len() > MAX_CHARS {
+		return Err(error::ErrorPayloadTooLarge(""));
+	}
+
+	let db = data.get_database();
+
+	let admin = User::check_admin(&db, &session)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	let Some(user_id) = session.get::<String>("user_id").unwrap() else {
+		return Err(error::ErrorForbidden(""));
+	};
+	let user_id = ObjectId::parse_str(&user_id).map_err(|_| error::ErrorBadRequest(""))?;
+
+
+	// Check comment exists
+	let comment_id = ObjectId::parse_str(info.comment_id).map_err(|_| error::ErrorNotFound(""))?;
+	let comment = Comment::from_id(&db, &comment_id).await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(comment) = comment else {
+		return Err(error::ErrorNotFound(""));
+	};
+
+	if !admin && comment.author != user_id {
+		return Err(error::ErrorForbidden(""));
+	}
+
+	let date = chrono::offset::Utc::now();
+	let comment_content = CommentContent {
+		comment_id,
+
+		edit_date: date,
+
+		content: info.content,
+	};
+
+	// Insert comment
+	comment_content
 		.insert(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;

@@ -62,7 +62,6 @@ function edit(comment_id) {
     xmlHttp.setRequestHeader("Content-Type", "application/json");
 
 	var payload = JSON.stringify({
-		"article_id": article_id.value,
 		"comment_id": comment_id,
 
 		"content": comment_content.value
