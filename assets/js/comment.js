@@ -55,12 +55,32 @@ function toggle_edit(comment_id) {
 
 // Edits the comment with the given ID.
 function edit(comment_id) {
-	// TODO
+	var comment_content = document.getElementById("comment-" + comment_id + "-content");
+
+	var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open("PATCH", "/comment", false);
+    xmlHttp.setRequestHeader("Content-Type", "application/json");
+
+	var payload = JSON.stringify({
+		"article_id": article_id.value,
+		"comment_id": comment_id,
+
+		"content": comment_content.value
+	});
+    xmlHttp.send(payload);
+
+	if (xmlHttp.status == 200) {
+		location.reload()
+	} else {
+		// TODO show error
+	}
 }
 
 // TODO doc
 function del(comment_id) {
-	// TODO add delete confirm
+	if (!confirm("Are you sure you want to delete this comment?")) {
+		return;
+	}
 
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("DELETE", "/comment/" + comment_id, false);
