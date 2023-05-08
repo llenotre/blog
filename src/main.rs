@@ -183,6 +183,51 @@ async fn legal() -> impl Responder {
 		.body(html)
 }
 
+#[get("/robots.txt")]
+async fn robots() -> impl Responder {
+	r#"User-agent: *
+Allow: /
+Sitemap: https://blog.lenot.re/sitemap.xml"#
+}
+
+#[get("/sitemap.xml")]
+async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
+	let mut urls = vec![];
+
+	urls.push(("/".to_owned(), None));
+	urls.push(("/legal".to_owned(), None));
+
+	let db = data.get_database();
+	let articles = Article::list(&db, 0, 100, false)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	for a in articles {
+		// TODO use edit_date instead once implemented
+		urls.push((format!("/article/{}", a.id), Some(a.post_date)));
+	}
+
+	let urls: String = urls.into_iter()
+		.map(|(url, date)| {
+			match date {
+				Some(date) => {
+					let date = date.format("%Y-%m-%d");
+					format!("\t\t<url><loc>https://blog.lenot.re{url}</loc><lastmod>{date}</lastmod></url>")
+				},
+				None => format!("\t\t<url><loc>https://blog.lenot.re{url}</loc></url>"),
+			}
+		})
+		.collect();
+
+	let body = format!(r#"<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	{urls}
+</urlset>"#);
+
+	Ok(HttpResponse::Ok()
+		.content_type(ContentType::xml())
+		.body(body))
+}
+
 fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
 	let status = res.status();
 
@@ -259,7 +304,9 @@ async fn main() -> io::Result<()> {
 			.service(file::manage)
 			.service(file::upload)
 			.service(legal)
+			.service(robots)
 			.service(root)
+			.service(sitemap)
 			.service(user::auth)
 			.service(user::logout)
 			.service(user::oauth)
