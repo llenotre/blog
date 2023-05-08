@@ -1,5 +1,7 @@
 //! This module handles comments on articles.
 
+use std::collections::HashMap;
+use async_recursion::async_recursion;
 use actix_session::Session;
 use actix_web::{delete, error, patch, get, post, web, HttpResponse, Responder};
 use bson::doc;
@@ -211,6 +213,244 @@ pub struct Reaction {
 
 	/// Tells whether the reaction has been removed.
 	pub removed: bool,
+}
+
+/// Returns the HTML code for a comment editor.
+///
+/// Arguments:
+/// - `article_id` is the ID of the article.
+/// - `article_type` is the name of the action to perform on click.
+/// - `comment_id` is the ID of the comment for which the action is performed.
+/// - `content` is the default content of the editor.
+pub fn get_comment_editor(
+	article_id: &str,
+	action_type: &str,
+	comment_id: Option<&str>,
+	content: Option<&str>,
+) -> String {
+	let id = comment_id
+		.map(|s| format!("{}", s))
+		.unwrap_or("null".to_string());
+	let id_quoted = comment_id
+		.map(|s| format!("'{}'", s))
+		.unwrap_or("null".to_string());
+
+	let content = content.unwrap_or("");
+
+	format!(
+		r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
+		<textarea id="comment-{id}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
+		<input id="comment-{id}-submit" type="submit" value="Post" onclick="{action_type}({id_quoted})"></input>
+
+		<h6>Markdown is supported</h6>
+		<h6><span id="comment-{id}-len">0</span>/{MAX_CHARS} characters</h6>"#
+	)
+}
+
+/// Groups all comments into a list of comment-replies pairs.
+pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
+	let mut base = HashMap::new();
+	let mut replies = Vec::new();
+
+	// Partition comments
+	for com in comments {
+		if com.response_to.is_none() {
+			base.insert(com.id, (com, vec![]));
+		} else {
+			replies.push(com);
+		}
+	}
+
+	// Assign replies to comments
+	for reply in replies {
+		let base_id = reply.response_to.as_ref().unwrap();
+
+		if let Some(b) = base.get_mut(base_id) {
+			b.1.push(reply);
+		} else {
+			// Insert dummy comment to allow printing replies to deleted comments
+			base.insert(base_id.clone(), (Comment::deleted(base_id.clone()), vec![reply]));
+		}
+	}
+
+	let mut comments: Vec<_> = base.into_iter()
+		.map(|(_, c)| c)
+		.collect();
+
+	comments.sort_unstable_by(|c0, c1| c0.0.post_date.cmp(&c1.0.post_date));
+	for c in &mut comments {
+		c.1.sort_unstable_by(|c0, c1| c0.post_date.cmp(&c1.post_date));
+	}
+
+	comments
+}
+
+/// Returns the HTML for the given comment-replies pair.
+///
+/// Arguments:
+/// - `db` is the database.
+/// - `comment` is the comment.
+/// - `replies` is the list of replies. If `None`, the comment itself is a reply.
+/// - `user_id` is the ID of the current user. If not logged, the value is `None`.
+/// - `article_id` is the ID of the current article.
+/// - `admin` tells whether the current user is admin.
+#[async_recursion]
+pub async fn comment_to_html(
+	db: &mongodb::Database,
+	comment: &Comment,
+	replies: Option<&'async_recursion [Comment]>,
+	user_id: Option<&'async_recursion ObjectId>,
+	article_id: &ObjectId,
+	admin: bool,
+) -> actix_web::Result<String> {
+	let com_id = comment.id;
+
+	// HTML for comment's replies
+	let mut replies_html = String::new();
+	if let Some(replies) = replies {
+		if !replies.is_empty() {
+			replies_html.push_str("<h3>Replies</h3>");
+		}
+
+		for com in replies {
+			replies_html.push_str(&comment_to_html(
+				db,
+				com,
+				None,
+				user_id,
+				article_id,
+				admin
+			).await?);
+		}
+	}
+
+	// HTML for comment's buttons
+	let mut buttons = vec![];
+	if (user_id == Some(&comment.author) || admin) && !comment.removed {
+		buttons.push(format!(
+			r#"<li><a class="button" onclick="toggle_edit('{com_id}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>"#
+		));
+		buttons.push(format!(
+			r#"<li><a class="button" onclick="del('{com_id}')">Delete <i class="fa-solid fa-trash"></i></a></li>"#
+		));
+	}
+	if user_id.is_some() && replies.is_some() {
+		buttons.push(format!(
+			r#"<li><a class="button" onclick="set_reply('{com_id}')">Reply <i class="fa-solid fa-reply"></i></a></li>"#
+		));
+	}
+	let buttons_html = if !buttons.is_empty() {
+		let buttons_html: String = buttons.into_iter().collect();
+		format!(r#"<ul class="comment-buttons">
+			{buttons_html}
+			</ul>"#)
+	} else {
+		String::new()
+	};
+
+	if !comment.removed || admin {
+		// Get author
+		let author = User::from_id(&db, comment.author)
+			.await
+			.map_err(|_| error::ErrorInternalServerError(""))?;
+		let Some(author) = author else {
+			return Ok(String::new());
+		};
+		let html_url = author.github_info.html_url;
+		let avatar_url = author.github_info.avatar_url;
+		let login = author.github_info.login;
+
+		// Get content of comment
+		let content = CommentContent::get_for(&db, com_id)
+			.await
+			.map_err(|_| error::ErrorInternalServerError(""))?;
+		let Some(content) = content else {
+			return Ok(String::new());
+		};
+		let markdown = markdown::to_html(&content.content, true);
+
+		// TODO use the user's timezome
+		let mut date_text = if content.edit_date > comment.post_date {
+			format!(
+				"post: {}, edit: {}",
+				comment.post_date.format("%d/%m/%Y %H:%M:%S"),
+				content.edit_date.format("%d/%m/%Y %H:%M:%S")
+			)
+		} else {
+			format!("post: {}", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
+		};
+		if comment.removed && admin {
+			date_text.push_str(" - REMOVED");
+		}
+
+		let edit_editor = get_comment_editor(
+			&article_id.to_hex(),
+			"edit",
+			Some(&com_id.to_hex()),
+			Some(&content.content)
+		);
+
+		// TODO add decoration on comments depending on the sponsoring tier
+		let tier = 0; // TODO
+		let (tier, tier_logo) = match tier {
+			i @ (1..=3) => {
+				let emoji = match i {
+					1 => "❤️",
+					2 => "🚀",
+					3 => "⭐",
+
+					_ => unreachable!(),
+				};
+
+				(
+					format!(" tier-{i}"),
+					format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>")
+				)
+			},
+
+			_ => (String::new(), String::new()),
+		};
+
+		Ok(format!(
+			r##"<div class="comment" id="{com_id}">
+				<div class="comment-header{tier}">
+					<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
+					<a href="{html_url}" target="_blank">{login}</a>
+					<h6>{date_text}</h6>
+					{tier_logo}
+					<a href="#" onclick="clipboard('https://blog.lenot.re/article/{article_id}#{com_id}')" class="button" alt="Copy link"><i class="fa-solid fa-link"></i></a>
+				</div>
+
+				<div class="comment-content">
+					{markdown}
+
+					{buttons_html}
+
+					<div id="editor-{com_id}" hidden>
+						<h2>Edit comment</h2>
+
+						{edit_editor}
+					</div>
+
+					{replies_html}
+				</div>
+			</div>"##
+		))
+	} else {
+		Ok(format!(
+			r##"<div class="comment">
+				<div class="comment-header">
+					<p>deleted comment</p>
+				</div>
+
+				<div class="comment-content">
+					{buttons_html}
+
+					{replies_html}
+				</div>
+			</div>"##
+		))
+	}
 }
 
 /// The payload for the request allowing to post a comment.
