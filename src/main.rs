@@ -79,9 +79,6 @@ async fn root(
 ) -> actix_web::Result<impl Responder> {
 	let page = page.into_inner().page.unwrap_or(0);
 
-	// Article colors
-	static COLORS: [&str; 2] = ["#006266", "#2f2f2f"];
-
 	let db = data.get_database();
 	let admin = User::check_admin(&db, &session)
 		.await
@@ -105,31 +102,47 @@ async fn root(
 		.into_iter()
 		.enumerate()
 		.map(|(i, article)| {
-			let color = if article.public {
-				COLORS[i % COLORS.len()]
-			} else {
-				"gray"
-			};
+			let article_id = article.id;
+			let article_title = article.title;
+			let article_desc = article.desc;
+			let post_date = article.post_date.format("%d/%m/%Y"); // TODO use user's timezone
 
-			let public_html = match (admin, article.public) {
-				(false, _) => "",
-				(true, false) => "<h6>PRIVATE</h6>",
-				(true, true) => "<h6>PUBLIC</h6>",
-			};
+			let mut tags = vec![];
+
+			if admin {
+				let pub_tag = if article.public {
+					"Public"
+				} else {
+					"Private"
+				};
+
+				tags.push(pub_tag);
+			}
+
+			if article.sponsor {
+				tags.push("<i>Reserved for Sponsors</i> ❤️");
+			}
+
+			let tags_html: String = tags.into_iter()
+				.map(|s| format!(r##"<li>{s}</li>"##))
+				.collect();
 
 			format!(
-				r#"<div class="article" style="background-color: {};">
-					<h2><a href="/article/{}">{}</a></h2>
+				r#"<div class="article">
+					<h2><a href="/article/{article_id}">{article_title}</a></h2>
 
 					<p>
-						{}
+						{article_desc}
 					</p>
 
-					<a class="read-button" href="/article/{}">Read <i class="fa-solid fa-arrow-right"></i></a>
+					<a class="read-button" href="/article/{article_id}">Read <i class="fa-solid fa-arrow-right"></i></a>
 
-					{}
-				</div>"#,
-				color, article.id, article.title, article.desc, article.id, public_html
+					<h6>Posted at {post_date}</h6>
+
+					<ul class="tags">
+						{tags_html}
+					</ul>
+				</div>"#
 			)
 		})
 		.collect();

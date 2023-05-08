@@ -33,6 +33,7 @@ body {
 div.section {
 	margin: 0;
 	padding: 10px;
+	overflow-wrap: break-word;
 }
 
 @media(min-width: 1024px) {
@@ -80,11 +81,13 @@ div.articles-list-inner {
 }
 
 div.article {
+	background: #2f2f2f;
 	text-decoration: none;
 	margin: 0;
+	margin-bottom: 10px;
 	padding: 30px;
 	width: 100%;
-	height: 240px;
+	min-height: 240px;
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
 	box-sizing: border-box;
@@ -93,25 +96,6 @@ div.article {
 
 div.article a {
 	text-decoration: none;
-}
-
-@media(min-width: 1024px) {
-	div.article {
-		flex-basis: 50%;
-	}
-}
-
-.read-button {
-	background: #006266;
-	border: 1px solid white;
-	border-radius: 10px;
-	padding: 10px;
-	float: right;
-}
-
-.read-button:hover {
-	background: white;
-	color: #006266;
 }
 
 a.button {
@@ -128,9 +112,37 @@ a.button:hover {
 	background-color: #003133;
 }
 
+.read-button {
+	background: #006266;
+	border: 1px solid white;
+	border-radius: 10px;
+	padding: 10px;
+	float: right;
+}
+
+.read-button:hover {
+	background: white;
+	color: #006266;
+}
+
 .page-button {
 	width: 100%;
 	flex-basis: 40%;
+}
+
+ul.tags {
+	padding: 0;
+	list-style-type: none;
+	white-space: nowrap;
+}
+
+ul.tags li {
+	margin-right: 10px;
+	padding: 5px;
+	border: 1px solid white;
+	border-radius: 10px;
+	font-size: 10px;
+	display: inline;
 }
 
 div.share {
@@ -325,6 +337,7 @@ img.avatar {
 div.comment-content {
 	padding: 20px;
 	padding-top: 0;
+	overflow-wrap: break-word;
 }
 
 ul.comment-buttons {

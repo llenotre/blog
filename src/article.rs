@@ -47,6 +47,9 @@ pub struct Article {
 
 	/// Tells whether the article is public.
 	pub public: bool,
+	/// Tells whether the article is reserved for sponsors.
+	pub sponsor: bool,
+
 	/// Tells whether comments are locked on the article.
 	pub comments_locked: bool,
 }
@@ -255,6 +258,8 @@ pub struct ArticleEdit {
 
 	/// Tells whether to publish the article.
 	public: Option<String>,
+	/// Tells whether the article is reserved for sponsors.
+	sponsor: Option<String>,
 }
 
 #[post("/article")]
@@ -289,6 +294,7 @@ pub async fn post(
 					"content": info.content,
 
 					"public": info.public.map(|p| p == "on").unwrap_or(false),
+					"sponsor": info.sponsor.map(|p| p == "on").unwrap_or(false),
 				},
 			)
 			.await
@@ -310,6 +316,8 @@ pub async fn post(
 				post_date: chrono::offset::Utc::now(),
 
 				public: info.public.map(|p| p == "on").unwrap_or(false),
+				sponsor: info.sponsor.map(|p| p == "on").unwrap_or(false),
+
 				comments_locked: false,
 			};
 
@@ -377,6 +385,7 @@ async fn editor(
 	let article_desc = article.as_ref().map(|a| a.desc.as_str()).unwrap_or("");
 	let article_content = article.as_ref().map(|a| a.content.as_str()).unwrap_or("");
 	let article_public = article.as_ref().map(|a| a.public).unwrap_or(false);
+	let article_sponsor = article.as_ref().map(|a| a.sponsor).unwrap_or(false);
 
 	let html = include_str!("../pages/editor.html");
 	let html = html.replace("{article.id}", &article_id_html);
@@ -386,6 +395,10 @@ async fn editor(
 	let html = html.replace(
 		"{article.published}",
 		if article_public { "checked" } else { "" },
+	);
+	let html = html.replace(
+		"{article.sponsor}",
+		if article_sponsor { "checked" } else { "" },
 	);
 
 	Ok(HttpResponse::Ok()
