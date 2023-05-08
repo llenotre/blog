@@ -43,8 +43,12 @@ div.section {
 	}
 }
 
-.intro {
+.secondary {
 	background-color: #006266;
+	color: #fff;
+}
+
+.secondary a {
 	color: #fff;
 }
 
@@ -69,11 +73,6 @@ div.bio-half {
 	}
 }
 
-.articles-list {
-	background-color: #1b1464;
-	color: #fff;
-}
-
 div.articles-list-inner {
 	flex-direction: row;
 	flex-wrap: wrap;
@@ -81,7 +80,8 @@ div.articles-list-inner {
 }
 
 div.article {
-	background: #2f2f2f;
+	background: #1f1f1f;
+	color: #fff;
 	text-decoration: none;
 	margin: 0;
 	margin-bottom: 10px;
@@ -95,6 +95,7 @@ div.article {
 }
 
 div.article a {
+	color: #fff;
 	text-decoration: none;
 }
 
@@ -114,6 +115,7 @@ a.button:hover {
 
 .read-button {
 	background: #006266;
+	color: #fff;
 	border: 1px solid white;
 	border-radius: 10px;
 	padding: 10px;
