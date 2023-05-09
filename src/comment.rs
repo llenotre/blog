@@ -1,22 +1,22 @@
 //! This module handles comments on articles.
 
-use std::collections::HashMap;
-use async_recursion::async_recursion;
-use actix_session::Session;
-use actix_web::{delete, error, patch, get, post, web, HttpResponse, Responder};
-use bson::doc;
-use bson::oid::ObjectId;
-use chrono::DateTime;
-use chrono::Utc;
-use crate::GlobalData;
 use crate::article::Article;
 use crate::markdown;
 use crate::user::User;
 use crate::util;
+use crate::GlobalData;
+use actix_session::Session;
+use actix_web::{delete, error, get, patch, post, web, HttpResponse, Responder};
+use async_recursion::async_recursion;
+use bson::doc;
+use bson::oid::ObjectId;
+use chrono::DateTime;
+use chrono::Utc;
 use futures_util::stream::TryStreamExt;
 use mongodb::options::FindOneOptions;
 use serde::Deserialize;
 use serde::Serialize;
+use std::collections::HashMap;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 10000;
@@ -269,13 +269,14 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 			b.1.push(reply);
 		} else {
 			// Insert dummy comment to allow printing replies to deleted comments
-			base.insert(base_id.clone(), (Comment::deleted(base_id.clone()), vec![reply]));
+			base.insert(
+				base_id.clone(),
+				(Comment::deleted(base_id.clone()), vec![reply]),
+			);
 		}
 	}
 
-	let mut comments: Vec<_> = base.into_iter()
-		.map(|(_, c)| c)
-		.collect();
+	let mut comments: Vec<_> = base.into_iter().map(|(_, c)| c).collect();
 
 	comments.sort_unstable_by(|c0, c1| c0.0.post_date.cmp(&c1.0.post_date));
 	for c in &mut comments {
@@ -313,14 +314,8 @@ pub async fn comment_to_html(
 		}
 
 		for com in replies {
-			replies_html.push_str(&comment_to_html(
-				db,
-				com,
-				None,
-				user_id,
-				article_id,
-				admin
-			).await?);
+			replies_html
+				.push_str(&comment_to_html(db, com, None, user_id, article_id, admin).await?);
 		}
 	}
 
@@ -341,9 +336,11 @@ pub async fn comment_to_html(
 	}
 	let buttons_html = if !buttons.is_empty() {
 		let buttons_html: String = buttons.into_iter().collect();
-		format!(r#"<ul class="comment-buttons">
+		format!(
+			r#"<ul class="comment-buttons">
 			{buttons_html}
-			</ul>"#)
+			</ul>"#
+		)
 	} else {
 		String::new()
 	};
@@ -387,29 +384,30 @@ pub async fn comment_to_html(
 			&article_id.to_hex(),
 			"edit",
 			Some(&com_id.to_hex()),
-			Some(&content.content)
+			Some(&content.content),
 		);
 
 		// TODO add decoration on comments depending on the sponsoring tier
 		let tier = 0; // TODO
-		let (tier, tier_logo) = match tier {
-			i @ (1..=3) => {
-				let emoji = match i {
-					1 => "❤️",
-					2 => "🚀",
-					3 => "⭐",
+		let (tier, tier_logo) =
+			match tier {
+				i @ (1..=3) => {
+					let emoji = match i {
+						1 => "❤️",
+						2 => "🚀",
+						3 => "⭐",
 
-					_ => unreachable!(),
-				};
+						_ => unreachable!(),
+					};
 
-				(
+					(
 					format!(" tier-{i}"),
 					format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>")
 				)
-			},
+				}
 
-			_ => (String::new(), String::new()),
-		};
+				_ => (String::new(), String::new()),
+			};
 
 		Ok(format!(
 			r##"<div class="comment" id="{com_id}">
@@ -489,7 +487,8 @@ pub async fn post(
 
 	// Check article exists
 	let article_id = ObjectId::parse_str(info.article_id).map_err(|_| error::ErrorNotFound(""))?;
-	let article = Article::from_id(&db, &article_id).await
+	let article = Article::from_id(&db, &article_id)
+		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(article) = article else {
 		return Err(error::ErrorNotFound(""));
@@ -575,10 +574,10 @@ pub async fn edit(
 	};
 	let user_id = ObjectId::parse_str(&user_id).map_err(|_| error::ErrorBadRequest(""))?;
 
-
 	// Check comment exists
 	let comment_id = ObjectId::parse_str(info.comment_id).map_err(|_| error::ErrorNotFound(""))?;
-	let comment = Comment::from_id(&db, &comment_id).await
+	let comment = Comment::from_id(&db, &comment_id)
+		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(comment) = comment else {
 		return Err(error::ErrorNotFound(""));
