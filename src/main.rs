@@ -124,7 +124,7 @@ async fn root(
 			}
 
 			let tags_html: String = tags.into_iter()
-				.map(|s| format!(r##"<li>{s}</li>"##))
+				.map(|s| format!(r#"<li class="tag">{s}</li>"#))
 				.collect();
 
 			format!(
@@ -135,13 +135,12 @@ async fn root(
 						{article_desc}
 					</p>
 
-					<a class="read-button" href="/article/{article_id}">Read <i class="fa-solid fa-arrow-right"></i></a>
-
-					<h6>Posted at {post_date}</h6>
-
 					<ul class="tags">
+						<li><h6 style="color: gray;">Posted at {post_date}</h6></li>
 						{tags_html}
 					</ul>
+
+					<a class="read-button" href="/article/{article_id}">Read&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-arrow-right"></i></a>
 				</div>"#
 			)
 		})
@@ -175,6 +174,14 @@ async fn root(
 		.body(html))
 }
 
+#[get("/bio")]
+async fn bio() -> impl Responder {
+	let html = include_str!("../pages/bio.html");
+	HttpResponse::Ok()
+		.content_type(ContentType::html())
+		.body(html)
+}
+
 #[get("/legal")]
 async fn legal() -> impl Responder {
 	let html = include_str!("../pages/legal.html");
@@ -195,6 +202,7 @@ async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 	let mut urls = vec![];
 
 	urls.push(("/".to_owned(), None));
+	urls.push(("/bio".to_owned(), None));
 	urls.push(("/legal".to_owned(), None));
 
 	let db = data.get_database();
@@ -303,6 +311,7 @@ async fn main() -> io::Result<()> {
 			.service(file::get)
 			.service(file::manage)
 			.service(file::upload)
+			.service(bio)
 			.service(legal)
 			.service(robots)
 			.service(root)
