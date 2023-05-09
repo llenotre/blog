@@ -301,6 +301,7 @@ async fn main() -> io::Result<()> {
 			))
 			.wrap(ErrorHandlers::new().default_handler(error_handler))
 			.app_data(data.clone())
+			.app_data(web::PayloadConfig::new(1024 * 1024))
 			.service(Files::new("/assets", "./assets"))
 			.service(article::editor)
 			.service(article::get)
