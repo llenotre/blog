@@ -1,14 +1,14 @@
 //! This module handles articles.
 
-use crate::GlobalData;
-use crate::comment::Comment;
 use crate::comment::comment_to_html;
 use crate::comment::get_comment_editor;
 use crate::comment::group_comments;
+use crate::comment::Comment;
 use crate::markdown;
-use crate::user::User;
 use crate::user;
+use crate::user::User;
 use crate::util;
+use crate::GlobalData;
 use actix_session::Session;
 use actix_web::{
 	error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
@@ -166,9 +166,9 @@ pub async fn get(
 				return Err(error::ErrorNotFound(""));
 			}
 
-			let user_id = session.get::<String>("user_id")?
-				.map(|id| ObjectId::parse_str(&id)
-					.map_err(|_| error::ErrorBadRequest("")))
+			let user_id = session
+				.get::<String>("user_id")?
+				.map(|id| ObjectId::parse_str(&id).map_err(|_| error::ErrorBadRequest("")))
 				.transpose()?;
 
 			let user_login = session.get::<String>("user_login")?;
@@ -220,14 +220,17 @@ pub async fn get(
 
 			let mut comments_html = String::new();
 			for (com, replies) in comments {
-				comments_html.push_str(&comment_to_html(
-					&db,
-					&com,
-					Some(&replies),
-					user_id.as_ref(),
-					&article.id,
-					admin
-				).await?);
+				comments_html.push_str(
+					&comment_to_html(
+						&db,
+						&com,
+						Some(&replies),
+						user_id.as_ref(),
+						&article.id,
+						admin,
+					)
+					.await?,
+				);
 			}
 
 			let html = html.replace("{comments}", &comments_html);

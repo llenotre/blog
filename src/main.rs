@@ -214,22 +214,23 @@ async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 		urls.push((format!("/article/{}", a.id), Some(a.post_date)));
 	}
 
-	let urls: String = urls.into_iter()
-		.map(|(url, date)| {
-			match date {
+	let urls: String =
+		urls.into_iter()
+			.map(|(url, date)| match date {
 				Some(date) => {
 					let date = date.format("%Y-%m-%d");
 					format!("\t\t<url><loc>https://blog.lenot.re{url}</loc><lastmod>{date}</lastmod></url>")
-				},
+				}
 				None => format!("\t\t<url><loc>https://blog.lenot.re{url}</loc></url>"),
-			}
-		})
-		.collect();
+			})
+			.collect();
 
-	let body = format!(r#"<?xml version="1.0" encoding="UTF-8"?>
+	let body = format!(
+		r#"<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 	{urls}
-</urlset>"#);
+</urlset>"#
+	);
 
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::xml())
