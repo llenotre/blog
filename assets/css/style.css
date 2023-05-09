@@ -1,46 +1,42 @@
 @font-face {
+	font-family: 'Source Sans Pro';
+	src: url('/assets/font/SourceSansPro.ttf');
+}
+
+@font-face {
 	font-family: 'Fira Code';
 	src: url('/assets/font/FiraCode.ttf');
 }
 
-@media (prefers-color-scheme: dark) {
-	body {
-		background: #2f2f2f;
-		color: white;
-	}
-
-	a {
-		color: white;
-	}
-}
-
-@media (prefers-color-scheme: light) {
-	body {
-		background: white;
-		color: black;
-	}
-
-	a {
-		color: black;
-	}
-}
-
 body {
 	margin: 0;
-	font-family: 'Fira Code', monospace;
+	font-family: 'Source Sans Pro', sans-serif;
+}
+
+header {
+	background: #1f1f1f;
+	display: block;
+}
+
+header li {
+	list-style-type: none;
+	display: inline-block;
+}
+
+header a {
+	padding: 10px 30px 10px 30px;
+	text-decoration: none;
+	display: block;
+}
+
+header a:hover {
+	background: #0f0f0f;
 }
 
 div.section {
 	margin: 0;
 	padding: 10px;
 	overflow-wrap: break-word;
-}
-
-@media(min-width: 1024px) {
-	div.section {
-		padding-left: 20%;
-		padding-right: 20%;
-	}
 }
 
 .secondary {
@@ -67,12 +63,6 @@ div.bio-half {
 	flex-basis: 100%;
 }
 
-@media(min-width: 1024px) {
-	div.bio-half {
-		flex-basis: 50%;
-	}
-}
-
 div.articles-list-inner {
 	flex-direction: row;
 	flex-wrap: wrap;
@@ -81,6 +71,8 @@ div.articles-list-inner {
 
 div.article {
 	background: #1f1f1f;
+	border-radius: 5px;
+	border: 0;
 	color: #fff;
 	text-decoration: none;
 	margin: 0;
@@ -116,7 +108,7 @@ a.button:hover {
 .read-button {
 	background: #006266;
 	color: #fff;
-	border: 1px solid white;
+	border: 0;
 	border-radius: 10px;
 	padding: 10px;
 	float: right;
@@ -133,15 +125,26 @@ a.button:hover {
 }
 
 ul.tags {
+	margin: 0;
 	padding: 0;
 	list-style-type: none;
 	white-space: nowrap;
+	display: inline-block;
 }
 
 ul.tags li {
 	margin-right: 10px;
 	padding: 5px;
-	border: 1px solid white;
+	display: inline-block;
+}
+
+ul.tags h6 {
+	margin: 0;
+}
+
+li.tag {
+	background: #2f2f2f;
+	border: 0;
 	border-radius: 10px;
 	font-size: 10px;
 	display: inline;
@@ -149,6 +152,7 @@ ul.tags li {
 
 div.share {
 	margin: 20px 0 20px 0;
+	text-align: right;
 	float: right;
 }
 
@@ -224,13 +228,19 @@ a.reaction:hover {
 }
 
 input, textarea {
-	padding: 5px;
+	border: 0;
+	padding: 10px;
 	width: 100%;
-	font-family: 'Fira Code', monospace;
+	font-family: 'Source Sans Pro', sans-serif;
+	box-sizing: border-box;
 }
 
 input[type=checkbox] {
 	width: auto;
+}
+
+input[type = "submit"] {
+	cursor: pointer;
 }
 
 *:focus {
@@ -240,7 +250,6 @@ input[type=checkbox] {
 textarea {
 	width: 100%;
 	height: 50px;
-	padding: 0;
 	resize: none;
 }
 
@@ -358,13 +367,75 @@ footer {
 	padding: 10px 30px 10px 30px;;
 }
 
-@media(min-width: 1024px) {
+footer a {
+	color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+	body {
+		background: #2f2f2f;
+		color: white;
+	}
+
+	a {
+		color: white;
+	}
+
+	input, textarea {
+		background: #1f1f1f;
+		color: white;
+	}
+
+	input[type = "submit"]:hover {
+		background: #0f0f0f;
+	}
+
+	::placeholder {
+		color: white;
+	}
+}
+
+@media (prefers-color-scheme: light) {
+	body {
+		background: white;
+		color: black;
+	}
+
+	a {
+		color: black;
+	}
+
+	input, textarea {
+		background: white;
+		color: black;
+	}
+
+	input[type = "submit"]:hover {
+		background: gray;
+	}
+
+	::placeholder {
+		color: black;
+	}
+}
+
+@media(min-width: 1200px) {
+	header {
+		padding-left: 20%;
+		padding-right: 20%;
+	}
+
+	div.section {
+		padding-left: 20%;
+		padding-right: 20%;
+	}
+
+	div.bio-half {
+		flex-basis: 50%;
+	}
+
 	footer {
 		padding-left: 20%;
 		padding-right: 20%;
 	}
-}
-
-footer a {
-	color: white;
 }

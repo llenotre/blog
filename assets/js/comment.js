@@ -26,6 +26,9 @@ function get_preview(markdown) {
 // Posts a comment.
 function post(_) {
 	var comment_content = document.getElementById("comment-null-content");
+	if (comment_content.value.length == 0) {
+		return;
+	}
 
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("POST", "/comment", false);
@@ -43,7 +46,7 @@ function post(_) {
 		comment_content.value = "";
 		location.reload()
 	} else {
-		// TODO show error
+		alert("Failed to post comment: HTTP error " + xmlHttp.status);
 	}
 }
 
@@ -56,6 +59,9 @@ function toggle_edit(comment_id) {
 // Edits the comment with the given ID.
 function edit(comment_id) {
 	var comment_content = document.getElementById("comment-" + comment_id + "-content");
+	if (comment_content.value.length == 0) {
+		return;
+	}
 
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("PATCH", "/comment", false);
@@ -71,11 +77,11 @@ function edit(comment_id) {
 	if (xmlHttp.status == 200) {
 		location.reload()
 	} else {
-		// TODO show error
+		alert("Failed to edit comment: HTTP error " + xmlHttp.status);
 	}
 }
 
-// TODO doc
+// Deletes the comment with the given ID.
 function del(comment_id) {
 	if (!confirm("Are you sure you want to delete this comment?")) {
 		return;
@@ -85,7 +91,11 @@ function del(comment_id) {
     xmlHttp.open("DELETE", "/comment/" + comment_id, false);
     xmlHttp.send(null);
 
-	location.reload();
+	if (xmlHttp.status == 200) {
+		location.reload()
+	} else {
+		alert("Failed to delete comment: HTTP error " + xmlHttp.status);
+	}
 }
 
 /// Sets the comment to be replied to.
@@ -93,17 +103,18 @@ function set_reply(comment_id) {
 	reply_to = comment_id;
 
 	var reply_to_elem = document.getElementById("reply-to");
-	// TODO onclick, scroll to comment
-	reply_to_elem.innerHTML = "Reply to comment <a href=\"#\">#" + reply_to + "</a>";
+	reply_to_elem.innerHTML = "Reply to comment <a href=\"#" + reply_to + "\">#" + reply_to + "</a>";
 	reply_to_elem.hidden = false;
 	reply_to_elem.scrollIntoView();
 }
 
+/// Copies the given content into clipboard.
 function clipboard(content) {
 	navigator.clipboard.writeText(content);
 	// TODO signal operation success
 }
 
+/// Expands editor on click.
 function expand_editor(id) {
 	document.getElementById("comment-" + id + "-content").style.height = "300px";
 }

@@ -328,15 +328,15 @@ pub async fn comment_to_html(
 	let mut buttons = vec![];
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(
-			r#"<li><a class="button" onclick="toggle_edit('{com_id}')">Edit <i class="fa-solid fa-pen-to-square"></i></a></li>"#
+			r#"<li><a class="button" onclick="toggle_edit('{com_id}')">Edit&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-pen-to-square"></i></a></li>"#
 		));
 		buttons.push(format!(
-			r#"<li><a class="button" onclick="del('{com_id}')">Delete <i class="fa-solid fa-trash"></i></a></li>"#
+			r#"<li><a class="button" onclick="del('{com_id}')">Delete&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-trash"></i></a></li>"#
 		));
 	}
 	if user_id.is_some() && replies.is_some() {
 		buttons.push(format!(
-			r#"<li><a class="button" onclick="set_reply('{com_id}')">Reply <i class="fa-solid fa-reply"></i></a></li>"#
+			r#"<li><a class="button" onclick="set_reply('{com_id}')">Reply&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-reply"></i></a></li>"#
 		));
 	}
 	let buttons_html = if !buttons.is_empty() {
