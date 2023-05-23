@@ -109,9 +109,14 @@ function set_reply(comment_id) {
 }
 
 /// Copies the given content into clipboard.
-function clipboard(content) {
+function clipboard(id, content) {
 	navigator.clipboard.writeText(content);
-	// TODO signal operation success
+
+	var button = document.getElementById(id);
+	button.innerHTML = "<i class=\"fa-solid fa-check\"></i>";
+	setTimeout(() => {
+		button.innerHTML = "<i class=\"fa-solid fa-link\"></i>";
+	}, 1000);
 }
 
 /// Expands editor on click.
