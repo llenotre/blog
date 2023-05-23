@@ -416,7 +416,7 @@ pub async fn comment_to_html(
 					<a href="{html_url}" target="_blank">{login}</a>
 					<h6>{date_text}</h6>
 					{tier_logo}
-					<a href="#{com_id}" onclick="clipboard('https://blog.lenot.re/article/{article_id}#{com_id}')" class="button" alt="Copy link"><i class="fa-solid fa-link"></i></a>
+					<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="button" alt="Copy link"><i class="fa-solid fa-link"></i></a>
 				</div>
 
 				<div class="comment-content">
