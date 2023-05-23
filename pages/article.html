@@ -7,6 +7,7 @@
 		<link href="/assets/css/brands.css" rel="stylesheet" \>
 		<link href="/assets/css/solid.css" rel="stylesheet" \>
 		<meta charset="UTF-8" \>
+		<meta name="viewport" content="width=device-width, initial-scale=1" \>
 		<meta property="og:type" content="website" \>
 		<meta property="og:url" content="https://blog.lenot.re/article/{article.id}" \>
 		<meta property="og:title" content="{article.title}" \>
@@ -31,7 +32,7 @@
 				</ul>
 			</div>
 
-			<h2>{article.title}</h2>
+			<h1>{article.title}</h1>
 
 			<p>
 				{article.desc}
@@ -45,14 +46,16 @@
 		</div>
 
 		<div class="section secondary">
-			<!--<h3>Reactions</h3>
+			<!--<center>
+				<h3>Reactions</h3>
+			</center>
 
 			<div class="reactions">
-				<a id="reaction-add" class="reaction" href="#"><i class="fa-regular fa-face-smile"></i></a>
+				<a id="reaction-add" class="reaction" href="#"><i class="fa-regular fa-plus"></i></a>
 				{reactions}
 			</div>-->
 
-			<h2>Comments</h2>
+			<h3>Comments</h3>
 
 			<p>
 				If you want to ask a question, share a feedback or discuss further, feel free to leave a comment!</br>
@@ -61,7 +64,7 @@
 
 			{comment.editor}
 
-			<h3>{comments.count} comment(s)</h3>
+			<p>{comments.count} comment(s)</p>
 
 			<div>
 				{comments}

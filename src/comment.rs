@@ -338,7 +338,7 @@ pub async fn comment_to_html(
 		let buttons_html: String = buttons.into_iter().collect();
 		format!(
 			r#"<ul class="comment-buttons">
-			{buttons_html}
+				{buttons_html}
 			</ul>"#
 		)
 	} else {
@@ -401,9 +401,9 @@ pub async fn comment_to_html(
 					};
 
 					(
-					format!(" tier-{i}"),
-					format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>")
-				)
+						format!(" tier-{i}"),
+						format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>")
+					)
 				}
 
 				_ => (String::new(), String::new()),
@@ -412,11 +412,19 @@ pub async fn comment_to_html(
 		Ok(format!(
 			r##"<div class="comment" id="{com_id}">
 				<div class="comment-header{tier}">
+					<div>
 					<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
-					<a href="{html_url}" target="_blank">{login}</a>
-					<h6>{date_text}</h6>
-					{tier_logo}
-					<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="button" alt="Copy link"><i class="fa-solid fa-link"></i></a>
+					</div>
+					<div>
+						<p><a href="{html_url}" target="_blank">{login}</a></p>
+						<h6>{date_text}</h6>
+					</div>
+					<div>
+						<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="button com-share" alt="Copy link"><i class="fa-solid fa-link"></i></a>
+					</div>
+					<div>
+						{tier_logo}
+					</div>
 				</div>
 
 				<div class="comment-content">
