@@ -168,7 +168,7 @@ pub async fn get(
 
 			let user_id = session
 				.get::<String>("user_id")?
-				.map(|id| ObjectId::parse_str(&id).map_err(|_| error::ErrorBadRequest("")))
+				.map(|id| ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("")))
 				.transpose()?;
 
 			let user_login = session.get::<String>("user_login")?;
@@ -365,7 +365,7 @@ async fn editor(
 	let article_id = query
 		.into_inner()
 		.id
-		.map(|id| ObjectId::parse_str(&id))
+		.map(ObjectId::parse_str)
 		.transpose()
 		.map_err(|_| error::ErrorBadRequest(""))?;
 	let article = match article_id {
@@ -383,7 +383,7 @@ async fn editor(
 				a.id.to_hex()
 			)
 		})
-		.unwrap_or(String::new());
+		.unwrap_or_default();
 	let article_title = article.as_ref().map(|a| a.title.as_str()).unwrap_or("");
 	let article_desc = article.as_ref().map(|a| a.desc.as_str()).unwrap_or("");
 	let article_content = article.as_ref().map(|a| a.content.as_str()).unwrap_or("");
@@ -392,9 +392,9 @@ async fn editor(
 
 	let html = include_str!("../pages/editor.html");
 	let html = html.replace("{article.id}", &article_id_html);
-	let html = html.replace("{article.title}", &article_title);
-	let html = html.replace("{article.desc}", &article_desc);
-	let html = html.replace("{article.content}", &article_content);
+	let html = html.replace("{article.title}", article_title);
+	let html = html.replace("{article.desc}", article_desc);
+	let html = html.replace("{article.content}", article_content);
 	let html = html.replace(
 		"{article.published}",
 		if article_public { "checked" } else { "" },

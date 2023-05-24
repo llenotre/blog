@@ -42,6 +42,8 @@ pub struct Comment {
 	#[serde(with = "util::serde_date_time")]
 	pub post_date: DateTime<Utc>,
 
+	// TODO store ID of last edit to get content in constant time
+
 	/// Tells whether the comment has been removed.
 	pub removed: bool,
 }
@@ -270,13 +272,13 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 		} else {
 			// Insert dummy comment to allow printing replies to deleted comments
 			base.insert(
-				base_id.clone(),
-				(Comment::deleted(base_id.clone()), vec![reply]),
+				*base_id,
+				(Comment::deleted(*base_id), vec![reply]),
 			);
 		}
 	}
 
-	let mut comments: Vec<_> = base.into_iter().map(|(_, c)| c).collect();
+	let mut comments: Vec<_> = base.into_values().collect();
 
 	comments.sort_unstable_by(|c0, c1| c0.0.post_date.cmp(&c1.0.post_date));
 	for c in &mut comments {
@@ -307,20 +309,26 @@ pub async fn comment_to_html(
 	let com_id = comment.id;
 
 	// HTML for comment's replies
-	let mut replies_html = String::new();
-	if let Some(replies) = replies {
-		if !replies.is_empty() {
-			replies_html.push_str("<h3>Replies</h3>");
+	let replies_html = match replies {
+		Some(replies) => {
+			let mut html = String::new();
+			for com in replies {
+				html.push_str(&comment_to_html(
+					db,
+					com,
+					None,
+					user_id,
+					article_id,
+					admin
+				).await?);
+			}
+			html
 		}
-
-		for com in replies {
-			replies_html
-				.push_str(&comment_to_html(db, com, None, user_id, article_id, admin).await?);
-		}
-	}
+		None => String::new(),
+	};
 
 	// HTML for comment's buttons
-	let mut buttons = vec![];
+	let mut buttons = Vec::with_capacity(3);
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(
 			r#"<li><a class="button" onclick="toggle_edit('{com_id}')">Edit&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-pen-to-square"></i></a></li>"#
@@ -345,105 +353,8 @@ pub async fn comment_to_html(
 		String::new()
 	};
 
-	if !comment.removed || admin {
-		// Get author
-		let author = User::from_id(&db, comment.author)
-			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?;
-		let Some(author) = author else {
-			return Ok(String::new());
-		};
-		let html_url = author.github_info.html_url;
-		let avatar_url = author.github_info.avatar_url;
-		let login = author.github_info.login;
-
-		// Get content of comment
-		let content = CommentContent::get_for(&db, com_id)
-			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?;
-		let Some(content) = content else {
-			return Ok(String::new());
-		};
-		let markdown = markdown::to_html(&content.content, true);
-
-		// TODO use the user's timezome
-		let mut date_text = if content.edit_date > comment.post_date {
-			format!(
-				"post: {}, edit: {}",
-				comment.post_date.format("%d/%m/%Y %H:%M:%S"),
-				content.edit_date.format("%d/%m/%Y %H:%M:%S")
-			)
-		} else {
-			format!("post: {}", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
-		};
-		if comment.removed && admin {
-			date_text.push_str(" - REMOVED");
-		}
-
-		let edit_editor = get_comment_editor(
-			&article_id.to_hex(),
-			"edit",
-			Some(&com_id.to_hex()),
-			Some(&content.content),
-		);
-
-		// TODO add decoration on comments depending on the sponsoring tier
-		let tier = 0; // TODO
-		let (tier, tier_logo) =
-			match tier {
-				i @ (1..=3) => {
-					let emoji = match i {
-						1 => "❤️",
-						2 => "🚀",
-						3 => "⭐",
-
-						_ => unreachable!(),
-					};
-
-					(
-						format!(" tier-{i}"),
-						format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>")
-					)
-				}
-
-				_ => (String::new(), String::new()),
-			};
-
-		Ok(format!(
-			r##"<div class="comment" id="{com_id}">
-				<div class="comment-header{tier}">
-					<div>
-					<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
-					</div>
-					<div>
-						<p><a href="{html_url}" target="_blank">{login}</a></p>
-						<h6>{date_text}</h6>
-					</div>
-					<div>
-						<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="button com-share" alt="Copy link"><i class="fa-solid fa-link"></i></a>
-					</div>
-					<div>
-						{tier_logo}
-					</div>
-				</div>
-
-				<div class="comment-content">
-					{markdown}
-
-					{buttons_html}
-
-					<div id="editor-{com_id}" hidden>
-						<h2>Edit comment</h2>
-
-						{edit_editor}
-					</div>
-
-					{replies_html}
-				</div>
-			</div>"##
-		))
-	} else {
-		Ok(format!(
+	if comment.removed && !admin {
+		return Ok(format!(
 			r##"<div class="comment">
 				<div class="comment-header">
 					<p>deleted comment</p>
@@ -455,8 +366,104 @@ pub async fn comment_to_html(
 					{replies_html}
 				</div>
 			</div>"##
-		))
+		));
 	}
+
+	// Get author
+	let author = User::from_id(db, comment.author)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(author) = author else {
+		return Ok(String::new());
+	};
+	let html_url = author.github_info.html_url;
+	let avatar_url = author.github_info.avatar_url;
+	let login = author.github_info.login;
+
+	// Get content of comment
+	let content = CommentContent::get_for(db, com_id)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(content) = content else {
+		return Ok(String::new());
+	};
+	let markdown = markdown::to_html(&content.content, true);
+
+	let mut date_text = if content.edit_date > comment.post_date {
+		format!(
+			"post: {} (UTC), edit: {} (UTC)",
+			comment.post_date.format("%d/%m/%Y %H:%M:%S"),
+			content.edit_date.format("%d/%m/%Y %H:%M:%S")
+		)
+	} else {
+		format!("post: {} (UTC)", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
+	};
+	if comment.removed && admin {
+		date_text.push_str(" - REMOVED");
+	}
+
+	let edit_editor = get_comment_editor(
+		&article_id.to_hex(),
+		"edit",
+		Some(&com_id.to_hex()),
+		Some(&content.content),
+	);
+
+	// TODO add decoration on comments depending on the sponsoring tier
+	let tier = 0; // TODO
+	let (tier, tier_logo) =
+		match tier {
+			i @ (1..=3) => {
+				let emoji = match i {
+					1 => "❤️",
+					2 => "🚀",
+					3 => "⭐",
+
+					_ => unreachable!(),
+				};
+
+				(
+					format!(" tier-{i}"),
+					format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>")
+				)
+			}
+
+			_ => (String::new(), String::new()),
+		};
+
+	Ok(format!(
+		r##"<div class="comment" id="{com_id}">
+			<div class="comment-header{tier}">
+				<div>
+				<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
+				</div>
+				<div>
+					<p><a href="{html_url}" target="_blank">{login}</a></p>
+					<h6>{date_text}</h6>
+				</div>
+				<div>
+					<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="button com-share" alt="Copy link"><i class="fa-solid fa-link"></i></a>
+				</div>
+				<div>
+					{tier_logo}
+				</div>
+			</div>
+
+			<div class="comment-content">
+				{markdown}
+
+				{buttons_html}
+
+				<div id="editor-{com_id}" hidden>
+					<h2>Edit comment</h2>
+
+					{edit_editor}
+				</div>
+
+				{replies_html}
+			</div>
+		</div>"##
+	))
 }
 
 /// The payload for the request allowing to post a comment.

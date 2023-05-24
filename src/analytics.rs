@@ -100,8 +100,7 @@ where
 				user_agent: request
 					.headers()
 					.get("User-Agent")
-					.map(|h| h.to_str().ok())
-					.flatten()
+					.and_then(|h| h.to_str().ok())
 					.map(|h| h.to_owned()),
 
 				method: format!("{}", request.method()),
@@ -118,7 +117,6 @@ where
 			});
 		}
 
-		let fut = self.service.call(req);
-		Box::pin(async move { fut.await })
+		Box::pin(self.service.call(req))
 	}
 }
