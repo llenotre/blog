@@ -26,7 +26,7 @@ pub async fn get(
 	id: web::Path<String>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let id = ObjectId::parse_str(&id.into_inner()).map_err(|_| error::ErrorBadRequest(""))?;
+	let id = ObjectId::parse_str(id.into_inner()).map_err(|_| error::ErrorBadRequest(""))?;
 	let db = data.get_database();
 
 	let bucket = db.gridfs_bucket(None);
@@ -80,8 +80,7 @@ pub async fn manage(
 				</div>"#,
 				id,
 				file.filename
-					.as_ref()
-					.map(|s| s.as_str())
+					.as_deref()
 					.unwrap_or("<i>no name</i>"),
 				file.length,
 				id

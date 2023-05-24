@@ -140,12 +140,11 @@ impl User {
 			.get::<String>("user_id")
 			.ok()
 			.flatten()
-			.map(|user_id| ObjectId::parse_str(&user_id).ok())
-			.flatten();
+			.and_then(|user_id| ObjectId::parse_str(user_id).ok());
 
 		match user_id {
 			Some(user_id) => {
-				let user = Self::from_id(&db, user_id).await?;
+				let user = Self::from_id(db, user_id).await?;
 				Ok(user.map(|u| u.admin).unwrap_or(false))
 			}
 

@@ -100,8 +100,7 @@ async fn root(
 	// Produce articles HTML
 	let articles_html: String = articles
 		.into_iter()
-		.enumerate()
-		.map(|(i, article)| {
+		.map(|article| {
 			let article_id = article.id;
 			let article_title = article.title;
 			let article_desc = article.desc;
