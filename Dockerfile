@@ -1,8 +1,7 @@
-FROM rust:1.67
+FROM rust:1.69
 
 WORKDIR /usr/src/blog
 COPY . .
+RUN cargo build --release
 
-RUN cargo install --path .
-
-CMD ["blog"]
+CMD ["target/release/blog"]
