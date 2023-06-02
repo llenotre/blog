@@ -236,6 +236,35 @@ async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 		.body(body))
 }
 
+#[get("/rss")]
+async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
+	let db = data.get_database();
+	let articles = Article::list(&db, 0, 100, false)
+		.await
+        .map_err(|_| error::ErrorInternalServerError(""))?;
+
+    let items_str = articles.into_iter()
+        .map(|a| {
+            let url = format!("/article/{}", a.id);
+            let date = a.post_date.to_rfc2822();
+
+            format!(
+                "<item><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description></item>",
+                title = a.title,
+                desc = a.desc
+            )
+        })
+        .collect::<String>();
+
+	let body = format!(
+        r#"<rss version="2.0"><channel><title>Luc Lenôtre</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{items_str}</channel></rss>"#
+    );
+
+	Ok(HttpResponse::Ok()
+		.content_type(ContentType::xml())
+		.body(body))
+}
+
 fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
 	let status = res.status();
 
@@ -305,6 +334,7 @@ async fn main() -> io::Result<()> {
 			.service(article::editor)
 			.service(article::get)
 			.service(article::post)
+			.service(bio)
 			.service(comment::delete)
 			.service(comment::edit)
 			.service(comment::post)
@@ -312,7 +342,6 @@ async fn main() -> io::Result<()> {
 			.service(file::get)
 			.service(file::manage)
 			.service(file::upload)
-			.service(bio)
 			.service(legal)
 			.service(robots)
 			.service(root)
@@ -320,6 +349,7 @@ async fn main() -> io::Result<()> {
 			.service(user::auth)
 			.service(user::logout)
 			.service(user::oauth)
+            .service(rss)
 	})
 	.bind(format!("0.0.0.0:{}", config.port))?
 	.run()
