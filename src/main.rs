@@ -245,7 +245,7 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 
     let items_str = articles.into_iter()
         .map(|a| {
-            let url = format!("/article/{}", a.id);
+            let url = format!("https://blog.lenot.re/article/{}", a.id);
             let date = a.post_date.to_rfc2822();
 
             format!(
