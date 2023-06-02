@@ -1,5 +1,8 @@
 //! Module implementing utilities.
 
+use lazy_static::lazy_static;
+use regex::Regex;
+
 /// Ceil division.
 pub fn ceil_div(a: u32, b: u32) -> u32 {
 	if a % b != 0 {
@@ -39,4 +42,14 @@ pub mod serde_date_time {
 		Utc.datetime_from_str(&s, FORMAT)
 			.map_err(serde::de::Error::custom)
 	}
+}
+
+lazy_static! {
+	/// Email validation regex.
+	static ref EMAIL_VALIDATION: Regex = Regex::new(r##"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$"##).unwrap();
+}
+
+/// Tells whether the given email is valid.
+pub fn validate_email(email: &str) -> bool {
+	EMAIL_VALIDATION.is_match(email)
 }

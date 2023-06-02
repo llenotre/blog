@@ -3,6 +3,7 @@ mod article;
 mod comment;
 mod file;
 mod markdown;
+mod newsletter;
 mod user;
 mod util;
 
@@ -343,6 +344,7 @@ async fn main() -> io::Result<()> {
 			.service(file::manage)
 			.service(file::upload)
 			.service(legal)
+			.service(newsletter::subscribe)
 			.service(robots)
 			.service(root)
 			.service(sitemap)
