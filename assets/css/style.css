@@ -78,7 +78,7 @@ div.section {
 }
 
 .tertiary {
-	background-color: #2f2f2f;
+	background-color: #1f1f1f;
 	color: #fff;
 }
 
@@ -172,19 +172,16 @@ ul.tags {
 
 ul.tags li {
 	margin-right: 10px;
-	padding: 5px;
+	padding: 0;
 	display: inline-block;
 }
 
-ul.tags h6 {
-	margin: 0;
-}
-
-li.tag {
+ul.tags li.tag {
 	background: #2f2f2f;
 	border: 0;
 	border-radius: 10px;
-	font-size: 5pt;
+	padding: 5px 10px 5px 10px;
+	font-size: 10pt;
 	display: inline;
 }
 
@@ -441,7 +438,7 @@ footer a {
 	}
 
 	input, textarea {
-		background: #1f1f1f;
+		background: #2f2f2f;
 		color: white;
 	}
 

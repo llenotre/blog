@@ -26,7 +26,7 @@ use serde::Serialize;
 // TODO keep previous versions of articles to be able to restore
 
 /// Structure representing an article.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Debug, Deserialize)]
 pub struct Article {
 	/// The article's id.
 	#[serde(rename = "_id")]
