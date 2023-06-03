@@ -126,6 +126,10 @@ async fn root(
 				tags.push("<i>Reserved for Sponsors</i> ❤️");
 			}
 
+			if !article.tags.is_empty() {
+				tags.extend(article.tags.split(','));
+			}
+
 			let tags_html: String = tags.into_iter()
 				.map(|s| format!(r#"<li class="tag">{s}</li>"#))
 				.collect();
