@@ -18,10 +18,10 @@
 		<div class="section secondary">
 			<form method="POST" action="/article">
 				{article.id}
-				<input name="title" type="text" value="{article.title}" placeholder="Title"></input>
-				<input name="desc" type="text" value="{article.desc}" placeholder="Description"></input>
+				<input name="title" type="text" value="{article.title}" placeholder="Title" style="width: 100%;"></input>
+				<input name="desc" type="text" value="{article.desc}" placeholder="Description" style="width: 100%;"></input>
 
-				<textarea name="content">{article.content}</textarea>
+				<textarea name="content" style="height: 1000px;">{article.content}</textarea>
 
 				<div>
 					<input name="public" type="checkbox" {article.published}></input>
