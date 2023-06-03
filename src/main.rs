@@ -1,3 +1,5 @@
+#![feature(iter_intersperse)]
+
 mod analytics;
 mod article;
 mod comment;
