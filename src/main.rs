@@ -8,6 +8,7 @@ mod user;
 mod util;
 
 use crate::user::User;
+use actix_governor::{Governor, GovernorConfigBuilder};
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
 use actix_session::Session;
@@ -316,6 +317,12 @@ async fn main() -> io::Result<()> {
 		client_secret: config.client_secret,
 	});
 
+	let governor_conf = GovernorConfigBuilder::default()
+		.per_second(1)
+		.burst_size(50)
+		.finish()
+		.unwrap();
+
 	HttpServer::new(move || {
 		App::new()
 			.wrap(middleware::Logger::new(
@@ -328,6 +335,7 @@ async fn main() -> io::Result<()> {
 				CookieSessionStore::default(),
 				Key::from(config.session_secret_key.as_bytes()), // TODO parse hex
 			))
+			.wrap(Governor::new(&governor_conf))
 			.wrap(ErrorHandlers::new().default_handler(error_handler))
 			.app_data(data.clone())
 			.app_data(web::PayloadConfig::new(1024 * 1024))
