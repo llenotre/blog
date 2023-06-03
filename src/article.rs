@@ -50,6 +50,9 @@ pub struct Article {
 	/// Tells whether the article is reserved for sponsors.
 	pub sponsor: bool,
 
+	/// The comma-separated list of tags on the article.
+	pub tags: String,
+
 	/// Tells whether comments are locked on the article.
 	pub comments_locked: bool,
 }
@@ -165,17 +168,8 @@ pub async fn get(
 			if !article.public && !admin {
 				return Err(error::ErrorNotFound(""));
 			}
-
-			let user_id = session
-				.get::<String>("user_id")?
-				.map(|id| ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("")))
-				.transpose()?;
-
-			let user_login = session.get::<String>("user_login")?;
-
-			let markdown = markdown::to_html(&article.content, false);
-
 			let html = include_str!("../pages/article.html");
+			let html = html.replace("{article.tags}", &article.tags);
 			let html = html.replace("{article.id}", &id_str);
 			let html = html.replace("{article.title}", &article.title);
 			let html = html.replace("{article.desc}", &article.desc);
@@ -186,7 +180,14 @@ pub async fn get(
 					article.post_date.format("%d/%m/%Y %H:%M:%S") // TODO use user's timezone
 				),
 			);
+			let markdown = markdown::to_html(&article.content, false);
 			let html = html.replace("{article.content}", &markdown);
+
+			let user_id = session
+				.get::<String>("user_id")?
+				.map(|id| ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("")))
+				.transpose()?;
+			let user_login = session.get::<String>("user_login")?;
 
 			let comment_editor_html = match user_login {
 				Some(user_login) => format!(
@@ -263,6 +264,9 @@ pub struct ArticleEdit {
 	public: Option<String>,
 	/// Tells whether the article is reserved for sponsors.
 	sponsor: Option<String>,
+
+	/// The comma-separated list of tags.
+	tags: String,
 }
 
 #[post("/article")]
@@ -298,6 +302,8 @@ pub async fn post(
 
 					"public": info.public.map(|p| p == "on").unwrap_or(false),
 					"sponsor": info.sponsor.map(|p| p == "on").unwrap_or(false),
+
+					"tags": info.tags,
 				},
 			)
 			.await
@@ -320,6 +326,8 @@ pub async fn post(
 
 				public: info.public.map(|p| p == "on").unwrap_or(false),
 				sponsor: info.sponsor.map(|p| p == "on").unwrap_or(false),
+
+				tags: info.tags,
 
 				comments_locked: false,
 			};
@@ -389,6 +397,7 @@ async fn editor(
 	let article_content = article.as_ref().map(|a| a.content.as_str()).unwrap_or("");
 	let article_public = article.as_ref().map(|a| a.public).unwrap_or(false);
 	let article_sponsor = article.as_ref().map(|a| a.sponsor).unwrap_or(false);
+	let article_tags = article.as_ref().map(|a| a.tags.as_str()).unwrap_or("");
 
 	let html = include_str!("../pages/editor.html");
 	let html = html.replace("{article.id}", &article_id_html);
@@ -403,6 +412,7 @@ async fn editor(
 		"{article.sponsor}",
 		if article_sponsor { "checked" } else { "" },
 	);
+	let html = html.replace("{article.tags}", article_tags);
 
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::html())
