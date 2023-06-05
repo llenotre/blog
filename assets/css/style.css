@@ -8,24 +8,113 @@
 	src: url('/assets/font/FiraCode.ttf');
 }
 
+@media (prefers-color-scheme: dark) {
+	body {
+		background: #1f1f1f;
+	}
+
+	div.content {
+		color: white;
+	}
+
+	a {
+		color: white;
+	}
+
+	input, textarea {
+		background: #4f4f4f;
+		color: white;
+	}
+
+	input[type = "submit"]:hover {
+		background: #0f0f0f;
+	}
+
+	::placeholder {
+		color: white;
+		font-size: 15pt;
+		opacity: 1;
+	}
+}
+
+@media (prefers-color-scheme: light) {
+	body {
+		background: white;
+	}
+
+	div.content {
+		color: black;
+	}
+
+	a {
+		color: black;
+	}
+
+	input, textarea {
+		background: white;
+		color: black;
+	}
+
+	input[type = "submit"]:hover {
+		background: gray;
+	}
+
+	::placeholder {
+		color: black;
+		font-size: 15pt;
+		opacity: 1;
+	}
+}
+
 body {
 	margin: 0;
 	font-family: 'Source Sans Pro', sans-serif;
 }
 
+div.background {
+	width: 100vw;
+	height: 100vh;
+	position: fixed;
+	z-index: -1;
+	overflow: hidden;
+}
+
+div.blob {
+	background: radial-gradient(circle 100vh at left center, #0062667f 10%, transparent 30%);
+	width: 100vw;
+	height: 100vh;
+	position: absolute;
+	z-index: -1;
+}
+
+div.content {
+	padding-top: 10vh;
+	z-index: 0;
+}
+
 h1 {
 	margin: 10px 0 10px 0;
-	font-size: 25pt;
+	font-size: 35pt;
 }
 
 h2 {
 	margin: 10px 0 10px 0;
-	font-size: 23pt;
+	font-size: 30pt;
 }
 
 h3 {
 	margin: 10px 0 10px 0;
+	font-size: 25pt;
+}
+
+h4 {
+	margin: 10px 0 10px 0;
 	font-size: 20pt;
+}
+
+h5 {
+	margin: 10px 0 10px 0;
+	font-size: 15pt;
 }
 
 h6 {
@@ -38,52 +127,50 @@ p {
 	font-size: 15pt;
 }
 
-header {
-	background: #1f1f1f;
+a.highlight {
+	color: #006266;
+}
+
+img.main-avatar {
+	border-radius: 50%;
+	width: auto;
+	height: auto;
+	float: right;
+}
+
+div.inline {
 	margin: 0;
+	padding: 0;
+	flex-direction: row;
+	flex-wrap: wrap;
+	display: flex;
+}
+
+div.inline div {
+	margin-right: 20px;
 	display: block;
 }
 
-header li {
-	list-style-type: none;
-	display: inline-block;
-}
-
-header a {
-	margin: 0;
-	padding: 10px 20px 10px 20px;
-	height: 100%;
-	text-decoration: none;
-	font-size: 15pt;
+a.logo-button {
+	background: #4f4f4f;
+	border-radius: 20px;
+	padding: 5px;
+	width: 50px;
+	height: 50px;
+	text-align: center;
+	top: 50%;
+	font-size: 25pt;
 	display: block;
 }
 
-header a:hover {
-	background: #0f0f0f;
+a.logo-button:hover {
+	background: #3f3f3f;
 }
 
 div.section {
 	margin: 0;
-	padding: 10px;
+	padding: 50px 20px 10px 20px;
 	overflow-wrap: break-word;
-}
-
-.secondary {
-	background-color: #006266;
-	color: #fff;
-}
-
-.secondary a {
-	color: #fff;
-}
-
-.tertiary {
-	background-color: #1f1f1f;
-	color: #fff;
-}
-
-.tertiary a {
-	color: #fff;
 }
 
 div.split {
@@ -94,29 +181,23 @@ div.split {
 
 div.split-half {
 	padding: 10px;
-	width: 100%;
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
 	box-sizing: border-box;
-	flex-basis: 100%;
 }
 
-div.articles-list-inner {
+div.articles-list {
 	flex-direction: row;
 	flex-wrap: wrap;
 	display: flex;
 }
 
-div.article {
-	background: #1f1f1f;
-	border-radius: 5px;
+div.article-element {
+	background: #2f2f2f;
+	border-radius: 20px;
 	border: 0;
 	color: #fff;
 	text-decoration: none;
-	margin: 0;
-	margin-bottom: 10px;
-	padding: 30px;
-	width: 100%;
 	min-height: 240px;
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
@@ -124,42 +205,23 @@ div.article {
 	flex-basis: 100%;
 }
 
-div.article a {
-	color: #fff;
-	text-decoration: none;
-}
-
-a.button {
-	background-color: #006266;
-	color: #fff;
-	text-align: center;
-	text-decoration: none;
-	margin: 10px;
-	padding: 10px;
-	cursor: pointer;
-}
-
-a.button:hover {
-	background-color: #003133;
-}
-
-.read-button {
-	background: #006266;
-	color: #fff;
-	border: 0;
-	border-radius: 10px;
-	padding: 10px;
-	float: right;
-}
-
-.read-button:hover {
-	background: white;
-	color: #006266;
-}
-
-.page-button {
+img.article-cover {
+	border-radius: 20px 20px 0 0;
 	width: 100%;
-	flex-basis: 40%;
+	height: 200px;
+}
+
+div.article-element-content {
+	padding: 20px;
+}
+
+div.article-element-content h3 {
+	margin-top: 0;
+}
+
+div.article-element-content a {
+	color: #fff;
+	text-decoration: none;
 }
 
 ul.tags {
@@ -177,12 +239,49 @@ ul.tags li {
 }
 
 ul.tags li.tag {
-	background: #2f2f2f;
+	background: #1f1f1f;
 	border: 0;
 	border-radius: 10px;
 	padding: 5px 10px 5px 10px;
 	font-size: 10pt;
 	display: inline;
+}
+
+a.button {
+	background-color: #006266;
+	color: #fff;
+	text-align: center;
+	text-decoration: none;
+	margin: 10px;
+	padding: 10px;
+	cursor: pointer;
+}
+
+a.button:hover {
+	background-color: #003133;
+}
+
+div.article-element-content a.read-button {
+	background: #2f2f2f;
+	border: 3px solid #006266;
+	border-radius: 30px;
+	color: #006266;
+	padding: 10px 20px 10px 20px;
+	height: 30px;
+}
+
+div.article-element-content a.read-button:hover {
+	background: #006266;
+	color: white;
+}
+
+a.back-button {
+	color: white;
+	width: 50px;
+	height: 50px;
+	text-align: center;
+	font-size: 30pt;
+	position: fixed;
 }
 
 div.share {
@@ -269,12 +368,19 @@ input, textarea {
 	border: 0;
 	padding: 10px;
 	font-family: 'Source Sans Pro', sans-serif;
+	font-size: 15pt;
 	box-sizing: border-box;
 }
 
+input {
+	border-radius: 50px;
+}
+
 input[type = "text"], textarea {
-	width: 300px;
-	max-width: 100%;
+	padding: 20px;
+	width: 50%;
+	min-width: 300px;
+	height: 50px;
 }
 
 input[type = "checkbox"] {
@@ -282,6 +388,8 @@ input[type = "checkbox"] {
 }
 
 input[type = "submit"] {
+	padding-left: 20px;
+	padding-right: 20px;
 	width: auto;
 	cursor: pointer;
 }
@@ -390,7 +498,7 @@ div.comment-header div p,h6 {
 	margin: 0;
 }
 
-img.avatar {
+img.comment-avatar {
 	border-radius: 100%;
 	width: 50px;
 }
@@ -426,60 +534,7 @@ footer a {
 	color: white;
 }
 
-@media (prefers-color-scheme: dark) {
-	body {
-		background: #2f2f2f;
-		color: white;
-	}
-
-	a {
-		color: white;
-	}
-
-	input, textarea {
-		background: #2f2f2f;
-		color: white;
-	}
-
-	input[type = "submit"]:hover {
-		background: #0f0f0f;
-	}
-
-	::placeholder {
-		color: white;
-	}
-}
-
-@media (prefers-color-scheme: light) {
-	body {
-		background: white;
-		color: black;
-	}
-
-	a {
-		color: black;
-	}
-
-	input, textarea {
-		background: white;
-		color: black;
-	}
-
-	input[type = "submit"]:hover {
-		background: gray;
-	}
-
-	::placeholder {
-		color: black;
-	}
-}
-
 @media(min-width: 1200px) {
-	header {
-		padding-left: 20%;
-		padding-right: 20%;
-	}
-
 	div.section {
 		padding-left: 20%;
 		padding-right: 20%;
@@ -487,6 +542,10 @@ footer a {
 
 	div.split-half {
 		flex-basis: 50%;
+	}
+
+	div.article-element {
+		flex-basis: 30%;
 	}
 
 	footer {
