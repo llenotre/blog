@@ -132,29 +132,31 @@ async fn root(
 				.map(|s| format!(r#"<li class="tag">{s}</li>"#))
 				.collect();
 
+            // TODO article's cover image
 			format!(
-				r#"<div class="article">
-					<h2><a href="/article/{article_id}">{article_title}</a></h2>
+				r#"<div class="article-element">
+                    <img class="article-cover" src="TODO"></img>
+                    <div class="article-element-content">
+                        <h3><a href="/article/{article_id}">{article_title}</a></h3>
 
-					<p>
-						{article_desc}
-					</p>
+                        <h6 style="color: gray;">{post_date}</h6>
 
-					<ul class="tags">
-						<li><h6 style="color: gray;">Posted at {post_date}</h6></li>
-						{tags_html}
-					</ul>
+                        <p>
+                            {article_desc}
+                        </p>
 
-					<a class="read-button" href="/article/{article_id}">Read&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-arrow-right"></i></a>
+                        <ul class="tags">
+                            {tags_html}
+                        </ul>
+
+                        <a class="read-button" href="/article/{article_id}">Read more</a>
+                    </div>
 				</div>"#
 			)
 		})
 		.collect();
 
 	let html = include_str!("../pages/index.html");
-	let html = html.replace("{page.curr}", &format!("{}", page + 1));
-	let html = html.replace("{page.total}", &format!("{}", pages_count));
-	let html = html.replace("{articles.count}", &format!("{}", total_articles));
 	let html = html.replace("{articles}", &articles_html);
 
 	let prev_button_html = if page > 0 {

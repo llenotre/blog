@@ -16,65 +16,52 @@
 	</head>
 
 	<body>
-		<header>
-			<li><a href="/"><i class="fa-solid fa-house"></i>&nbsp;&nbsp;&nbsp;Home</a></li>
-		</header>
-
-		<div class="section secondary">
-			<p>Hi I'm Luc. Welcome to my blog!</p>
-
-			<p>
-				I am a software engineer working on my own operating system written from scratch using the Rust language: <a href="https://github.com/llenotre/maestro" target="_blank">Maestro</a></br>
-			</p>
-
-			<p>
-				This blog is mainly about my operating system, but I may talk about other subjects from time to time.</br>
-				For more informations about me, read my <a href="/bio">bio</a>.
-			</p>
-
-			<center>
-				<h2>You can find my code on <a href="https://github.com/llenotre" target="_blank">Github</a></h2>
-			</center>
+		<div class="background">
+			<div class="blob"></div>
 		</div>
+		<div class="content">
+			<div class="section">
+				<div class="split">
+					<div class="split-half">
+						<h1>Hi I'm <b>Luc</b>. Welcome to my blog!</h1>
 
-		<div class="section tertiary">
-			<div class="split">
-				<div class="split-half">
-					<p style="margin-top: 0;">
-						Subscribe to the newsletter to stay updated with my work!
-					</p>
+						<p>
+							I am a software engineer working on my own operating system written from scratch using the Rust language: <a class="highlight" href="https://github.com/llenotre/maestro" target="_blank">Maestro</a></br>
+						</p>
 
-					<form method="POST" action="/newsletter/subscribe">
-						<input name="email" type="text" placeholder="Email"></input>
-						<input class="secondary" type="submit" value="Subscribe"></input>
-					</form>
+						<p>
+							This blog is mainly about my operating system, but I may talk about other subjects from time to time.</br>
+							For more informations about me, read my <a href="/bio">bio</a>.
+						</p>
 
-					<h6>No spam, data is not shared with anyone and you can unsubscribe at any time. See the <a href="/legal#privacy" target="_blank">Privacy Policy</a></h6>
-				</div>
-				<div class="split-half">
-					<ul style="font-size: 20pt;">
-						<li>Follow me on <a href="https://github.com/llenotre" target="_blank">Github</a>&nbsp;<i class="fa-brands fa-github"></i></li>
-						<li>Subscribe to my <a href="/rss">RSS feed</a>&nbsp;<i class="fa-solid fa-square-rss" style="color: orange;"></i></li>
-					</ul>
+						<p>Subscribe to the newsletter to stay updated with my work!</p>
+
+						<div class="inline">
+							<div class="inline-element">
+								<form method="POST" action="/newsletter/subscribe">
+									<input name="email" type="text" placeholder="Email"></input>
+									<input type="submit" value="Subscribe"></input>
+								</form>
+								<h6>No spam, data is not shared with anyone and you can unsubscribe at any time. See the <a href="/legal#privacy" target="_blank">Privacy Policy</a></h6>
+							</div>
+							<div class="inline-element"><a class="logo-button" href="https://github.com/llenotre" target="_blank"><i class="fa-brands fa-github"></i></a></div>
+							<div class="inline-element"><a class="logo-button" href="/rss"><i class="fa-solid fa-square-rss" style="color: orange;"></i></a></div>
+						</div>
+					</div>
+					<div class="split-half">
+						<!-- TODO: do not call github directly -->
+						<img class="main-avatar" src="https://avatars.githubusercontent.com/u/66486624"></img>
+					</div>
 				</div>
 			</div>
-		</div>
 
-		<div class="section">
-			<h2>Articles</h2>
+			<div class="section">
+				<h1 style="margin-bottom: 30px;">Articles</h1>
 
-			<div class="articles-list-inner">
-				{articles}
+				<div class="articles-list">
+					{articles}
+				</div>
 			</div>
-
-			<div class="articles-list-inner">
-				{button.prev}
-				{button.next}
-			</div>
-
-			<p>
-				Page {page.curr}/{page.total}. {articles.count} articles in total
-			</p>
 		</div>
 
 		<footer>
