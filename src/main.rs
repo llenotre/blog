@@ -139,15 +139,14 @@ async fn root(
                     <div class="article-element-content">
                         <h3><a href="/article/{article_id}">{article_title}</a></h3>
 
-                        <h6 style="color: gray;">{post_date}</h6>
+                        <ul class="tags">
+                            <li><h6 style="color: gray;">{post_date}</h6></li>
+                            {tags_html}
+                        </ul>
 
                         <p>
                             {article_desc}
                         </p>
-
-                        <ul class="tags">
-                            {tags_html}
-                        </ul>
 
                         <a class="read-button" href="/article/{article_id}">Read more</a>
                     </div>
