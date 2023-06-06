@@ -23,7 +23,7 @@
 			<div class="section">
 				<div class="split">
 					<div class="split-half">
-						<h1>Hi I'm <b>Luc</b>. Welcome to my blog!</h1>
+						<h1 style="margin-top: 0;">Hi I'm <b>Luc</b>. Welcome to my blog!</h1>
 
 						<p>
 							I am a software engineer working on my own operating system written from scratch using the Rust language: <a class="highlight" href="https://github.com/llenotre/maestro" target="_blank">Maestro</a></br>
@@ -34,18 +34,20 @@
 							For more informations about me, read my <a href="/bio">bio</a>.
 						</p>
 
-						<p>Subscribe to the newsletter to stay updated with my work!</p>
+						<div class="spaced">
+							<p>Subscribe to the newsletter to stay updated with my work!</p>
 
-						<div class="inline">
-							<div class="inline-element">
-								<form method="POST" action="/newsletter/subscribe">
-									<input name="email" type="text" placeholder="Email"></input>
-									<input type="submit" value="Subscribe"></input>
-								</form>
-								<h6>No spam, data is not shared with anyone and you can unsubscribe at any time. See the <a href="/legal#privacy" target="_blank">Privacy Policy</a></h6>
+							<div class="inline">
+								<div class="inline-element">
+									<form method="POST" action="/newsletter/subscribe">
+										<input name="email" type="text" placeholder="Email"></input>
+										<input type="submit" value="Subscribe"></input>
+									</form>
+									<h6>No spam, data is not shared with anyone and you can unsubscribe at any time. See the <a href="/legal#privacy" target="_blank">Privacy Policy</a></h6>
+								</div>
+								<div class="inline-element"><a class="logo-button" href="https://github.com/llenotre" target="_blank"><i class="fa-brands fa-github"></i></a></div>
+								<div class="inline-element"><a class="logo-button" href="/rss"><i class="fa-solid fa-square-rss" style="color: orange;"></i></a></div>
 							</div>
-							<div class="inline-element"><a class="logo-button" href="https://github.com/llenotre" target="_blank"><i class="fa-brands fa-github"></i></a></div>
-							<div class="inline-element"><a class="logo-button" href="/rss"><i class="fa-solid fa-square-rss" style="color: orange;"></i></a></div>
 						</div>
 					</div>
 					<div class="split-half">
@@ -54,7 +56,6 @@
 					</div>
 				</div>
 			</div>
-
 			<div class="section">
 				<h1 style="margin-bottom: 30px;">Articles</h1>
 
@@ -62,11 +63,10 @@
 					{articles}
 				</div>
 			</div>
+			<div class="section">
+				<h6>Pssst. You want to contact me? Send me an <a href="mailto:TODO">email</a>!</h6>
+				<h6><a href="/legal">Legal</a></h6>
+			</div>
 		</div>
-
-		<footer>
-			<h6>Pssst. You want to contact me? Send me an <a href="mailto:TODO">email</a>!</h6>
-			<h6><a href="/legal">Legal</a></h6>
-		</footer>
 	</body>
 </html>

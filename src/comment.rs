@@ -242,7 +242,9 @@ pub fn get_comment_editor(
 	format!(
 		r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
 		<textarea id="comment-{id}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
-		<input id="comment-{id}-submit" type="submit" value="Post" onclick="{action_type}({id_quoted})"></input>
+		<button id="comment-{id}-submit" type="submit" onclick="{action_type}({id_quoted})">
+            <i class="fa-regular fa-paper-plane"></i>
+        </button>
 
 		<h6>Markdown is supported</h6>
 		<h6><span id="comment-{id}-len">0</span>/{MAX_CHARS} characters</h6>"#
@@ -331,15 +333,15 @@ pub async fn comment_to_html(
 	let mut buttons = Vec::with_capacity(3);
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(
-			r#"<li><a class="button" onclick="toggle_edit('{com_id}')">Edit&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-pen-to-square"></i></a></li>"#
+			r#"<li><a class="button" onclick="toggle_edit('{com_id}')"><i class="fa-solid fa-pen-to-square"></i></a></li>"#
 		));
 		buttons.push(format!(
-			r#"<li><a class="button" onclick="del('{com_id}')">Delete&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-trash"></i></a></li>"#
+			r#"<li><a class="button" onclick="del('{com_id}')"><i class="fa-solid fa-trash"></i></a></li>"#
 		));
 	}
 	if user_id.is_some() && replies.is_some() {
 		buttons.push(format!(
-			r#"<li><a class="button" onclick="set_reply('{com_id}')">Reply&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-reply"></i></a></li>"#
+			r#"<li><a class="button" onclick="set_reply('{com_id}')"><i class="fa-solid fa-reply"></i></a></li>"#
 		));
 	}
 	let buttons_html = if !buttons.is_empty() {
@@ -391,12 +393,12 @@ pub async fn comment_to_html(
 
 	let mut date_text = if content.edit_date > comment.post_date {
 		format!(
-			"post: {} (UTC), edit: {} (UTC)",
+			"{} (UTC), edit: {} (UTC)",
 			comment.post_date.format("%d/%m/%Y %H:%M:%S"),
 			content.edit_date.format("%d/%m/%Y %H:%M:%S")
 		)
 	} else {
-		format!("post: {} (UTC)", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
+		format!("{} (UTC)", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
 	};
 	if comment.removed && admin {
 		date_text.push_str(" - REMOVED");
@@ -435,14 +437,16 @@ pub async fn comment_to_html(
 		r##"<div class="comment" id="{com_id}">
 			<div class="comment-header{tier}">
 				<div>
-				<a href="{html_url}" target="_blank"><img class="avatar" src="{avatar_url}"></img></a>
+				<a href="{html_url}" target="_blank"><img class="comment-avatar" src="{avatar_url}"></img></a>
 				</div>
 				<div>
 					<p><a href="{html_url}" target="_blank">{login}</a></p>
-					<h6>{date_text}</h6>
 				</div>
+                <div>
+					<h6 style="color: gray;">{date_text}</h6>
+                </div>
 				<div>
-					<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="button com-share" alt="Copy link"><i class="fa-solid fa-link"></i></a>
+					<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="button comment-share" alt="Copy link"><i class="fa-solid fa-link"></i></a>
 				</div>
 				<div>
 					{tier_logo}
@@ -460,7 +464,7 @@ pub async fn comment_to_html(
 					{edit_editor}
 				</div>
 
-				{replies_html}
+                {replies_html}
 			</div>
 		</div>"##
 	))
