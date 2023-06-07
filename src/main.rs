@@ -121,7 +121,7 @@ async fn root(
 			}
 
 			if article.sponsor {
-				tags.push("<i>Reserved for Sponsors</i> ❤️");
+				tags.push("<i>Reserved for Sponsors</i>&nbsp;❤️");
 			}
 
 			if !article.tags.is_empty() {

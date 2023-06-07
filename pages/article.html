@@ -23,8 +23,10 @@
 		<div class="background">
 			<div class="blob"></div>
 		</div>
-		<a class="fixed-button" href="/"><i class="fa-regular fa-arrow-left"></i></a>
-		<a class="fixed-button" href="#"><i class="fa-regular fa-comments"></i></a>
+		<div class="fixed-buttons">
+			<a class="fixed-button" href="/"><i class="fa-regular fa-arrow-left"></i></a>
+			<a class="fixed-button" href="#"><i class="fa-regular fa-comments"></i></a>
+		</div>
 		<div class="content">
 			<div class="article-section">
 				<div class="share">
@@ -52,8 +54,10 @@
 			</div>
 		</div>
 		<div class="comments">
-			<a class="logo-button" href="#"><i class="fa-solid fa-xmark"></i></a>
-			<h3>Comments ({comments.count})</h3>
+			<div class="comments-header">
+				<a class="logo-button" href="#"><i class="fa-solid fa-xmark"></i></a>
+				<h3>Comments ({comments.count})</h3>
+			</div>
 
 			<div class="comments-list">
 				{comments}
