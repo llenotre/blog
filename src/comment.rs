@@ -333,23 +333,23 @@ pub async fn comment_to_html(
 	let mut buttons = Vec::with_capacity(3);
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(
-			r#"<li><a class="button" onclick="toggle_edit('{com_id}')"><i class="fa-solid fa-pen-to-square"></i></a></li>"#
+			r#"<a class="comment-button" onclick="toggle_edit('{com_id}')"><i class="fa-solid fa-pen-to-square"></i></a>"#
 		));
 		buttons.push(format!(
-			r#"<li><a class="button" onclick="del('{com_id}')"><i class="fa-solid fa-trash"></i></a></li>"#
+			r#"<a class="comment-button" onclick="del('{com_id}')"><i class="fa-solid fa-trash"></i></a>"#
 		));
 	}
 	if user_id.is_some() && replies.is_some() {
 		buttons.push(format!(
-			r#"<li><a class="button" onclick="set_reply('{com_id}')"><i class="fa-solid fa-reply"></i></a></li>"#
+			r#"<a class="comment-button" onclick="set_reply('{com_id}')"><i class="fa-solid fa-reply"></i></a>"#
 		));
 	}
 	let buttons_html = if !buttons.is_empty() {
 		let buttons_html: String = buttons.into_iter().collect();
 		format!(
-			r#"<ul class="comment-buttons">
+			r#"<div class="comment-buttons">
 				{buttons_html}
-			</ul>"#
+			</div>"#
 		)
 	} else {
 		String::new()
@@ -446,7 +446,7 @@ pub async fn comment_to_html(
 					<h6 style="color: gray;">{date_text}</h6>
                 </div>
 				<div>
-					<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="button comment-share" alt="Copy link"><i class="fa-solid fa-link"></i></a>
+					<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>
 				</div>
 				<div>
 					{tier_logo}
