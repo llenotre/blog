@@ -241,12 +241,13 @@ pub fn get_comment_editor(
 
 	format!(
 		r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
-		<textarea id="comment-{id}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
-		<button id="comment-{id}-submit" type="submit" onclick="{action_type}({id_quoted})">
-            <i class="fa-regular fa-paper-plane"></i>
-        </button>
+        <div class="inline">
+            <textarea id="comment-{id}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
+            <button id="comment-{id}-submit" type="submit" onclick="{action_type}({id_quoted})">
+                <i class="fa-regular fa-paper-plane"></i>
+            </button>
+        </div>
 
-		<h6>Markdown is supported</h6>
 		<h6><span id="comment-{id}-len">0</span>/{MAX_CHARS} characters</h6>"#
 	)
 }
@@ -393,7 +394,7 @@ pub async fn comment_to_html(
 
 	let mut date_text = if content.edit_date > comment.post_date {
 		format!(
-			"{} (UTC), edit: {} (UTC)",
+			"{} (UTC), (edit: {} (UTC))",
 			comment.post_date.format("%d/%m/%Y %H:%M:%S"),
 			content.edit_date.format("%d/%m/%Y %H:%M:%S")
 		)
