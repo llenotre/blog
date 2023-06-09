@@ -189,24 +189,6 @@ pub async fn get(
 				.transpose()?;
 			let user_login = session.get::<String>("user_login")?;
 
-			let comment_editor_html = match user_login {
-				Some(user_login) => format!(
-					r#"<p>You are currently logged as <b>{}</b>. <a href="/logout">Logout</a></p>
-
-					<h3 id="reply-to" hidden></h3>
-
-					{}"#,
-					user_login,
-					get_comment_editor(&article.id.to_hex(), "post", None, None)
-				),
-
-				None => format!(
-					r#"<p><a href="{}">Login with Github</a> to leave a comment.</p>"#,
-					user::get_auth_url(&data.client_id)
-				),
-			};
-			let html = html.replace("{comment.editor}", &comment_editor_html);
-
 			// Get article reactions
 			// TODO
 			let html = html.replace("{reactions}", "TODO");
@@ -216,9 +198,9 @@ pub async fn get(
 				.await
 				.map_err(|_| error::ErrorInternalServerError(""))?;
 			let comments_count = comments.len();
+			let html = html.replace("{comments.count}", &format!("{}", comments_count));
 
 			let comments = group_comments(comments);
-
 			let mut comments_html = String::new();
 			for (com, replies) in comments {
 				comments_html.push_str(
@@ -235,7 +217,20 @@ pub async fn get(
 			}
 
 			let html = html.replace("{comments}", &comments_html);
-			let html = html.replace("{comments.count}", &format!("{}", comments_count));
+
+			let comment_editor_html = match user_login {
+				Some(user_login) => format!(
+					r#"<h3 id="reply-to" hidden></h3>
+					{}"#,
+					get_comment_editor(&article.id.to_hex(), "post", None, None)
+				),
+
+				None => format!(
+					r#"<a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;Sign in with Github to comment</a>"#,
+					user::get_auth_url(&data.client_id)
+				),
+			};
+			let html = html.replace("{comment.editor}", &comment_editor_html);
 
 			Ok(HttpResponse::Ok()
 				.content_type(ContentType::html())
