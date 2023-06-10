@@ -6,7 +6,7 @@ use crate::user::User;
 use crate::util;
 use crate::GlobalData;
 use actix_session::Session;
-use actix_web::{delete, error, get, patch, post, web, HttpResponse, Responder};
+use actix_web::{delete, error, patch, post, web, HttpResponse, Responder};
 use async_recursion::async_recursion;
 use bson::doc;
 use bson::oid::ObjectId;
@@ -642,10 +642,4 @@ pub async fn delete(
 
 	// TODO change status according to error (not found, forbidden, etc...)
 	Ok(HttpResponse::Ok().finish())
-}
-
-#[get("/comment/preview")]
-pub async fn preview(payload: String) -> impl Responder {
-	let markdown = markdown::to_html(&payload, true);
-	HttpResponse::Ok().body(markdown)
 }

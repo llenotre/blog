@@ -106,6 +106,7 @@ async fn root(
 			let article_id = article.id;
 			let article_title = article.title;
 			let article_desc = article.desc;
+			let article_cover_url = article.cover_url;
 			let post_date = article.post_date.format("%d/%m/%Y"); // TODO use user's timezone
 
 			let mut tags = vec![];
@@ -132,7 +133,7 @@ async fn root(
 			// TODO article's cover image
 			format!(
 				r#"<div class="article-element">
-                    <img class="article-cover" src="TODO"></img>
+                    <img class="article-cover" src="{article_cover_url}"></img>
                     <div class="article-element-content">
                         <h3><a href="/article/{article_id}">{article_title}</a></h3>
 
@@ -349,7 +350,6 @@ async fn main() -> io::Result<()> {
 			.service(comment::delete)
 			.service(comment::edit)
 			.service(comment::post)
-			.service(comment::preview)
 			.service(file::delete)
 			.service(file::get)
 			.service(file::manage)
