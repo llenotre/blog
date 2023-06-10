@@ -1,10 +1,8 @@
 //! This module implements files upload and usage.
 
-use actix_multipart::Field;
-use futures_util::TryStreamExt;
-use actix_multipart::Multipart;
 use crate::user::User;
 use crate::GlobalData;
+use actix_multipart::Multipart;
 use actix_session::Session;
 use actix_web::{
 	error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
@@ -13,25 +11,15 @@ use bson::doc;
 use bson::oid::ObjectId;
 use futures_util::AsyncWriteExt;
 use futures_util::StreamExt;
-use serde::Deserialize;
+use futures_util::TryStreamExt;
+use mongodb::options::GridFsFindOptions;
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use tokio_util::io::ReaderStream;
-use actix_multipart::form::text::Text;
-use actix_multipart::form::tempfile::TempFile;
-use actix_multipart::form::MultipartForm;
-
-/// Payload for file upload.
-#[derive(Deserialize)]
-pub struct FileUpload {
-	/// The name of the file.
-	name: String,
-}
 
 #[get("/file/{id}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
 	id: web::Path<String>,
-	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let id = ObjectId::parse_str(id.into_inner()).map_err(|_| error::ErrorBadRequest(""))?;
 	let db = data.get_database();
@@ -69,7 +57,14 @@ pub async fn manage(
 	let bucket = db.gridfs_bucket(None);
 
 	let files = bucket
-		.find(doc! {}, None)
+		.find(
+			doc! {},
+			Some(
+				GridFsFindOptions::builder()
+					.sort(doc! { "uploadDate": -1 })
+					.build(),
+			),
+		)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let files_html = files
@@ -123,7 +118,8 @@ pub async fn upload(
 	let bucket = db.gridfs_bucket(None);
 
 	loop {
-		let res = multipart.try_next()
+		let res = multipart
+			.try_next()
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""));
 		let Some(mut field) = res? else {
@@ -155,8 +151,7 @@ pub async fn delete(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let id = id.into_inner();
-	let id = ObjectId::parse_str(id)
-		.map_err(|_| error::ErrorBadRequest(""))?;
+	let id = ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest(""))?;
 
 	let db = data.get_database();
 
@@ -170,7 +165,8 @@ pub async fn delete(
 
 	// Delete file
 	let bucket = db.gridfs_bucket(None);
-	bucket.delete(id.into())
+	bucket
+		.delete(id.into())
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 

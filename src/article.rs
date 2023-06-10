@@ -36,6 +36,8 @@ pub struct Article {
 	pub title: String,
 	/// The article's description.
 	pub desc: String,
+	/// The URL to the cover image of the article.
+	pub cover_url: String,
 
 	// TODO keep history
 	/// The article's content.
@@ -172,7 +174,6 @@ pub async fn get(
 			let html = html.replace("{article.tags}", &article.tags);
 			let html = html.replace("{article.id}", &id_str);
 			let html = html.replace("{article.title}", &article.title);
-			let html = html.replace("{article.desc}", &article.desc);
 			let html = html.replace(
 				"{article.date}",
 				&format!(
@@ -180,6 +181,8 @@ pub async fn get(
 					article.post_date.format("%d/%m/%Y %H:%M:%S") // TODO use user's timezone
 				),
 			);
+			let html = html.replace("{article.desc}", &article.desc);
+			let html = html.replace("{article.cover_url}", &article.cover_url);
 			let markdown = markdown::to_html(&article.content, false);
 			let html = html.replace("{article.content}", &markdown);
 
@@ -251,6 +254,8 @@ pub struct ArticleEdit {
 	title: String,
 	/// The description of the article.
 	desc: String,
+	/// The URL to the cover image of the article.
+	cover_url: String,
 
 	/// The content of the article in markdown.
 	content: String,
@@ -292,6 +297,7 @@ pub async fn post(
 				doc! {
 					"title": info.title,
 					"desc": info.desc,
+					"cover_url": info.cover_url,
 
 					"content": info.content,
 
@@ -314,6 +320,7 @@ pub async fn post(
 
 				title: info.title,
 				desc: info.desc,
+				cover_url: info.cover_url,
 
 				content: info.content,
 
@@ -389,6 +396,7 @@ async fn editor(
 		.unwrap_or_default();
 	let article_title = article.as_ref().map(|a| a.title.as_str()).unwrap_or("");
 	let article_desc = article.as_ref().map(|a| a.desc.as_str()).unwrap_or("");
+	let article_cover_url = article.as_ref().map(|a| a.cover_url.as_str()).unwrap_or("");
 	let article_content = article.as_ref().map(|a| a.content.as_str()).unwrap_or("");
 	let article_public = article.as_ref().map(|a| a.public).unwrap_or(false);
 	let article_sponsor = article.as_ref().map(|a| a.sponsor).unwrap_or(false);
@@ -398,6 +406,7 @@ async fn editor(
 	let html = html.replace("{article.id}", &article_id_html);
 	let html = html.replace("{article.title}", article_title);
 	let html = html.replace("{article.desc}", article_desc);
+	let html = html.replace("{article.cover_url}", article_cover_url);
 	let html = html.replace("{article.content}", article_content);
 	let html = html.replace(
 		"{article.published}",

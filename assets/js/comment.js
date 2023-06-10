@@ -45,15 +45,6 @@ function input(comment_id) {
 	comment_submit.disabled = (len > 10000);
 }
 
-// Returns the preview for the given markdown
-function get_preview(markdown) {
-	var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open("GET", "/comment/preview", false);
-    xmlHttp.send(markdown);
-
-	return xmlHttp.responseText;
-}
-
 // Posts a comment.
 function post(_) {
 	var comment_content = document.getElementById("comment-null-content");
