@@ -350,6 +350,7 @@ async fn main() -> io::Result<()> {
 			.service(comment::edit)
 			.service(comment::post)
 			.service(comment::preview)
+			.service(file::delete)
 			.service(file::get)
 			.service(file::manage)
 			.service(file::upload)
