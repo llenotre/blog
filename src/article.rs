@@ -226,7 +226,7 @@ pub async fn get(
 				),
 
 				None => format!(
-					r#"<a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;Sign in with Github to comment</a>"#,
+					r#"<center><a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a></center>"#,
 					user::get_auth_url(&data.client_id)
 				),
 			};

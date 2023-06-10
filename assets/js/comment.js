@@ -3,6 +3,37 @@ var article_id = document.getElementById("article-id");
 // The comment to reply to.
 var reply_to = null;
 
+var comments_visible = false;
+
+// Toggles visibility of the comments window.
+function toggle_comments() {
+	var fixed_buttons = document.getElementById("fixed-buttons");
+	var sections = document.getElementsByClassName("article-section");
+	var comments = document.getElementById("comments");
+
+	if (comments_visible) {
+		fixed_buttons.style.left = "30%";
+		fixed_buttons.style.transform = "translateX(-100%)";
+		for (let i = 0; i < sections.length; i++) {
+			sections[i].style.paddingLeft = "30%";
+			sections[i].style.paddingRight = "30%";
+		}
+
+		comments.style.display = "none";
+	} else {
+		fixed_buttons.style.left = "0";
+		fixed_buttons.style.transform = "translateX(0)";
+		for (let i = 0; i < sections.length; i++) {
+			sections[i].style.paddingLeft = "150px";
+			sections[i].style.paddingRight = "45vw";
+		}
+
+		comments.style.display = "flex";
+	}
+
+	comments_visible = !comments_visible;
+}
+
 // Updates the number of characters in the counter
 function input(comment_id) {
 	var comment_content = document.getElementById("comment-" + comment_id + "-content");
