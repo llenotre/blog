@@ -160,11 +160,13 @@ div.article-element {
 	border-radius: 20px;
 	color: #fff;
 	text-decoration: none;
+	width: 0;
 	min-height: 240px;
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
 	box-sizing: border-box;
 	flex-basis: 30%;
+	overflow-wrap: break-word;
 }
 
 img.article-cover {
@@ -218,7 +220,7 @@ div.article-element-content a.read-button {
 	height: 30px;
 	text-align: center;
 	font-size: 15pt;
-	vertical-align : bottom;
+	vertical-align: bottom;
 	display: inline-flex;
 }
 
@@ -243,6 +245,10 @@ a.fixed-button {
 	height: 50px;
 	text-align: center;
 	font-size: 30pt;
+}
+
+a.fixed-button:hover {
+	opacity: 0.5;
 }
 
 div.share {
@@ -361,8 +367,6 @@ input, textarea, button {
 
 input[type = "text"], textarea {
 	padding: 20px;
-	width: 50%;
-	min-width: 300px;
 	height: 50px;
 }
 
@@ -392,7 +396,6 @@ input[type = "submit"]:hover, button:hover {
 }
 
 textarea {
-	height: 50px;
 	resize: none;
 }
 
@@ -404,13 +407,13 @@ div.comments {
 	padding: 20px;
 	top: 0;
 	right: 0;
-	width: 40%;
+	width: 40vw;
 	height: 100vh;
 	position: fixed;
 	box-sizing: border-box;
 	flex-direction: column;
 	gap: 30px;
-	display: flex;
+	display: none;
 }
 
 div.comments-header {
@@ -420,14 +423,19 @@ div.comments-header {
 	display: flex;
 }
 
+div.comments-header * {
+	vertical-align: middle;
+}
+
 div.comments-header h3 {
-	margin: 0;
+	margin-top: auto;
+	margin-bottom: auto;
 }
 
 div.comments-list {
 	border-radius: 20px;
 	overflow-y: scroll;
-	max-height: 80vh;
+	flex-grow: 1;
 }
 
 div.comment {
@@ -441,11 +449,12 @@ div.comment-header {
 	flex-direction: row;
 	flex-basis: 10px;
 	flex-wrap: wrap;
+	gap: 20px;
 	display: flex;
 }
 
-div.comment-header div {
-	margin: 10px;
+div.comment-header * {
+	vertical-align: middle;
 }
 
 div.comment-header div p,h6 {
@@ -485,8 +494,6 @@ a.comment-share {
 }
 
 div.comment-content {
-	padding: 20px;
-	padding-top: 0;
 	overflow-wrap: break-word;
 }
 
@@ -499,19 +506,30 @@ a.login-button {
 	background: #1f1f1f;
 	color: #fff;
 	border: 0;
-	border-radius: 50%;
+	border-radius: 50px;
 	margin: 20px;
 	padding: 20px;
+	width: fit-content;
 	text-decoration: none;
 	font-size: 15pt;
 	display: block;
+}
+
+a.login-button:hover {
+	background: #0f0f0f;
 }
 
 div.comment-editor {
 	padding-bottom: 20px;
 	bottom: 0;
 	width: 100%;
-	position: absolute;
+	flex-direction: row;
+	gap: 10px;
+	display: flex;
+}
+
+div.comment-editor textarea {
+	flex-grow: 1;
 }
 
 @media(min-width: 1200px) {

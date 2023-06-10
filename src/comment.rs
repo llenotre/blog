@@ -241,7 +241,7 @@ pub fn get_comment_editor(
 
 	format!(
 		r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
-        <div class="inline">
+        <div class="comment-editor">
             <textarea id="comment-{id}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
             <button id="comment-{id}-submit" type="submit" onclick="{action_type}({id_quoted})">
                 <i class="fa-regular fa-paper-plane"></i>
@@ -282,7 +282,6 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 	}
 
 	let mut comments: Vec<_> = base.into_values().collect();
-
 	comments.sort_unstable_by(|c0, c1| c0.0.post_date.cmp(&c1.0.post_date));
 	for c in &mut comments {
 		c.1.sort_unstable_by(|c0, c1| c0.post_date.cmp(&c1.post_date));
@@ -365,7 +364,9 @@ pub async fn comment_to_html(
 
 				<div class="comment-content">
 					{buttons_html}
+				</div>
 
+				<div class="comments-list" style="margin-top: 20px;">
 					{replies_html}
 				</div>
 			</div>"##
@@ -394,12 +395,12 @@ pub async fn comment_to_html(
 
 	let mut date_text = if content.edit_date > comment.post_date {
 		format!(
-			"{} (UTC), (edit: {} (UTC))",
+			"{} UTC (edit: {} UTC)",
 			comment.post_date.format("%d/%m/%Y %H:%M:%S"),
 			content.edit_date.format("%d/%m/%Y %H:%M:%S")
 		)
 	} else {
-		format!("{} (UTC)", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
+		format!("{} UTC", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
 	};
 	if comment.removed && admin {
 		date_text.push_str(" - REMOVED");
@@ -458,14 +459,16 @@ pub async fn comment_to_html(
 				{markdown}
 
 				{buttons_html}
+			</div>
 
-				<div id="editor-{com_id}" hidden>
-					<h2>Edit comment</h2>
+			<div id="editor-{com_id}" hidden>
+				<p>Edit comment</p>
 
-					{edit_editor}
-				</div>
+				{edit_editor}
+			</div>
 
-                {replies_html}
+			<div class="comments-list" style="margin-top: 20px;">
+				{replies_html}
 			</div>
 		</div>"##
 	))

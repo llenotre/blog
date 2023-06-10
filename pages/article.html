@@ -23,11 +23,11 @@
 		<div class="background">
 			<div class="blob"></div>
 		</div>
-		<div class="fixed-buttons">
+		<div class="fixed-buttons" id="fixed-buttons">
 			<a class="fixed-button" href="/"><i class="fa-regular fa-arrow-left"></i></a>
-			<a class="fixed-button" href="#"><i class="fa-regular fa-comments"></i></a>
+			<a class="fixed-button" href="#" onclick="toggle_comments()"><i class="fa-regular fa-comments"></i></a>
 		</div>
-		<div class="content">
+		<div class="content" id="content">
 			<div class="article-section">
 				<div class="share">
 					<p>Like my work? Share it! ❤️</p>
@@ -53,9 +53,9 @@
 				{article.content}
 			</div>
 		</div>
-		<div class="comments">
+		<div class="comments" id="comments">
 			<div class="comments-header">
-				<a class="logo-button" href="#"><i class="fa-solid fa-xmark"></i></a>
+				<a class="logo-button" href="#" onclick="toggle_comments()"><i class="fa-solid fa-xmark"></i></a>
 				<h3>Comments ({comments.count})</h3>
 			</div>
 
@@ -63,7 +63,7 @@
 				{comments}
 			</div>
 
-			<div class="comment-editor">
+			<div>
 				{comment.editor}
 				<h6>Markdown is supported - Make sure you follow the <a href="/legal#conduct" target="_blank">Code of conduct</a></h6>
 			</div>
