@@ -1,16 +1,16 @@
 //! TODO doc
 
-use actix_web::HttpResponse;
-use actix_web::Responder;
+use crate::util;
+use crate::GlobalData;
 use actix_web::error;
 use actix_web::post;
 use actix_web::web;
+use actix_web::HttpResponse;
+use actix_web::Responder;
 use bson::doc;
 use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
-use crate::GlobalData;
-use crate::util;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -32,14 +32,12 @@ pub enum NewsletterMessageState {
 	/// The message is waiting to be sent.
 	Pending,
 	/// Message could not be delivered.
-	Failed {
-		reason: String,
-	},
+	Failed { reason: String },
 	/// The message has been sent successfuly.
 	Sent {
 		/// The date at which the message has been sent.
 		#[serde(with = "util::serde_date_time")]
-		date: DateTime<Utc>
+		date: DateTime<Utc>,
 	},
 }
 
@@ -96,7 +94,7 @@ pub async fn subscribe(
 				date: chrono::offset::Utc::now(),
 				unsubscribed: false,
 			},
-			None
+			None,
 		)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;

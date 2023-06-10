@@ -12,6 +12,8 @@ use bson::oid::ObjectId;
 use futures_util::AsyncWriteExt;
 use futures_util::StreamExt;
 use serde::Deserialize;
+use tokio_util::compat::FuturesAsyncReadCompatExt;
+use tokio_util::io::ReaderStream;
 
 /// Payload for file upload.
 #[derive(Deserialize)]
@@ -30,14 +32,14 @@ pub async fn get(
 	let db = data.get_database();
 
 	let bucket = db.gridfs_bucket(None);
-	let _stream = bucket
+	let stream = bucket
 		.open_download_stream(id.into())
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|_| error::ErrorInternalServerError(""))?
+		.compat();
+	let stream = ReaderStream::new(stream);
 
-	// TODO
-	//HttpResponse::Ok().streaming(stream)
-	Ok(HttpResponse::Ok().finish())
+	Ok(HttpResponse::Ok().streaming(stream))
 }
 
 #[get("/file")]
@@ -79,9 +81,7 @@ pub async fn manage(
 					<p><a href="/file/{}/delete">Delete</a></p>
 				</div>"#,
 				id,
-				file.filename
-					.as_deref()
-					.unwrap_or("<i>no name</i>"),
+				file.filename.as_deref().unwrap_or("<i>no name</i>"),
 				file.length,
 				id
 			)
