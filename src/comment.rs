@@ -43,7 +43,6 @@ pub struct Comment {
 	pub post_date: DateTime<Utc>,
 
 	// TODO store ID of last edit to get content in constant time
-
 	/// Tells whether the comment has been removed.
 	pub removed: bool,
 }
@@ -274,10 +273,7 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 			b.1.push(reply);
 		} else {
 			// Insert dummy comment to allow printing replies to deleted comments
-			base.insert(
-				*base_id,
-				(Comment::deleted(*base_id), vec![reply]),
-			);
+			base.insert(*base_id, (Comment::deleted(*base_id), vec![reply]));
 		}
 	}
 
@@ -315,14 +311,7 @@ pub async fn comment_to_html(
 		Some(replies) => {
 			let mut html = String::new();
 			for com in replies {
-				html.push_str(&comment_to_html(
-					db,
-					com,
-					None,
-					user_id,
-					article_id,
-					admin
-				).await?);
+				html.push_str(&comment_to_html(db, com, None, user_id, article_id, admin).await?);
 			}
 			html
 		}
@@ -415,25 +404,24 @@ pub async fn comment_to_html(
 
 	// TODO add decoration on comments depending on the sponsoring tier
 	let tier = 0; // TODO
-	let (tier, tier_logo) =
-		match tier {
-			i @ (1..=3) => {
-				let emoji = match i {
-					1 => "❤️",
-					2 => "🚀",
-					3 => "⭐",
+	let (tier, tier_logo) = match tier {
+		i @ (1..=3) => {
+			let emoji = match i {
+				1 => "❤️",
+				2 => "🚀",
+				3 => "⭐",
 
-					_ => unreachable!(),
-				};
+				_ => unreachable!(),
+			};
 
-				(
-					format!(" tier-{i}"),
-					format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>")
-				)
-			}
+			(
+				format!(" tier-{i}"),
+				format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>"),
+			)
+		}
 
-			_ => (String::new(), String::new()),
-		};
+		_ => (String::new(), String::new()),
+	};
 
 	Ok(format!(
 		r##"<div class="comment" id="{com_id}">

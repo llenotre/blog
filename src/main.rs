@@ -8,8 +8,8 @@ mod user;
 mod util;
 
 use crate::user::User;
-use actix_governor::{Governor, GovernorConfigBuilder};
 use actix_files::Files;
+use actix_governor::{Governor, GovernorConfigBuilder};
 use actix_session::storage::CookieSessionStore;
 use actix_session::Session;
 use actix_session::SessionMiddleware;
@@ -111,11 +111,7 @@ async fn root(
 			let mut tags = vec![];
 
 			if admin {
-				let pub_tag = if article.public {
-					"Public"
-				} else {
-					"Private"
-				};
+				let pub_tag = if article.public { "Public" } else { "Private" };
 
 				tags.push(pub_tag);
 			}
@@ -128,11 +124,12 @@ async fn root(
 				tags.extend(article.tags.split(','));
 			}
 
-			let tags_html: String = tags.into_iter()
+			let tags_html: String = tags
+				.into_iter()
 				.map(|s| format!(r#"<li class="tag">{s}</li>"#))
 				.collect();
 
-            // TODO article's cover image
+			// TODO article's cover image
 			format!(
 				r#"<div class="article-element">
                     <img class="article-cover" src="TODO"></img>
@@ -248,9 +245,9 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 	let db = data.get_database();
 	let articles = Article::list(&db, 0, 100, false)
 		.await
-        .map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|_| error::ErrorInternalServerError(""))?;
 
-    let items_str = articles.into_iter()
+	let items_str = articles.into_iter()
         .map(|a| {
             let url = format!("https://blog.lenot.re/article/{}", a.id);
             let date = a.post_date.to_rfc2822();
@@ -264,8 +261,8 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
         .collect::<String>();
 
 	let body = format!(
-        r#"<rss version="2.0"><channel><title>Luc Lenôtre</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{items_str}</channel></rss>"#
-    );
+		r#"<rss version="2.0"><channel><title>Luc Lenôtre</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{items_str}</channel></rss>"#
+	);
 
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::xml())
@@ -364,7 +361,7 @@ async fn main() -> io::Result<()> {
 			.service(user::auth)
 			.service(user::logout)
 			.service(user::oauth)
-            .service(rss)
+			.service(rss)
 	})
 	.bind(format!("0.0.0.0:{}", config.port))?
 	.run()
