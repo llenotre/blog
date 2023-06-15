@@ -2,7 +2,7 @@
 
 use crate::GlobalData;
 use actix_session::Session;
-use actix_web::{error, get, web, web::Redirect, Responder};
+use actix_web::{error, get, http::StatusCode, web, web::Redirect, HttpResponseBuilder, Responder};
 use bson::doc;
 use bson::oid::ObjectId;
 use serde::Deserialize;
@@ -237,4 +237,41 @@ pub async fn logout(session: Session) -> actix_web::Result<impl Responder> {
 
 	// Redirect user
 	Ok(redirect_to_last_article(&session))
+}
+
+/// Avatar proxy, used to protect non-logged users from Github (RGPD)
+#[get("/avatar/{user}")]
+pub async fn avatar(user: web::Path<String>) -> actix_web::Result<impl Responder> {
+	let user = user.into_inner();
+
+	// Get Github user
+	let client = reqwest::Client::new();
+	let user: GithubUser = client
+		.get(format!("https://api.github.com/users/{user}"))
+		.header("Accept", "application/json")
+		.header("User-Agent", GITHUB_USER_AGENT)
+		.header("X-GitHub-Api-Version", GITHUB_API_VERSION)
+		.send()
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?
+		.json()
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	// Get avatar
+	let response = client
+		.get(&user.avatar_url)
+		.send()
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	let status = StatusCode::from_u16(response.status().as_u16()).unwrap();
+	let mut builder = HttpResponseBuilder::new(status);
+	if let Some(content_type) = response.headers().get("Content-Type") {
+		Ok(builder
+			.content_type(content_type)
+			.streaming(response.bytes_stream()))
+	} else {
+		Ok(builder.streaming(response.bytes_stream()))
+	}
 }

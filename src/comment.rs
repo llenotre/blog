@@ -370,7 +370,6 @@ pub async fn comment_to_html(
 		return Ok(String::new());
 	};
 	let html_url = author.github_info.html_url;
-	let avatar_url = author.github_info.avatar_url;
 	let login = author.github_info.login;
 
 	// Get content of comment
@@ -427,7 +426,7 @@ pub async fn comment_to_html(
 		r##"<div class="comment" id="{com_id}">
 			<div class="comment-header{tier}">
 				<div>
-				<a href="{html_url}" target="_blank"><img class="comment-avatar" src="{avatar_url}"></img></a>
+				<a href="{html_url}" target="_blank"><img class="comment-avatar" src="/avatar/{login}"></img></a>
 				</div>
 				<div>
 					<p><a href="{html_url}" target="_blank">{login}</a></p>
