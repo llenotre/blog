@@ -169,16 +169,17 @@ pub async fn oauth(
 	};
 
 	// Make call to Github to retrieve token
-	let url = format!(
-		"https://github.com/login/oauth/access_token?client_id={}&client_secret={}&code={}",
-		data.client_id, data.client_secret, code
-	);
 	let client = reqwest::Client::new();
 	let body: GithubToken = client
-		.post(url)
+		.post("https://github.com/login/oauth/access_token")
 		.header("Accept", "application/json")
 		.header("User-Agent", GITHUB_USER_AGENT)
 		.header("X-GitHub-Api-Version", GITHUB_API_VERSION)
+		.query(&[
+			("client_id", &data.client_id),
+			("client_secret", &data.client_secret),
+			("code", &code),
+		])
 		.send()
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?
