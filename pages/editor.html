@@ -2,12 +2,12 @@
 <html lang="en">
 	<head>
 		<title>Luc Lenôtre - Blog</title>
-		<link href="/assets/css/style.css" rel="stylesheet" \>
-		<link href="/assets/css/fontawesome.css" rel="stylesheet" \>
-		<link href="/assets/css/brands.css" rel="stylesheet" \>
-		<link href="/assets/css/solid.css" rel="stylesheet" \>
-		<meta charset="UTF-8" \>
-		<meta name="viewport" content="width=device-width, initial-scale=1" \>
+		<link href="/assets/css/style.css" rel="stylesheet" />
+		<link href="/assets/css/fontawesome.css" rel="stylesheet" />
+		<link href="/assets/css/brands.css" rel="stylesheet" />
+		<link href="/assets/css/solid.css" rel="stylesheet" />
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>
 
 	<body>
@@ -18,22 +18,22 @@
 		<div class="section secondary">
 			<form method="POST" action="/article">
 				{article.id}
-				<input name="title" type="text" value="{article.title}" placeholder="Title" style="width: 100%;"></input>
-				<input name="desc" type="text" value="{article.desc}" placeholder="Description" style="width: 100%;"></input>
-				<input name="cover_url" type="text" value="{article.cover_url}" placeholder="Cover URL" style="width: 100%;"></input>
+				<input name="title" type="text" value="{article.title}" placeholder="Title" style="width: 100%;">
+				<input name="desc" type="text" value="{article.desc}" placeholder="Description" style="width: 100%;">
+				<input name="cover_url" type="text" value="{article.cover_url}" placeholder="Cover URL" style="width: 100%;">
 
 				<textarea name="content" style="width: 100%; height: 1000px;">{article.content}</textarea>
 
 				<div>
-					<input name="public" type="checkbox" {article.published}></input>
+					<input name="public" type="checkbox" {article.published}>
 					<label for="public">Publish the article</label>
-					<input name="sponsor" type="checkbox" {article.sponsor}></input>
+					<input name="sponsor" type="checkbox" {article.sponsor}>
 					<label for="sponsor">Reserve the article for sponsors</label>
 				</div>
 
-				<input name="tags" type="text" value="{article.tags}" placeholder="Tags" style="width: 100%;"></input>
+				<input name="tags" type="text" value="{article.tags}" placeholder="Tags" style="width: 100%;">
 
-				<input type="submit" value="Validate"></input>
+				<input type="submit" value="Validate">
 			</form>
 		</div>
 	</body>
