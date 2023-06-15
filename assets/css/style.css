@@ -154,7 +154,7 @@ div.articles-list {
 }
 
 div.article-element {
-	background: #2f2f2fc0;
+	background: #4f4f4f7f;
 	backdrop-filter: blur(5px);
 	border: 0;
 	border-radius: 20px;
@@ -211,10 +211,11 @@ ul.tags li.tag {
 }
 
 div.article-element-content a.read-button {
-	background: #2f2f2f;
+	background: transparent;
 	border: 3px solid #1abc9c;
 	border-radius: 30px;
 	color: #1abc9c;
+	margin-top: 10px;
 	padding: 10px 20px 10px 20px;
 	height: 30px;
 	text-align: center;

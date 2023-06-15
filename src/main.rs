@@ -146,7 +146,9 @@ async fn root(
                             {article_desc}
                         </p>
 
-                        <a class="read-button" href="/article/{article_id}">Read more</a>
+						<center>
+							<a class="read-button" href="/article/{article_id}">Read more</a>
+						</center>
                     </div>
 				</div>"#
 			)
