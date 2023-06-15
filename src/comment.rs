@@ -247,7 +247,7 @@ pub fn get_comment_editor(
             </button>
         </div>
 
-		<h6><span id="comment-{id}-len">0</span>/{MAX_CHARS} characters</h6>"#
+		<h6><span id="comment-{id}-len">0</span>/{MAX_CHARS} characters - Markdown is supported - Make sure you follow the <a href="/legal#conduct" target="_blank">Code of conduct</a></h6>"#
 	)
 }
 
@@ -348,14 +348,14 @@ pub async fn comment_to_html(
 		return Ok(format!(
 			r##"<div class="comment">
 				<div class="comment-header">
-					<p>deleted comment</p>
+					<p><i class="fa-solid fa-trash"></i>&nbsp;<i>deleted comment</i></p>
 				</div>
 
 				<div class="comment-content">
 					{buttons_html}
 				</div>
 
-				<div class="comments-list" style="margin-top: 20px;">
+				<div class="comments-list">
 					{replies_html}
 				</div>
 			</div>"##
@@ -455,7 +455,7 @@ pub async fn comment_to_html(
 				{edit_editor}
 			</div>
 
-			<div class="comments-list" style="margin-top: 20px;">
+			<div class="comments-list">
 				{replies_html}
 			</div>
 		</div>"##

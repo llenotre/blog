@@ -96,16 +96,12 @@ div.inline {
 	padding: 0;
 	flex-direction: row;
 	flex-wrap: wrap;
+	gap: 20px;
 	display: flex;
 }
 
-div.inline div {
-	margin-right: 20px;
-	display: block;
-}
-
 a.logo-button {
-	background: #4f4f4fc0;
+	background: #4f4f4f;
 	border-radius: 20px;
 	padding: 5px;
 	width: 50px;
@@ -126,14 +122,14 @@ a.logo-button:hover {
 
 img.main-avatar {
 	border-radius: 50%;
+	max-width: 100%;
 	width: auto;
 	height: auto;
-	float: right;
 }
 
 div.section {
 	margin: 0;
-	padding: 50px 0 10px 0;
+	padding: 50px 10px 10px 10px;
 	overflow-wrap: break-word;
 }
 
@@ -169,7 +165,7 @@ div.article-element {
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
 	box-sizing: border-box;
-	flex-basis: 30%;
+	flex-basis: 100%;
 	overflow-wrap: break-word;
 }
 
@@ -198,22 +194,20 @@ ul.tags {
 	padding: 0;
 	list-style-type: none;
 	white-space: nowrap;
-	display: inline-block;
-}
-
-ul.tags li {
-	margin-right: 10px;
-	padding: 0;
-	display: inline-block;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10px;
+	display: flex;
 }
 
 ul.tags li.tag {
 	background: #1f1f1f;
 	border: 0;
 	border-radius: 10px;
+	margin: 0;
 	padding: 5px 10px 5px 10px;
 	font-size: 10pt;
-	display: inline;
+	align-self: start;
 }
 
 div.article-element-content a.read-button {
@@ -266,10 +260,6 @@ div.share p,ul {
 	margin: 5px;
 }
 
-div.share p {
-	font-size: 13pt;
-}
-
 ul.share {
 	list-style-type: none;
 	white-space: nowrap;
@@ -277,7 +267,7 @@ ul.share {
 }
 
 ul.share li {
-	font-size: 20pt;
+	font-size: 25pt;
 	display: inline;
 }
 
@@ -287,7 +277,7 @@ ul.share li:hover {
 
 div.article-section {
 	margin: 0;
-	padding: 0;
+	padding: 0 10px 0 10px;
 	overflow-wrap: break-word;
 }
 
@@ -367,8 +357,7 @@ input, textarea, button {
 	background: #4f4f4fc0;
 	color: white;
 	border: 0;
-	border-radius: 50px;
-	padding: 10px;
+	border-radius: 30px;
 	font-family: 'Source Sans Pro', sans-serif;
 	font-size: 15pt;
 	box-sizing: border-box;
@@ -405,18 +394,18 @@ input[type = "submit"]:hover, button:hover {
 }
 
 textarea {
+	width: 100%;
 	resize: none;
 }
 
 div.comments {
 	background: #5f5f5f7f;
 	backdrop-filter: blur(10px);
-	border-radius: 30px 0 0 30px;
 	color: #fff;
 	padding: 20px;
 	top: 0;
 	right: 0;
-	width: 40vw;
+	width: 100vw;
 	height: 100vh;
 	position: fixed;
 	box-sizing: border-box;
@@ -462,12 +451,13 @@ div.comment-header {
 	display: flex;
 }
 
-div.comment-header * {
-	vertical-align: middle;
+div.comment-header div {
+	margin: 0;
+	flex-grow: 0;
 }
 
-div.comment-header div p,h6 {
-	margin: 0;
+div.comment-header div * {
+	vertical-align: middle;
 }
 
 img.comment-avatar {
@@ -486,7 +476,11 @@ a.comment-button {
 	border: 3px solid #7f7f7f;
 	border-radius: 50%;
 	padding: 5px;
+	width: 20px;
+	height: 20px;
+	text-align: center;
 	cursor: pointer;
+	display: block;
 }
 
 a.comment-button:hover {
@@ -541,6 +535,16 @@ div.comment-editor textarea {
 	flex-grow: 1;
 }
 
+@media(max-width: 1200px) {
+	div.split {
+		flex-direction: reverse;
+	}
+
+	div.split.reverse {
+		flex-direction: column-reverse;
+	}
+}
+
 @media(min-width: 1200px) {
 	div.section {
 		padding-left: 20%;
@@ -552,12 +556,21 @@ div.comment-editor textarea {
 		padding-right: 30%;
 	}
 
+	div.split {
+		flex-direction: row;
+	}
+
 	div.split-half {
 		flex-basis: 50%;
 	}
 
 	div.article-element {
 		flex-basis: 30%;
+	}
+
+	div.comments {
+		border-radius: 30px 0 0 30px;
+		width: 40vw;
 	}
 
 	footer {
