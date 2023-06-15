@@ -360,11 +360,12 @@ async fn main() -> io::Result<()> {
 			.service(newsletter::subscribe)
 			.service(robots)
 			.service(root)
+			.service(rss)
 			.service(sitemap)
 			.service(user::auth)
+			.service(user::avatar)
 			.service(user::logout)
 			.service(user::oauth)
-			.service(rss)
 	})
 	.bind(format!("0.0.0.0:{}", config.port))?
 	.run()
