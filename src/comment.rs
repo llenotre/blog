@@ -13,7 +13,6 @@ use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
 use futures_util::stream::TryStreamExt;
-use mongodb::options::FindOneOptions;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -34,36 +33,20 @@ pub struct Comment {
 	pub article: ObjectId,
 	/// The ID of the comment this comment responds to. If `None`, this comment is not a response.
 	pub response_to: Option<ObjectId>,
-
 	/// The ID of author of the comment.
 	pub author: ObjectId,
-
 	/// Timestamp since epoch at which the comment has been posted.
 	#[serde(with = "util::serde_date_time")]
 	pub post_date: DateTime<Utc>,
 
-	// TODO store ID of last edit to get content in constant time
+	/// The ID of the comment's content.
+	pub content_id: ObjectId,
+
 	/// Tells whether the comment has been removed.
 	pub removed: bool,
 }
 
 impl Comment {
-	/// Returns a placeholder for a deleted comment.
-	pub fn deleted(id: ObjectId) -> Self {
-		Self {
-			id,
-
-			article: ObjectId::new(),
-			response_to: None,
-
-			author: ObjectId::new(),
-
-			post_date: DateTime::<Utc>::default(),
-
-			removed: true,
-		}
-	}
-
 	/// Returns the comment with the given ID.
 	///
 	/// Arguments:
@@ -111,6 +94,16 @@ impl Comment {
 	pub async fn insert(&self, db: &mongodb::Database) -> Result<(), mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
 		collection.insert_one(self, None).await.map(|_| ())
+	}
+
+	/// Updates the ID of the comment's content.
+	pub async fn update_content(&self, db: &mongodb::Database, content_id: ObjectId) -> Result<(), mongodb::error::Error> {
+		let collection = db.collection::<Self>("comment");
+		collection.update_one(
+			doc! {"_id": self.id},
+			doc! {"$set": {"content_id": content_id}},
+			None
+		).await.map(|_| ())
 	}
 
 	/// Deletes the comment with the given ID.
@@ -164,23 +157,17 @@ impl CommentContent {
 	/// Returns the latest content of the comment with the given ID `id`.
 	///
 	/// `db` is the database.
-	pub async fn get_for(
+	pub async fn from_id(
 		db: &mongodb::Database,
 		id: ObjectId,
 	) -> Result<Option<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment_content");
-		let find_options = FindOneOptions::builder()
-			.sort(Some(doc! {
-				"edit_date": -1
-			}))
-			.build();
-
 		collection
 			.find_one(
 				Some(doc! {
-					"comment_id": id,
+					"_id": id,
 				}),
-				Some(find_options),
+				None
 			)
 			.await
 	}
@@ -188,9 +175,9 @@ impl CommentContent {
 	/// Inserts the current content in the database.
 	///
 	/// `db` is the database.
-	pub async fn insert(&self, db: &mongodb::Database) -> Result<(), mongodb::error::Error> {
+	pub async fn insert(&self, db: &mongodb::Database) -> Result<ObjectId, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment_content");
-		collection.insert_one(self, None).await.map(|_| ())
+		collection.insert_one(self, None).await.map(|r| r.inserted_id.as_object_id().unwrap())
 	}
 }
 
@@ -231,12 +218,11 @@ pub fn get_comment_editor(
 ) -> String {
 	let id = comment_id
 		.map(|s| format!("{}", s))
-		.unwrap_or("null".to_string());
+		.unwrap_or("null".to_owned());
 	let id_quoted = comment_id
 		.map(|s| format!("'{}'", s))
-		.unwrap_or("null".to_string());
-
-	let content = content.unwrap_or("");
+		.unwrap_or("null".to_owned());
+	let content = content.unwrap_or_default();
 
 	format!(
 		r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
@@ -271,10 +257,8 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 
 		if let Some(b) = base.get_mut(base_id) {
 			b.1.push(reply);
-		} else {
-			// Insert dummy comment to allow printing replies to deleted comments
-			base.insert(*base_id, (Comment::deleted(*base_id), vec![reply]));
 		}
+		// If the base comment doesn't exist, discard the reply
 	}
 
 	let mut comments: Vec<_> = base.into_values().collect();
@@ -373,7 +357,7 @@ pub async fn comment_to_html(
 	let login = author.github_info.login;
 
 	// Get content of comment
-	let content = CommentContent::get_for(db, com_id)
+	let content = CommentContent::from_id(db, comment.content_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(content) = content else {
@@ -401,30 +385,9 @@ pub async fn comment_to_html(
 		Some(&content.content),
 	);
 
-	// TODO add decoration on comments depending on the sponsoring tier
-	let tier = 0; // TODO
-	let (tier, tier_logo) = match tier {
-		i @ (1..=3) => {
-			let emoji = match i {
-				1 => "❤️",
-				2 => "🚀",
-				3 => "⭐",
-
-				_ => unreachable!(),
-			};
-
-			(
-				format!(" tier-{i}"),
-				format!("Tier {i} sponsor <div><span class=\"tier-{i}-logo\">{emoji}</span></div>"),
-			)
-		}
-
-		_ => (String::new(), String::new()),
-	};
-
 	Ok(format!(
 		r##"<div class="comment" id="{com_id}">
-			<div class="comment-header{tier}">
+			<div class="comment-header">
 				<div>
 				<a href="{html_url}" target="_blank"><img class="comment-avatar" src="/avatar/{login}"></img></a>
 				</div>
@@ -436,9 +399,6 @@ pub async fn comment_to_html(
                 </div>
 				<div>
 					<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>
-				</div>
-				<div>
-					{tier_logo}
 				</div>
 			</div>
 
@@ -515,18 +475,7 @@ pub async fn post(
 	let id = ObjectId::new();
 	let date = chrono::offset::Utc::now();
 
-	let comment = Comment {
-		id,
-
-		article: article_id,
-		response_to: info.response_to,
-
-		author: user_id,
-
-		post_date: date,
-
-		removed: false,
-	};
+	// Insert comment content
 	let comment_content = CommentContent {
 		comment_id: id,
 
@@ -534,12 +483,23 @@ pub async fn post(
 
 		content: info.content,
 	};
-
-	// Insert comment
-	comment_content
+	let content_id = comment_content
 		.insert(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	let comment = Comment {
+		id,
+
+		article: article_id,
+		response_to: info.response_to,
+		author: user_id,
+		post_date: date,
+
+		content_id,
+
+		removed: false
+	};
 	comment
 		.insert(&db)
 		.await
@@ -597,6 +557,7 @@ pub async fn edit(
 		return Err(error::ErrorForbidden(""));
 	}
 
+	// Insert comment content
 	let date = chrono::offset::Utc::now();
 	let comment_content = CommentContent {
 		comment_id,
@@ -605,10 +566,13 @@ pub async fn edit(
 
 		content: info.content,
 	};
-
-	// Insert comment
-	comment_content
+	let content_id = comment_content
 		.insert(&db)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	// Update comment's content
+	comment.update_content(&db, content_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
