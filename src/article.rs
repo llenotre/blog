@@ -176,10 +176,7 @@ pub async fn get(
 			let html = html.replace("{article.title}", &article.title);
 			let html = html.replace(
 				"{article.date}",
-				&format!(
-					"{}",
-					article.post_date.format("%d/%m/%Y %H:%M:%S") // TODO use user's timezone
-				),
+				&article.post_date.format("%d/%m/%Y %H:%M:%S").to_string() // TODO use user's timezone)
 			);
 			let html = html.replace("{article.desc}", &article.desc);
 			let html = html.replace("{article.cover_url}", &article.cover_url);
@@ -222,11 +219,11 @@ pub async fn get(
 			let html = html.replace("{comments}", &comments_html);
 
 			let comment_editor_html = match user_login {
-				Some(user_login) => format!(
-					r#"<h3 id="reply-to" hidden></h3>
-					{}"#,
-					get_comment_editor(&article.id.to_hex(), "post", None, None)
-				),
+				Some(user_login) => {
+					let e = get_comment_editor(&article.id.to_hex(), "post", None, None);
+					format!(r#"<img class="comment-avatar" src="/avatar/{user_login}" />
+						{e}"#)
+				},
 
 				None => format!(
 					r#"<center><a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a></center>"#,
