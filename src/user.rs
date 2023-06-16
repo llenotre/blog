@@ -244,23 +244,9 @@ pub async fn logout(session: Session) -> actix_web::Result<impl Responder> {
 pub async fn avatar(user: web::Path<String>) -> actix_web::Result<impl Responder> {
 	let user = user.into_inner();
 
-	// Get Github user
 	let client = reqwest::Client::new();
-	let user: GithubUser = client
-		.get(format!("https://api.github.com/users/{user}"))
-		.header("Accept", "application/json")
-		.header("User-Agent", GITHUB_USER_AGENT)
-		.header("X-GitHub-Api-Version", GITHUB_API_VERSION)
-		.send()
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?
-		.json()
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-
-	// Get avatar
 	let response = client
-		.get(&user.avatar_url)
+		.get(format!("https://github.com/{user}.png"))
 		.send()
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
