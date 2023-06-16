@@ -225,7 +225,7 @@ pub fn get_comment_editor(
 	let content = content.unwrap_or_default();
 
 	format!(
-		r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}"></input>
+		r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}" />
         <div class="comment-editor">
             <textarea id="comment-{id}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
             <button id="comment-{id}-submit" type="submit" onclick="{action_type}({id_quoted})">
