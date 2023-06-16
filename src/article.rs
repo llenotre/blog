@@ -23,8 +23,6 @@ use mongodb::options::FindOptions;
 use serde::Deserialize;
 use serde::Serialize;
 
-// TODO keep previous versions of articles to be able to restore
-
 /// Structure representing an article.
 #[derive(Serialize, Debug, Deserialize)]
 pub struct Article {
@@ -39,9 +37,8 @@ pub struct Article {
 	/// The URL to the cover image of the article.
 	pub cover_url: String,
 
-	// TODO keep history
-	/// The article's content.
-	pub content: String,
+	/// The ID of the article's content.
+	pub content_id: ObjectId,
 
 	/// Timestamp since epoch at which the article has been posted.
 	#[serde(with = "util::serde_date_time")]
@@ -143,6 +140,45 @@ impl Article {
 	}
 }
 
+/// Content of an article.
+///
+/// Several contents are stored for the same article to keep the history of edits.
+#[derive(Serialize, Deserialize)]
+pub struct ArticleContent {
+	/// The ID of the article.
+	pub article_id: ObjectId,
+
+	/// Timestamp since epoch at which the article has been edited.
+	#[serde(with = "util::serde_date_time")]
+	pub edit_date: DateTime<Utc>,
+
+	/// The content of the article in markdown.
+	pub content: String,
+}
+
+impl ArticleContent {
+	/// Returns the article content with the given ID.
+	///
+	/// Arguments:
+	/// - `db` is the database.
+	/// - `id` is the ID of the content.
+	pub async fn from_id(
+		db: &mongodb::Database,
+		id: &ObjectId,
+	) -> Result<Option<Self>, mongodb::error::Error> {
+		let collection = db.collection::<Self>("article_content");
+		collection.find_one(Some(doc! {"_id": id}), None).await
+	}
+
+	/// Inserts the current content in the database.
+	///
+	/// `db` is the database.
+	pub async fn insert(&self, db: &mongodb::Database) -> Result<ObjectId, mongodb::error::Error> {
+		let collection = db.collection::<Self>("article_content");
+		collection.insert_one(self, None).await.map(|r| r.inserted_id.as_object_id().unwrap())
+	}
+}
+
 #[get("/article/{id}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
@@ -180,7 +216,15 @@ pub async fn get(
 			);
 			let html = html.replace("{article.desc}", &article.desc);
 			let html = html.replace("{article.cover_url}", &article.cover_url);
-			let markdown = markdown::to_html(&article.content, false);
+
+			// Get content of article
+			let content = ArticleContent::from_id(&db, &article.content_id)
+				.await
+				.map_err(|_| error::ErrorInternalServerError(""))?;
+			let Some(content) = content else {
+				return Err(error::ErrorInternalServerError(""));
+			};
+			let markdown = markdown::to_html(&content.content, false);
 			let html = html.replace("{article.content}", &markdown);
 
 			let user_id = session
@@ -282,11 +326,26 @@ pub async fn post(
 		return Err(error::ErrorForbidden(""));
 	}
 
+	let date = chrono::offset::Utc::now();
+
 	let info = info.into_inner();
 	let id = match info.id {
 		// Update article
 		Some(id_str) => {
 			let id = ObjectId::parse_str(&id_str).map_err(|_| error::ErrorBadRequest(""))?;
+
+			// Insert article content
+			let content = ArticleContent {
+				article_id: id,
+
+				edit_date: date,
+
+				content: info.content,
+			};
+			let content_id = content
+				.insert(&db)
+				.await
+				.map_err(|_| error::ErrorInternalServerError(""))?;
 
 			Article::update(
 				&db,
@@ -296,7 +355,7 @@ pub async fn post(
 					"desc": info.desc,
 					"cover_url": info.cover_url,
 
-					"content": info.content,
+					"content_id": content_id,
 
 					"public": info.public.map(|p| p == "on").unwrap_or(false),
 					"sponsor": info.sponsor.map(|p| p == "on").unwrap_or(false),
@@ -312,16 +371,31 @@ pub async fn post(
 
 		// Create article
 		None => {
+			let article_id = ObjectId::new();
+
+			// Insert article content
+			let content = ArticleContent {
+				article_id,
+
+				edit_date: date,
+
+				content: info.content,
+			};
+			let content_id = content
+				.insert(&db)
+				.await
+				.map_err(|_| error::ErrorInternalServerError(""))?;
+
 			let a = Article {
-				id: ObjectId::new(),
+				id: article_id,
 
 				title: info.title,
 				desc: info.desc,
 				cover_url: info.cover_url,
 
-				content: info.content,
+				content_id,
 
-				post_date: chrono::offset::Utc::now(),
+				post_date: date,
 
 				public: info.public.map(|p| p == "on").unwrap_or(false),
 				sponsor: info.sponsor.map(|p| p == "on").unwrap_or(false),
@@ -330,8 +404,6 @@ pub async fn post(
 
 				comments_locked: false,
 			};
-
-			let db = data.get_database();
 			let id = a
 				.insert(&db)
 				.await
@@ -386,7 +458,7 @@ async fn editor(
 		.as_ref()
 		.map(|a| {
 			format!(
-				"<input name=\"id\" type=\"hidden\" value=\"{}\"></input>",
+				"<input name=\"id\" type=\"hidden\" value=\"{}\" />",
 				a.id.to_hex()
 			)
 		})
@@ -394,7 +466,19 @@ async fn editor(
 	let article_title = article.as_ref().map(|a| a.title.as_str()).unwrap_or("");
 	let article_desc = article.as_ref().map(|a| a.desc.as_str()).unwrap_or("");
 	let article_cover_url = article.as_ref().map(|a| a.cover_url.as_str()).unwrap_or("");
-	let article_content = article.as_ref().map(|a| a.content.as_str()).unwrap_or("");
+	let article_content = match article.as_ref() {
+		Some(a) => {
+			let content = ArticleContent::from_id(&db, &a.content_id)
+				.await
+				.map_err(|_| error::ErrorInternalServerError(""))?;
+			let Some(content) = content else {
+				return Err(error::ErrorInternalServerError(""));
+			};
+			content.content
+		},
+
+		None => String::new(),
+	};
 	let article_public = article.as_ref().map(|a| a.public).unwrap_or(false);
 	let article_sponsor = article.as_ref().map(|a| a.sponsor).unwrap_or(false);
 	let article_tags = article.as_ref().map(|a| a.tags.as_str()).unwrap_or("");
@@ -404,7 +488,7 @@ async fn editor(
 	let html = html.replace("{article.title}", article_title);
 	let html = html.replace("{article.desc}", article_desc);
 	let html = html.replace("{article.cover_url}", article_cover_url);
-	let html = html.replace("{article.content}", article_content);
+	let html = html.replace("{article.content}", &article_content);
 	let html = html.replace(
 		"{article.published}",
 		if article_public { "checked" } else { "" },
