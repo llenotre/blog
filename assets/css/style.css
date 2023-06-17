@@ -330,30 +330,6 @@ blockquote {
 	padding-left: 20px;
 }
 
-div.reactions {
-	width: 100%;
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	justify-content: center;
-}
-
-a.reaction {
-	background: #1f1f1f;
-	border-radius: 5px;
-	margin-left: 20px;
-	margin-right: 20px;
-	padding: 0 5px 0 5px;
-	color: white;
-	text-align: center;
-	text-decoration: none;
-	font-size: 20pt;
-}
-
-a.reaction:hover {
-	background: #2f2f2f;
-}
-
 input, textarea, button {
 	background: #4f4f4fc0;
 	color: white;
@@ -412,7 +388,7 @@ div.comments {
 	box-sizing: border-box;
 	flex-direction: column;
 	gap: 30px;
-	display: none;
+	display: flex;
 }
 
 div.comments-header {
@@ -492,18 +468,14 @@ a.comment-button.active {
 	border-color: #1abc9c;
 }
 
-a.comment-share {
-	margin: 0;
-	display: block;
+div.reaction-selector {
+	background: #1f1f1f;
+	transform: translateY(-100%);
+	position: absolute;
 }
 
 div.comment-content {
 	overflow-wrap: break-word;
-}
-
-button.reaction {
-	background: #3f3f3f;
-	border: 3px solid #4f4f4f;
 }
 
 a.login-button {
