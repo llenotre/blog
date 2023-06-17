@@ -463,7 +463,10 @@ pub async fn post(
 	let Some(article) = article else {
 		return Err(error::ErrorNotFound(""));
 	};
-	if !article.public && !admin {
+	let article_content = article.get_content(&db)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	if !article_content.public && !admin {
 		return Err(error::ErrorNotFound(""));
 	}
 

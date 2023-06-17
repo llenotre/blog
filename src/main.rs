@@ -100,60 +100,60 @@ async fn root(
 	}
 
 	// Produce articles HTML
-	let articles_html: String = articles
-		.into_iter()
-		.map(|article| {
-			let article_id = article.id;
-			let article_title = article.title;
-			let article_desc = article.desc;
-			let article_cover_url = article.cover_url;
-			let post_date = article.post_date.format("%d/%m/%Y"); // TODO use user's timezone
+	let mut articles_html = String::new();
+	for article in articles {
+		let content = article.get_content(&db)
+			.await
+			.map_err(|_| error::ErrorInternalServerError(""))?;
+		let post_date = article.post_date.format("%d/%m/%Y"); // TODO use user's timezone
 
-			let mut tags = vec![];
+		let mut tags = vec![];
 
-			if admin {
-				let pub_tag = if article.public { "Public" } else { "Private" };
+		if admin {
+			let pub_tag = if content.public { "Public" } else { "Private" };
 
-				tags.push(pub_tag);
-			}
+			tags.push(pub_tag);
+		}
 
-			if article.sponsor {
-				tags.push("<i>Reserved for Sponsors</i>&nbsp;❤️");
-			}
+		if content.sponsor {
+			tags.push("<i>Reserved for Sponsors</i>&nbsp;❤️");
+		}
+		if !content.tags.is_empty() {
+			tags.extend(content.tags.split(','));
+		}
 
-			if !article.tags.is_empty() {
-				tags.extend(article.tags.split(','));
-			}
+		let tags_html: String = tags
+			.into_iter()
+			.map(|s| format!(r#"<li class="tag">{s}</li>"#))
+			.collect();
 
-			let tags_html: String = tags
-				.into_iter()
-				.map(|s| format!(r#"<li class="tag">{s}</li>"#))
-				.collect();
+		// TODO article's cover image
+		articles_html.push_str(&format!(
+			r#"<div class="article-element">
+				<img class="article-cover" src="{article_cover_url}"></img>
+				<div class="article-element-content">
+					<h3><a href="/article/{article_id}">{article_title}</a></h3>
 
-			// TODO article's cover image
-			format!(
-				r#"<div class="article-element">
-                    <img class="article-cover" src="{article_cover_url}"></img>
-                    <div class="article-element-content">
-                        <h3><a href="/article/{article_id}">{article_title}</a></h3>
+					<ul class="tags">
+						<li><h6 style="color: gray;">{post_date}</h6></li>
+						{tags_html}
+					</ul>
 
-                        <ul class="tags">
-                            <li><h6 style="color: gray;">{post_date}</h6></li>
-                            {tags_html}
-                        </ul>
+					<p>
+						{article_desc}
+					</p>
 
-                        <p>
-                            {article_desc}
-                        </p>
-
-						<center>
-							<a class="read-button" href="/article/{article_id}">Read more</a>
-						</center>
-                    </div>
-				</div>"#
-			)
-		})
-		.collect();
+					<center>
+						<a class="read-button" href="/article/{article_id}">Read more</a>
+					</center>
+				</div>
+			</div>"#,
+			article_cover_url = content.cover_url,
+			article_id = article.id,
+			article_title = content.title,
+			article_desc = content.desc,
+		));
+	}
 
 	let html = include_str!("../pages/index.html");
 	let html = html.replace("{articles}", &articles_html);
@@ -250,18 +250,20 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
-	let items_str = articles.into_iter()
-        .map(|a| {
-            let url = format!("https://blog.lenot.re/article/{}", a.id);
-            let date = a.post_date.to_rfc2822();
+	let mut items_str = String::new();
+	for a in articles {
+		let url = format!("https://blog.lenot.re/article/{}", a.id);
+		let date = a.post_date.to_rfc2822();
+		let content = a.get_content(&db)
+			.await
+			.map_err(|_| error::ErrorInternalServerError(""))?;
 
-            format!(
-                "<item><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description></item>",
-                title = a.title,
-                desc = a.desc
-            )
-        })
-        .collect::<String>();
+		items_str.push_str(&format!(
+			"<item><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description></item>",
+			title = content.title,
+			desc = content.desc
+		));
+	}
 
 	let body = format!(
 		r#"<rss version="2.0"><channel><title>Luc Lenôtre</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{items_str}</channel></rss>"#
