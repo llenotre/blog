@@ -49,12 +49,10 @@ impl Article {
 	/// - `db` is the database.
 	/// - `page` is the page number.
 	/// - `per_page` is the number of articles per page.
-	/// - `public` tells whether to the function must return only public articles.
 	pub async fn list(
 		db: &mongodb::Database,
 		page: u32,
 		per_page: u32,
-		public: bool,
 	) -> Result<Vec<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("article");
 		let find_options = FindOptions::builder()
@@ -65,16 +63,8 @@ impl Article {
 			}))
 			.build();
 
-		let filter = if public {
-			Some(doc! {
-				"public": true,
-			})
-		} else {
-			None
-		};
-
 		collection
-			.find(filter, Some(find_options))
+			.find(doc! {}, Some(find_options))
 			.await?
 			.try_collect()
 			.await

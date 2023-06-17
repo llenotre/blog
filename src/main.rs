@@ -90,7 +90,7 @@ async fn root(
 	let total_articles = Article::get_total_count(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
-	let articles = Article::list(&db, page, ARTICLES_PER_PAGE, !admin)
+	let articles = Article::list(&db, page, ARTICLES_PER_PAGE)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -106,13 +106,15 @@ async fn root(
 			.get_content(&db)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?;
+		if !admin && !content.public {
+			continue;
+		}
 		let post_date = article.post_date.format("%d/%m/%Y"); // TODO use user's timezone
 
 		let mut tags = vec![];
 
 		if admin {
 			let pub_tag = if content.public { "Public" } else { "Private" };
-
 			tags.push(pub_tag);
 		}
 
@@ -212,7 +214,7 @@ async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 	urls.push(("/legal".to_owned(), None));
 
 	let db = data.get_database();
-	let articles = Article::list(&db, 0, 100, false)
+	let articles = Article::list(&db, 0, 100)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	for a in articles {
@@ -246,7 +248,7 @@ async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 #[get("/rss")]
 async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 	let db = data.get_database();
-	let articles = Article::list(&db, 0, 100, false)
+	let articles = Article::list(&db, 0, 100)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 

@@ -1,19 +1,26 @@
 var article_id = document.getElementById("article-id").value;
-var comments_visible = false;
 
 highlight_selected_comment();
 
 // Highlights the select comment
 function highlight_selected_comment() {
 	var fragment = window.location.hash;
-	if (fragment) {
-		var selected_comment_id = fragment.slice(1);
-		var selected_comment = document.getElementById(selected_comment_id);
-		if (selected_comment) {
-			toggle_comments();
-			selected_comment.style.background = '#1abc9c20';
-		}
+	if (!fragment) {
+		return;
 	}
+
+	var selected_comment_id = fragment.slice(1);
+	if (selected_comment_id.length == 0) {
+		return;
+	}
+
+	var selected_comment = document.getElementById(selected_comment_id);
+	if (!selected_comment) {
+		return;
+	}
+
+	toggle_comments();
+	selected_comment.style.background = '#1abc9c20';
 }
 
 /// Copies the given content into clipboard.
