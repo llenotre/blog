@@ -27,34 +27,16 @@ function clipboard(id, content) {
 	}, 1000);
 }
 
-// TODO rewrite
 // Toggles visibility of the comments window.
 function toggle_comments() {
-	var fixed_buttons = document.getElementById("fixed-buttons");
-	var sections = document.getElementsByClassName("article-section");
 	var comments = document.getElementById("comments");
+	comments.hidden = !comments.hidden;
+}
 
-	if (comments_visible) {
-		fixed_buttons.style.left = "30%";
-		fixed_buttons.style.transform = "translateX(-100%)";
-		for (let i = 0; i < sections.length; i++) {
-			sections[i].style.paddingLeft = "30%";
-			sections[i].style.paddingRight = "30%";
-		}
-
-		comments.style.display = "none";
-	} else {
-		fixed_buttons.style.left = "0";
-		fixed_buttons.style.transform = "translateX(0)";
-		for (let i = 0; i < sections.length; i++) {
-			sections[i].style.paddingLeft = "150px";
-			sections[i].style.paddingRight = "45vw";
-		}
-
-		comments.style.display = "flex";
-	}
-
-	comments_visible = !comments_visible;
+// Toggles visibility of a reactions selector.
+function toggle_reactions(id) {
+	var selector = document.getElementById(id);
+	selector.hidden = !selector.hidden;
 }
 
 // Updates the number of characters in the counter
@@ -86,7 +68,7 @@ function toggle_reply(comment_id) {
 
 /// Expands editor on click.
 function expand_editor(id) {
-	document.getElementById("comment-" + id + "-content").style.height = "300px";
+	document.getElementById(id).style.height = "300px";
 }
 
 // Posts a comment.

@@ -230,7 +230,7 @@ pub fn get_comment_editor(action: &str, comment_id: Option<&str>, content: Optio
 
 	format!(
 		r#"<div class="comment-editor">
-            <textarea id="comment-{id}-{action}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
+            <textarea id="comment-{id}-{action}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('comment-{id}-{action}-content')" oninput="input({id_quoted})">{content}</textarea>
             <button id="comment-{id}-{action}-submit" onclick="{action}({id_quoted})">
                 <i class="fa-regular fa-paper-plane"></i>
             </button>
@@ -405,6 +405,13 @@ pub async fn comment_to_html(
 			</div>
 			<div class="comment-content">
 				{markdown}
+				<div class="comment-buttons">
+					<a class="comment-button" onclick="toggle_reactions('reaction-{com_id}-selector')"><i class="fa-solid fa-face-smile"></i></a>
+					<div id="reaction-{com_id}-selector" class="reaction-selector" hidden>
+						<a class="reaction-button">TODO</a>
+					</div>
+					TODO
+				</div>
 			</div>
 			<div id="editor-{com_id}-edit" hidden>
 				<p>Edit comment</p>
