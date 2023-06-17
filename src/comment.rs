@@ -97,13 +97,20 @@ impl Comment {
 	}
 
 	/// Updates the ID of the comment's content.
-	pub async fn update_content(&self, db: &mongodb::Database, content_id: ObjectId) -> Result<(), mongodb::error::Error> {
+	pub async fn update_content(
+		&self,
+		db: &mongodb::Database,
+		content_id: ObjectId,
+	) -> Result<(), mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
-		collection.update_one(
-			doc! {"_id": self.id},
-			doc! {"$set": {"content_id": content_id}},
-			None
-		).await.map(|_| ())
+		collection
+			.update_one(
+				doc! {"_id": self.id},
+				doc! {"$set": {"content_id": content_id}},
+				None,
+			)
+			.await
+			.map(|_| ())
 	}
 
 	/// Deletes the comment with the given ID.
@@ -167,7 +174,7 @@ impl CommentContent {
 				Some(doc! {
 					"_id": id,
 				}),
-				None
+				None,
 			)
 			.await
 	}
@@ -177,7 +184,10 @@ impl CommentContent {
 	/// `db` is the database.
 	pub async fn insert(&self, db: &mongodb::Database) -> Result<ObjectId, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment_content");
-		collection.insert_one(self, None).await.map(|r| r.inserted_id.as_object_id().unwrap())
+		collection
+			.insert_one(self, None)
+			.await
+			.map(|r| r.inserted_id.as_object_id().unwrap())
 	}
 }
 
@@ -463,7 +473,8 @@ pub async fn post(
 	let Some(article) = article else {
 		return Err(error::ErrorNotFound(""));
 	};
-	let article_content = article.get_content(&db)
+	let article_content = article
+		.get_content(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if !article_content.public && !admin {
@@ -501,7 +512,7 @@ pub async fn post(
 
 		content_id,
 
-		removed: false
+		removed: false,
 	};
 	comment
 		.insert(&db)
@@ -575,7 +586,8 @@ pub async fn edit(
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
 	// Update comment's content
-	comment.update_content(&db, content_id)
+	comment
+		.update_content(&db, content_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 

@@ -120,8 +120,13 @@ impl Article {
 	}
 
 	/// Returns the article's content.
-	pub async fn get_content(&self, db: &mongodb::Database) -> Result<ArticleContent, mongodb::error::Error> {
-		Ok(ArticleContent::from_id(&db, &self.content_id).await?.unwrap())
+	pub async fn get_content(
+		&self,
+		db: &mongodb::Database,
+	) -> Result<ArticleContent, mongodb::error::Error> {
+		Ok(ArticleContent::from_id(&db, &self.content_id)
+			.await?
+			.unwrap())
 	}
 }
 
@@ -174,7 +179,10 @@ impl ArticleContent {
 	/// `db` is the database.
 	pub async fn insert(&self, db: &mongodb::Database) -> Result<ObjectId, mongodb::error::Error> {
 		let collection = db.collection::<Self>("article_content");
-		collection.insert_one(self, None).await.map(|r| r.inserted_id.as_object_id().unwrap())
+		collection
+			.insert_one(self, None)
+			.await
+			.map(|r| r.inserted_id.as_object_id().unwrap())
 	}
 }
 
@@ -198,7 +206,8 @@ pub async fn get(
 	let Some(article) = article else {
 		return Err(error::ErrorNotFound(""));
 	};
-	let content = article.get_content(&db)
+	let content = article
+		.get_content(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -215,7 +224,7 @@ pub async fn get(
 	let html = html.replace("{article.title}", &content.title);
 	let html = html.replace(
 		"{article.date}",
-		&article.post_date.format("%d/%m/%Y %H:%M:%S").to_string() // TODO use user's timezone)
+		&article.post_date.format("%d/%m/%Y %H:%M:%S").to_string(), // TODO use user's timezone)
 	);
 	let html = html.replace("{article.desc}", &content.desc);
 	let html = html.replace("{article.cover_url}", &content.cover_url);
@@ -260,9 +269,11 @@ pub async fn get(
 	let comment_editor_html = match user_login {
 		Some(user_login) => {
 			let e = get_comment_editor(&article.id.to_hex(), "post", None, None);
-			format!(r#"<img class="comment-avatar" src="/avatar/{user_login}" />
-				{e}"#)
-		},
+			format!(
+				r#"<img class="comment-avatar" src="/avatar/{user_login}" />
+				{e}"#
+			)
+		}
 
 		None => format!(
 			r#"<center><a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a></center>"#,
@@ -349,7 +360,7 @@ pub async fn post(
 				id,
 				doc! {
 					"content_id": content_id,
-				}
+				},
 			)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?;
@@ -436,10 +447,12 @@ async fn editor(
 		None => None,
 	};
 	let content = match article.as_ref() {
-		Some(article) => Some(article
-			.get_content(&db)
-			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?),
+		Some(article) => Some(
+			article
+				.get_content(&db)
+				.await
+				.map_err(|_| error::ErrorInternalServerError(""))?,
+		),
 		None => None,
 	};
 

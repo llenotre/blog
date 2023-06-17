@@ -102,7 +102,8 @@ async fn root(
 	// Produce articles HTML
 	let mut articles_html = String::new();
 	for article in articles {
-		let content = article.get_content(&db)
+		let content = article
+			.get_content(&db)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?;
 		let post_date = article.post_date.format("%d/%m/%Y"); // TODO use user's timezone
@@ -127,7 +128,6 @@ async fn root(
 			.map(|s| format!(r#"<li class="tag">{s}</li>"#))
 			.collect();
 
-		// TODO article's cover image
 		articles_html.push_str(&format!(
 			r#"<div class="article-element">
 				<img class="article-cover" src="{article_cover_url}"></img>
@@ -254,7 +254,8 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 	for a in articles {
 		let url = format!("https://blog.lenot.re/article/{}", a.id);
 		let date = a.post_date.to_rfc2822();
-		let content = a.get_content(&db)
+		let content = a
+			.get_content(&db)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -335,13 +336,13 @@ async fn main() -> io::Result<()> {
 			.wrap(middleware::Logger::new(
 				"[%t] %a: %r - Response: %s (in %D ms)",
 			))
-			.wrap(analytics::Analytics {
-				global: data.clone().into_inner(),
-			})
 			.wrap(SessionMiddleware::new(
 				CookieSessionStore::default(),
 				Key::from(config.session_secret_key.as_bytes()), // TODO parse hex
 			))
+			.wrap(analytics::Analytics {
+				global: data.clone().into_inner(),
+			})
 			.wrap(Governor::new(&governor_conf))
 			.wrap(ErrorHandlers::new().default_handler(error_handler))
 			.app_data(data.clone())
