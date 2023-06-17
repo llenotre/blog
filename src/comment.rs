@@ -216,16 +216,10 @@ pub struct Reaction {
 /// Returns the HTML code for a comment editor.
 ///
 /// Arguments:
-/// - `article_id` is the ID of the article.
-/// - `article_type` is the name of the action to perform on click.
+/// - `article` is the action to perform.
 /// - `comment_id` is the ID of the comment for which the action is performed.
 /// - `content` is the default content of the editor.
-pub fn get_comment_editor(
-	article_id: &str,
-	action_type: &str,
-	comment_id: Option<&str>,
-	content: Option<&str>,
-) -> String {
+pub fn get_comment_editor(action: &str, comment_id: Option<&str>, content: Option<&str>) -> String {
 	let id = comment_id
 		.map(|s| format!("{}", s))
 		.unwrap_or("null".to_owned());
@@ -235,14 +229,12 @@ pub fn get_comment_editor(
 	let content = content.unwrap_or_default();
 
 	format!(
-		r#"<input id="article-id" name="article_id" type="hidden" value="{article_id}" />
-        <div class="comment-editor">
-            <textarea id="comment-{id}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
-            <button id="comment-{id}-submit" type="submit" onclick="{action_type}({id_quoted})">
+		r#"<div class="comment-editor">
+            <textarea id="comment-{id}-{action}-content" name="content" placeholder="What are your thoughts?" onclick="expand_editor('{id}')" oninput="input({id_quoted})">{content}</textarea>
+            <button id="comment-{id}-{action}-submit" onclick="{action}({id_quoted})">
                 <i class="fa-regular fa-paper-plane"></i>
             </button>
         </div>
-
 		<h6><span id="comment-{id}-len">0</span>/{MAX_CHARS} characters - Markdown is supported - Make sure you follow the <a href="/legal#conduct" target="_blank">Code of conduct</a></h6>"#
 	)
 }
@@ -307,13 +299,21 @@ pub async fn comment_to_html(
 			for com in replies {
 				html.push_str(&comment_to_html(db, com, None, user_id, article_id, admin).await?);
 			}
-			html
+
+			format!(
+				r#"<div id="comment-{com_id}-replies" class="comments-list" style="margin-top: 20px;">
+				{html}
+			</div>"#
+			)
 		}
 		None => String::new(),
 	};
 
 	// HTML for comment's buttons
-	let mut buttons = Vec::with_capacity(3);
+	let mut buttons = Vec::with_capacity(4);
+	buttons.push(format!(
+		r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##
+	));
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(
 			r#"<a class="comment-button" onclick="toggle_edit('{com_id}')"><i class="fa-solid fa-pen-to-square"></i></a>"#
@@ -324,7 +324,7 @@ pub async fn comment_to_html(
 	}
 	if user_id.is_some() && replies.is_some() {
 		buttons.push(format!(
-			r#"<a class="comment-button" onclick="set_reply('{com_id}')"><i class="fa-solid fa-reply"></i></a>"#
+			r#"<a class="comment-button" onclick="toggle_reply('{com_id}')"><i class="fa-solid fa-reply"></i></a>"#
 		));
 	}
 	let buttons_html = if !buttons.is_empty() {
@@ -344,14 +344,10 @@ pub async fn comment_to_html(
 				<div class="comment-header">
 					<p><i class="fa-solid fa-trash"></i>&nbsp;<i>deleted comment</i></p>
 				</div>
-
 				<div class="comment-content">
 					{buttons_html}
 				</div>
-
-				<div class="comments-list">
-					{replies_html}
-				</div>
+				{replies_html}
 			</div>"##
 		));
 	}
@@ -388,15 +384,11 @@ pub async fn comment_to_html(
 		date_text.push_str(" - REMOVED");
 	}
 
-	let edit_editor = get_comment_editor(
-		&article_id.to_hex(),
-		"edit",
-		Some(&com_id.to_hex()),
-		Some(&content.content),
-	);
+	let edit_editor = get_comment_editor("edit", Some(&com_id.to_hex()), Some(&content.content));
+	let reply_editor = get_comment_editor("post", Some(&com_id.to_hex()), None);
 
 	Ok(format!(
-		r##"<div class="comment" id="{com_id}">
+		r##"<div class="comment" id="com-{com_id}">
 			<div class="comment-header">
 				<div>
 				<a href="{html_url}" target="_blank"><img class="comment-avatar" src="/avatar/{login}"></img></a>
@@ -408,25 +400,21 @@ pub async fn comment_to_html(
 					<h6 style="color: gray;">{date_text}</h6>
                 </div>
 				<div>
-					<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>
+					{buttons_html}
 				</div>
 			</div>
-
 			<div class="comment-content">
 				{markdown}
-
-				{buttons_html}
 			</div>
-
-			<div id="editor-{com_id}" hidden>
+			<div id="editor-{com_id}-edit" hidden>
 				<p>Edit comment</p>
-
 				{edit_editor}
 			</div>
-
-			<div class="comments-list">
-				{replies_html}
+			<div id="editor-{com_id}-reply" hidden>
+				<p>Reply</p>
+				{reply_editor}
 			</div>
+			{replies_html}
 		</div>"##
 	))
 }

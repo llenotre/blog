@@ -268,7 +268,7 @@ pub async fn get(
 
 	let comment_editor_html = match user_login {
 		Some(user_login) => {
-			let e = get_comment_editor(&article.id.to_hex(), "post", None, None);
+			let e = get_comment_editor("post", None, None);
 			format!(
 				r#"<img class="comment-avatar" src="/avatar/{user_login}" />
 				{e}"#

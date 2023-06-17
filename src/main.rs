@@ -336,6 +336,7 @@ async fn main() -> io::Result<()> {
 			.wrap(middleware::Logger::new(
 				"[%t] %a: %r - Response: %s (in %D ms)",
 			))
+			.wrap(Governor::new(&governor_conf))
 			.wrap(SessionMiddleware::new(
 				CookieSessionStore::default(),
 				Key::from(config.session_secret_key.as_bytes()), // TODO parse hex
@@ -343,7 +344,6 @@ async fn main() -> io::Result<()> {
 			.wrap(analytics::Analytics {
 				global: data.clone().into_inner(),
 			})
-			.wrap(Governor::new(&governor_conf))
 			.wrap(ErrorHandlers::new().default_handler(error_handler))
 			.app_data(data.clone())
 			.app_data(web::PayloadConfig::new(1024 * 1024))
