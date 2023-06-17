@@ -21,6 +21,7 @@
 	</head>
 
 	<body>
+		<input id="article-id" type="hidden" value="{article.id}" />
 		<div class="background">
 			<div class="blob"></div>
 		</div>
@@ -63,7 +64,7 @@
 				<h3>Comments ({comments.count})</h3>
 			</div>
 
-			<div class="comments-list">
+			<div id="comments-list" class="comments-list">
 				{comments}
 			</div>
 

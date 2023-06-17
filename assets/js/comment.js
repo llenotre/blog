@@ -1,10 +1,33 @@
-var article_id = document.getElementById("article-id");
-
-// The comment to reply to.
-var reply_to = null;
-
+var article_id = document.getElementById("article-id").value;
 var comments_visible = false;
 
+highlight_selected_comment();
+
+// Highlights the select comment
+function highlight_selected_comment() {
+	var fragment = window.location.hash;
+	if (fragment) {
+		var selected_comment_id = fragment.slice(1);
+		var selected_comment = document.getElementById(selected_comment_id);
+		if (selected_comment) {
+			toggle_comments();
+			selected_comment.style.background = '#1abc9c20';
+		}
+	}
+}
+
+/// Copies the given content into clipboard.
+function clipboard(id, content) {
+	navigator.clipboard.writeText(content);
+
+	var button = document.getElementById(id);
+	button.innerHTML = "<i class=\"fa-solid fa-check\"></i>";
+	setTimeout(() => {
+		button.innerHTML = "<i class=\"fa-solid fa-link\"></i>";
+	}, 1000);
+}
+
+// TODO rewrite
 // Toggles visibility of the comments window.
 function toggle_comments() {
 	var fixed_buttons = document.getElementById("fixed-buttons");
@@ -45,9 +68,30 @@ function input(comment_id) {
 	comment_submit.disabled = (len > 10000);
 }
 
+// Toggles visibility of the edit editor for the comment with the given ID.
+function toggle_edit(comment_id) {
+	var edit_div = document.getElementById("editor-" + comment_id + "-edit");
+	var reply_div = document.getElementById("editor-" + comment_id + "-reply");
+	edit_div.hidden = !edit_div.hidden;
+	reply_div.hidden = true;
+}
+
+// Toggles visibility of the reply editor for the comment with the given ID.
+function toggle_reply(comment_id) {
+	var edit_div = document.getElementById("editor-" + comment_id + "-edit");
+	var reply_div = document.getElementById("editor-" + comment_id + "-reply");
+	edit_div.hidden = true;
+	reply_div.hidden = !reply_div.hidden;
+}
+
+/// Expands editor on click.
+function expand_editor(id) {
+	document.getElementById("comment-" + id + "-content").style.height = "300px";
+}
+
 // Posts a comment.
-function post(_) {
-	var comment_content = document.getElementById("comment-null-content");
+function post(comment_id) {
+	var comment_content = document.getElementById("comment-" + comment_id + "-post-content");
 	if (comment_content.value.length == 0) {
 		return;
 	}
@@ -57,30 +101,28 @@ function post(_) {
     xmlHttp.setRequestHeader("Content-Type", "application/json");
 
 	var payload = JSON.stringify({
-		"article_id": article_id.value,
-		"response_to": reply_to,
+		"article_id": article_id,
+		"response_to": comment_id,
 
 		"content": comment_content.value
 	});
     xmlHttp.send(payload);
 
 	if (xmlHttp.status == 200) {
+		// Empty text editor
 		comment_content.value = "";
-		location.reload()
+		input(comment_id);
+
+		// TODO insert new comment in the list
 	} else {
+		// TODO get error message from server
 		alert("Failed to post comment: HTTP error " + xmlHttp.status);
 	}
 }
 
-// Toggles visibility of the edit editor for the comment with the given ID.
-function toggle_edit(comment_id) {
-	var editor_div = document.getElementById("editor-" + comment_id);
-	editor_div.hidden = !editor_div.hidden;
-}
-
 // Edits the comment with the given ID.
 function edit(comment_id) {
-	var comment_content = document.getElementById("comment-" + comment_id + "-content");
+	var comment_content = document.getElementById("comment-" + comment_id + "-edit-content");
 	if (comment_content.value.length == 0) {
 		return;
 	}
@@ -97,8 +139,9 @@ function edit(comment_id) {
     xmlHttp.send(payload);
 
 	if (xmlHttp.status == 200) {
-		location.reload()
+		// TODO update comment's content
 	} else {
+		// TODO get error message from server
 		alert("Failed to edit comment: HTTP error " + xmlHttp.status);
 	}
 }
@@ -114,34 +157,9 @@ function del(comment_id) {
     xmlHttp.send(null);
 
 	if (xmlHttp.status == 200) {
-		location.reload()
+		// TODO delete comment
 	} else {
+		// TODO get error message from server
 		alert("Failed to delete comment: HTTP error " + xmlHttp.status);
 	}
-}
-
-/// Sets the comment to be replied to.
-function set_reply(comment_id) {
-	reply_to = comment_id;
-
-	var reply_to_elem = document.getElementById("reply-to");
-	reply_to_elem.innerHTML = "Reply to comment <a href=\"#" + reply_to + "\">#" + reply_to + "</a>";
-	reply_to_elem.hidden = false;
-	reply_to_elem.scrollIntoView();
-}
-
-/// Copies the given content into clipboard.
-function clipboard(id, content) {
-	navigator.clipboard.writeText(content);
-
-	var button = document.getElementById(id);
-	button.innerHTML = "<i class=\"fa-solid fa-check\"></i>";
-	setTimeout(() => {
-		button.innerHTML = "<i class=\"fa-solid fa-link\"></i>";
-	}, 1000);
-}
-
-/// Expands editor on click.
-function expand_editor(id) {
-	document.getElementById("comment-" + id + "-content").style.height = "300px";
 }
