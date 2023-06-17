@@ -29,31 +29,11 @@ pub struct Article {
 	/// The article's id.
 	#[serde(rename = "_id")]
 	pub id: ObjectId,
-
-	/// The article's title.
-	pub title: String,
-	/// The article's description.
-	pub desc: String,
-	/// The URL to the cover image of the article.
-	pub cover_url: String,
-
 	/// The ID of the article's content.
 	pub content_id: ObjectId,
-
 	/// Timestamp since epoch at which the article has been posted.
 	#[serde(with = "util::serde_date_time")]
 	pub post_date: DateTime<Utc>,
-
-	/// Tells whether the article is public.
-	pub public: bool,
-	/// Tells whether the article is reserved for sponsors.
-	pub sponsor: bool,
-
-	/// The comma-separated list of tags on the article.
-	pub tags: String,
-
-	/// Tells whether comments are locked on the article.
-	pub comments_locked: bool,
 }
 
 impl Article {
@@ -138,6 +118,11 @@ impl Article {
 			.await
 			.map(|_| ())
 	}
+
+	/// Returns the article's content.
+	pub async fn get_content(&self, db: &mongodb::Database) -> Result<ArticleContent, mongodb::error::Error> {
+		Ok(ArticleContent::from_id(&db, &self.content_id).await?.unwrap())
+	}
 }
 
 /// Content of an article.
@@ -148,12 +133,26 @@ pub struct ArticleContent {
 	/// The ID of the article.
 	pub article_id: ObjectId,
 
+	/// The article's title.
+	pub title: String,
+	/// The article's description.
+	pub desc: String,
+	/// The URL to the cover image of the article.
+	pub cover_url: String,
+	/// The content of the article in markdown.
+	pub content: String,
+	/// The comma-separated list of tags on the article.
+	pub tags: String,
+	/// Tells whether the article is public.
+	pub public: bool,
+	/// Tells whether the article is reserved for sponsors.
+	pub sponsor: bool,
+	/// Tells whether comments are locked on the article.
+	pub comments_locked: bool,
+
 	/// Timestamp since epoch at which the article has been edited.
 	#[serde(with = "util::serde_date_time")]
 	pub edit_date: DateTime<Utc>,
-
-	/// The content of the article in markdown.
-	pub content: String,
 }
 
 impl ArticleContent {
@@ -196,93 +195,85 @@ pub async fn get(
 	let article = Article::from_id(&db, &id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(article) = article else {
+		return Err(error::ErrorNotFound(""));
+	};
+	let content = article.get_content(&db)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
 
-	match article {
-		Some(article) => {
-			// If article is not public, the user must be admin to see it
-			let admin = User::check_admin(&db, &session)
-				.await
-				.map_err(|_| error::ErrorInternalServerError(""))?;
-			if !article.public && !admin {
-				return Err(error::ErrorNotFound(""));
-			}
-			let html = include_str!("../pages/article.html");
-			let html = html.replace("{article.tags}", &article.tags);
-			let html = html.replace("{article.id}", &id_str);
-			let html = html.replace("{article.title}", &article.title);
-			let html = html.replace(
-				"{article.date}",
-				&article.post_date.format("%d/%m/%Y %H:%M:%S").to_string() // TODO use user's timezone)
-			);
-			let html = html.replace("{article.desc}", &article.desc);
-			let html = html.replace("{article.cover_url}", &article.cover_url);
-
-			// Get content of article
-			let content = ArticleContent::from_id(&db, &article.content_id)
-				.await
-				.map_err(|_| error::ErrorInternalServerError(""))?;
-			let Some(content) = content else {
-				return Err(error::ErrorInternalServerError(""));
-			};
-			let markdown = markdown::to_html(&content.content, false);
-			let html = html.replace("{article.content}", &markdown);
-
-			let user_id = session
-				.get::<String>("user_id")?
-				.map(|id| ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("")))
-				.transpose()?;
-			let user_login = session.get::<String>("user_login")?;
-
-			// Get article reactions
-			// TODO
-			let html = html.replace("{reactions}", "TODO");
-
-			// Get article comments
-			let comments = Comment::list_for_article(&db, id, !admin)
-				.await
-				.map_err(|_| error::ErrorInternalServerError(""))?;
-			let comments_count = comments.len();
-			let html = html.replace("{comments.count}", &format!("{}", comments_count));
-
-			let comments = group_comments(comments);
-			let mut comments_html = String::new();
-			for (com, replies) in comments {
-				comments_html.push_str(
-					&comment_to_html(
-						&db,
-						&com,
-						Some(&replies),
-						user_id.as_ref(),
-						&article.id,
-						admin,
-					)
-					.await?,
-				);
-			}
-
-			let html = html.replace("{comments}", &comments_html);
-
-			let comment_editor_html = match user_login {
-				Some(user_login) => {
-					let e = get_comment_editor(&article.id.to_hex(), "post", None, None);
-					format!(r#"<img class="comment-avatar" src="/avatar/{user_login}" />
-						{e}"#)
-				},
-
-				None => format!(
-					r#"<center><a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a></center>"#,
-					user::get_auth_url(&data.client_id)
-				),
-			};
-			let html = html.replace("{comment.editor}", &comment_editor_html);
-
-			Ok(HttpResponse::Ok()
-				.content_type(ContentType::html())
-				.body(html))
-		}
-
-		None => Err(error::ErrorNotFound("")),
+	// If article is not public, the user must be admin to see it
+	let admin = User::check_admin(&db, &session)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	if !content.public && !admin {
+		return Err(error::ErrorNotFound(""));
 	}
+	let html = include_str!("../pages/article.html");
+	let html = html.replace("{article.tags}", &content.tags);
+	let html = html.replace("{article.id}", &id_str);
+	let html = html.replace("{article.title}", &content.title);
+	let html = html.replace(
+		"{article.date}",
+		&article.post_date.format("%d/%m/%Y %H:%M:%S").to_string() // TODO use user's timezone)
+	);
+	let html = html.replace("{article.desc}", &content.desc);
+	let html = html.replace("{article.cover_url}", &content.cover_url);
+	let markdown = markdown::to_html(&content.content, false);
+	let html = html.replace("{article.content}", &markdown);
+
+	let user_id = session
+		.get::<String>("user_id")?
+		.map(|id| ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("")))
+		.transpose()?;
+	let user_login = session.get::<String>("user_login")?;
+
+	// Get article reactions
+	// TODO
+	let html = html.replace("{reactions}", "TODO");
+
+	// Get article comments
+	let comments = Comment::list_for_article(&db, id, !admin)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let comments_count = comments.len();
+	let html = html.replace("{comments.count}", &format!("{}", comments_count));
+
+	let comments = group_comments(comments);
+	let mut comments_html = String::new();
+	for (com, replies) in comments {
+		comments_html.push_str(
+			&comment_to_html(
+				&db,
+				&com,
+				Some(&replies),
+				user_id.as_ref(),
+				&article.id,
+				admin,
+			)
+			.await?,
+		);
+	}
+
+	let html = html.replace("{comments}", &comments_html);
+
+	let comment_editor_html = match user_login {
+		Some(user_login) => {
+			let e = get_comment_editor(&article.id.to_hex(), "post", None, None);
+			format!(r#"<img class="comment-avatar" src="/avatar/{user_login}" />
+				{e}"#)
+		},
+
+		None => format!(
+			r#"<center><a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a></center>"#,
+			user::get_auth_url(&data.client_id)
+		),
+	};
+	let html = html.replace("{comment.editor}", &comment_editor_html);
+
+	Ok(HttpResponse::Ok()
+		.content_type(ContentType::html())
+		.body(html))
 }
 
 /// Article edition coming from the editor.
@@ -297,17 +288,16 @@ pub struct ArticleEdit {
 	desc: String,
 	/// The URL to the cover image of the article.
 	cover_url: String,
-
 	/// The content of the article in markdown.
 	content: String,
-
+	/// The comma-separated list of tags.
+	tags: String,
 	/// Tells whether to publish the article.
 	public: Option<String>,
 	/// Tells whether the article is reserved for sponsors.
 	sponsor: Option<String>,
-
-	/// The comma-separated list of tags.
-	tags: String,
+	/// Tells whether comments are locked on the article.
+	comments_locked: Option<String>,
 }
 
 #[post("/article")]
@@ -338,9 +328,16 @@ pub async fn post(
 			let content = ArticleContent {
 				article_id: id,
 
-				edit_date: date,
-
+				title: info.title,
+				desc: info.desc,
+				cover_url: info.cover_url,
 				content: info.content,
+				tags: info.tags,
+				public: info.public.map(|p| p == "on").unwrap_or(false),
+				sponsor: info.sponsor.map(|p| p == "on").unwrap_or(false),
+				comments_locked: info.comments_locked.map(|p| p == "on").unwrap_or(false),
+
+				edit_date: date,
 			};
 			let content_id = content
 				.insert(&db)
@@ -351,17 +348,8 @@ pub async fn post(
 				&db,
 				id,
 				doc! {
-					"title": info.title,
-					"desc": info.desc,
-					"cover_url": info.cover_url,
-
 					"content_id": content_id,
-
-					"public": info.public.map(|p| p == "on").unwrap_or(false),
-					"sponsor": info.sponsor.map(|p| p == "on").unwrap_or(false),
-
-					"tags": info.tags,
-				},
+				}
 			)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?;
@@ -377,9 +365,16 @@ pub async fn post(
 			let content = ArticleContent {
 				article_id,
 
-				edit_date: date,
-
+				title: info.title,
+				desc: info.desc,
+				cover_url: info.cover_url,
 				content: info.content,
+				tags: info.tags,
+				public: info.public.map(|p| p == "on").unwrap_or(false),
+				sponsor: info.sponsor.map(|p| p == "on").unwrap_or(false),
+				comments_locked: info.comments_locked.map(|p| p == "on").unwrap_or(false),
+
+				edit_date: date,
 			};
 			let content_id = content
 				.insert(&db)
@@ -388,21 +383,8 @@ pub async fn post(
 
 			let a = Article {
 				id: article_id,
-
-				title: info.title,
-				desc: info.desc,
-				cover_url: info.cover_url,
-
 				content_id,
-
 				post_date: date,
-
-				public: info.public.map(|p| p == "on").unwrap_or(false),
-				sponsor: info.sponsor.map(|p| p == "on").unwrap_or(false),
-
-				tags: info.tags,
-
-				comments_locked: false,
 			};
 			let id = a
 				.insert(&db)
@@ -453,6 +435,13 @@ async fn editor(
 			.map_err(|_| error::ErrorInternalServerError(""))?,
 		None => None,
 	};
+	let content = match article.as_ref() {
+		Some(article) => Some(article
+			.get_content(&db)
+			.await
+			.map_err(|_| error::ErrorInternalServerError(""))?),
+		None => None,
+	};
 
 	let article_id_html = article
 		.as_ref()
@@ -463,25 +452,13 @@ async fn editor(
 			)
 		})
 		.unwrap_or_default();
-	let article_title = article.as_ref().map(|a| a.title.as_str()).unwrap_or("");
-	let article_desc = article.as_ref().map(|a| a.desc.as_str()).unwrap_or("");
-	let article_cover_url = article.as_ref().map(|a| a.cover_url.as_str()).unwrap_or("");
-	let article_content = match article.as_ref() {
-		Some(a) => {
-			let content = ArticleContent::from_id(&db, &a.content_id)
-				.await
-				.map_err(|_| error::ErrorInternalServerError(""))?;
-			let Some(content) = content else {
-				return Err(error::ErrorInternalServerError(""));
-			};
-			content.content
-		},
-
-		None => String::new(),
-	};
-	let article_public = article.as_ref().map(|a| a.public).unwrap_or(false);
-	let article_sponsor = article.as_ref().map(|a| a.sponsor).unwrap_or(false);
-	let article_tags = article.as_ref().map(|a| a.tags.as_str()).unwrap_or("");
+	let article_title = content.as_ref().map(|a| a.title.as_str()).unwrap_or("");
+	let article_desc = content.as_ref().map(|a| a.desc.as_str()).unwrap_or("");
+	let article_cover_url = content.as_ref().map(|a| a.cover_url.as_str()).unwrap_or("");
+	let article_content = content.as_ref().map(|a| a.content.as_str()).unwrap_or("");
+	let article_public = content.as_ref().map(|a| a.public).unwrap_or(false);
+	let article_sponsor = content.as_ref().map(|a| a.sponsor).unwrap_or(false);
+	let article_tags = content.as_ref().map(|a| a.tags.as_str()).unwrap_or("");
 
 	let html = include_str!("../pages/editor.html");
 	let html = html.replace("{article.id}", &article_id_html);
