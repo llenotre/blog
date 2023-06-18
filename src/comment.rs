@@ -405,11 +405,19 @@ pub async fn comment_to_html(
 			</div>
 			<div class="comment-content">
 				{markdown}
+				<div id="reaction-{com_id}-selector" class="reaction-selector" hidden>
+					<a class="reaction-button">👍</a>
+					<a class="reaction-button">👎</a>
+					<a class="reaction-button">😀</a>
+					<a class="reaction-button">🙃</a>
+					<a class="reaction-button">❤️</a>
+					<a class="reaction-button">🥳</a>
+					<a class="reaction-button">😕</a>
+					<a class="reaction-button">☹️</a>
+					<a class="reaction-button">💩</a>
+				</div>
 				<div class="comment-buttons">
 					<a class="comment-button" onclick="toggle_reactions('reaction-{com_id}-selector')"><i class="fa-solid fa-face-smile"></i></a>
-					<div id="reaction-{com_id}-selector" class="reaction-selector" hidden>
-						<a class="reaction-button">TODO</a>
-					</div>
 					TODO
 				</div>
 			</div>

@@ -470,8 +470,20 @@ a.comment-button.active {
 
 div.reaction-selector {
 	background: #1f1f1f;
-	transform: translateY(-100%);
-	position: absolute;
+	border-radius: 10px;
+	overflow: clip;
+	flex-direction: row;
+	display: inline-flex;
+}
+
+a.reaction-button {
+	padding: 10px;
+	font-size: 20pt;
+	cursor: pointer;
+}
+
+a.reaction-button:hover {
+	background: #3f3f3f;
 }
 
 div.comment-content {
