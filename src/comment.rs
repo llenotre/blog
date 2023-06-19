@@ -191,28 +191,6 @@ impl CommentContent {
 	}
 }
 
-/// Reaction to an article or a comment.
-#[derive(Serialize, Deserialize)]
-pub struct Reaction {
-	/// The ID of the article.
-	pub article_id: Option<ObjectId>,
-	/// The ID of the comment.
-	pub comment_id: Option<ObjectId>,
-
-	/// The ID of author of the reaction.
-	pub author: ObjectId,
-
-	/// The reaction.
-	pub reaction: char,
-
-	/// Reaction timestamp.
-	#[serde(with = "util::serde_date_time")]
-	pub edit_date: DateTime<Utc>,
-
-	/// Tells whether the reaction has been removed.
-	pub removed: bool,
-}
-
 /// Returns the HTML code for a comment editor.
 ///
 /// Arguments:
@@ -415,21 +393,6 @@ pub async fn comment_to_html(
 			</div>
 			<div class="comment-content">
 				{markdown}
-				<div id="reaction-{com_id}-selector" class="reaction-selector" hidden>
-					<a class="reaction-button">👍</a>
-					<a class="reaction-button">👎</a>
-					<a class="reaction-button">😀</a>
-					<a class="reaction-button">🙃</a>
-					<a class="reaction-button">❤️</a>
-					<a class="reaction-button">🥳</a>
-					<a class="reaction-button">😕</a>
-					<a class="reaction-button">☹️</a>
-					<a class="reaction-button">💩</a>
-				</div>
-				<div class="comment-buttons">
-					<a class="comment-button" onclick="toggle_reactions('reaction-{com_id}-selector')"><i class="fa-solid fa-face-smile"></i></a>
-					TODO
-				</div>
 			</div>
 			<div id="editor-{com_id}-edit" hidden>
 				<p>Edit comment</p>

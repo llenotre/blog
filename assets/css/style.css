@@ -345,6 +345,31 @@ input[type = "text"], textarea {
 	height: 50px;
 }
 
+div.newsletter {
+	flex-direction: row;
+	display: flex;
+}
+
+div.newsletter input[type = "text"] {
+	border-radius: 50px 0 0 50px;
+	height: 80px;
+}
+
+div.newsletter div.newsletter-button {
+	background: #4f4f4fc0;
+	border-top-right-radius: 50px;
+	border-bottom-right-radius: 50px;
+	padding: 10px;
+	display: flex;
+}
+
+div.newsletter div.newsletter-button * {
+	padding-left: 30px;
+	padding-right: 30px;
+	border-radius: 30px;
+	flex-grow: 1;
+}
+
 input[type = "checkbox"] {
 	width: auto;
 }
@@ -354,6 +379,16 @@ input[type = "submit"], button {
 	padding-right: 20px;
 	width: auto;
 	cursor: pointer;
+}
+
+input[type = "submit"].highlight, button.highlight {
+	background: #1abc9c;
+	color: #000;
+	font-weight: bold;
+}
+
+input[type = "submit"].highlight:hover, button.highlight:hover {
+	color: #fff;
 }
 
 input[type = "submit"]:not([disabled]):hover, button:not([disabled]):hover {
@@ -470,24 +505,6 @@ a.comment-button:hover {
 
 a.comment-button.active {
 	border-color: #1abc9c;
-}
-
-div.reaction-selector {
-	background: #1f1f1f;
-	border-radius: 10px;
-	overflow: clip;
-	flex-direction: row;
-	display: inline-flex;
-}
-
-a.reaction-button {
-	padding: 10px;
-	font-size: 20pt;
-	cursor: pointer;
-}
-
-a.reaction-button:hover {
-	background: #3f3f3f;
 }
 
 div.comment-content {
