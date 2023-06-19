@@ -13,6 +13,9 @@ function highlight_selected_comment() {
 	if (selected_comment_id.length == 0) {
 		return;
 	}
+	if (!selected_comment_id.startsWith("com-")) {
+		return;
+	}
 
 	var selected_comment = document.getElementById(selected_comment_id);
 	if (!selected_comment) {
