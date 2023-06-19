@@ -18,7 +18,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 
 /// The maximum length of a comment in characters.
-pub const MAX_CHARS: usize = 10000;
+pub const MAX_CHARS: usize = 5000;
 
 // TODO support pinned comments
 
@@ -216,10 +216,11 @@ pub struct Reaction {
 /// Returns the HTML code for a comment editor.
 ///
 /// Arguments:
+/// - `user_login` is the handle of the logged user.
 /// - `article` is the action to perform.
 /// - `comment_id` is the ID of the comment for which the action is performed.
 /// - `content` is the default content of the editor.
-pub fn get_comment_editor(action: &str, comment_id: Option<&str>, content: Option<&str>) -> String {
+pub fn get_comment_editor(user_login: &str, action: &str, comment_id: Option<&str>, content: Option<&str>) -> String {
 	let id = comment_id
 		.map(|s| format!("{}", s))
 		.unwrap_or("null".to_owned());
@@ -230,12 +231,13 @@ pub fn get_comment_editor(action: &str, comment_id: Option<&str>, content: Optio
 
 	format!(
 		r#"<div class="comment-editor">
-            <textarea id="comment-{id}-{action}-content" name="content" placeholder="What are your thoughts?" onfocus="expand_editor('comment-{id}-{action}-content')" oninput="input({id_quoted})">{content}</textarea>
+            <img class="comment-avatar" src="/avatar/{user_login}" />
+            <textarea id="comment-{id}-{action}-content" name="content" placeholder="What are your thoughts?" onfocus="expand_editor('comment-{id}-{action}-content')" oninput="input({id_quoted}, '{action}')">{content}</textarea>
             <button id="comment-{id}-{action}-submit" onclick="{action}({id_quoted})">
                 <i class="fa-regular fa-paper-plane"></i>
             </button>
         </div>
-		<h6><span id="comment-{id}-len">0</span>/{MAX_CHARS} characters - Markdown is supported - Make sure you follow the <a href="/legal#conduct" target="_blank">Code of conduct</a></h6>"#
+		<h6><span id="comment-{id}-{action}-len">0</span>/{MAX_CHARS} characters - Markdown is supported - Make sure you follow the <a href="/legal#conduct" target="_blank">Code of conduct</a></h6>"#
 	)
 }
 
@@ -280,6 +282,7 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 /// - `replies` is the list of replies. If `None`, the comment itself is a reply.
 /// - `user_id` is the ID of the current user. If not logged, the value is `None`.
 /// - `article_id` is the ID of the current article.
+/// - `user_login` is the handle of the logged user. If `None`, the user is not logged.
 /// - `admin` tells whether the current user is admin.
 #[async_recursion]
 pub async fn comment_to_html(
@@ -288,6 +291,7 @@ pub async fn comment_to_html(
 	replies: Option<&'async_recursion [Comment]>,
 	user_id: Option<&'async_recursion ObjectId>,
 	article_id: &ObjectId,
+    user_login: Option<&'async_recursion str>,
 	admin: bool,
 ) -> actix_web::Result<String> {
 	let com_id = comment.id;
@@ -297,7 +301,7 @@ pub async fn comment_to_html(
 		Some(replies) => {
 			let mut html = String::new();
 			for com in replies {
-				html.push_str(&comment_to_html(db, com, None, user_id, article_id, admin).await?);
+				html.push_str(&comment_to_html(db, com, None, user_id, article_id, user_login, admin).await?);
 			}
 
 			format!(
@@ -384,8 +388,14 @@ pub async fn comment_to_html(
 		date_text.push_str(" - REMOVED");
 	}
 
-	let edit_editor = get_comment_editor("edit", Some(&com_id.to_hex()), Some(&content.content));
-	let reply_editor = get_comment_editor("post", Some(&com_id.to_hex()), None);
+	let (edit_editor, reply_editor) = match user_login {
+        Some(user_login) => (
+            get_comment_editor(user_login, "edit", Some(&com_id.to_hex()), Some(&content.content)),
+            get_comment_editor(user_login, "post", Some(&com_id.to_hex()), None)
+        ),
+
+        None => (String::new(), String::new()),
+    };
 
 	Ok(format!(
 		r##"<div class="comment" id="com-{com_id}">

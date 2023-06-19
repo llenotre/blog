@@ -356,8 +356,12 @@ input[type = "submit"], button {
 	cursor: pointer;
 }
 
-input[type = "submit"]:hover, button:hover {
+input[type = "submit"]:not([disabled]):hover, button:not([disabled]):hover {
 	background: #0f0f0fc0;
+}
+
+input[type = "submit"]:disabled:hover, button:disabled:hover {
+	cursor: auto;
 }
 
 ::placeholder {

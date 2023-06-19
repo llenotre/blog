@@ -47,14 +47,14 @@ function toggle_reactions(id) {
 }
 
 // Updates the number of characters in the counter
-function input(comment_id) {
-	var comment_content = document.getElementById("comment-" + comment_id + "-content");
-	var comment_submit = document.getElementById("comment-" + comment_id + "-submit");
-	var comment_len = document.getElementById("comment-" + comment_id + "-len");
+function input(comment_id, action) {
+	var comment_content = document.getElementById("comment-" + comment_id + "-" + action + "-content");
+	var comment_submit = document.getElementById("comment-" + comment_id + "-" + action + "-submit");
+	var comment_len = document.getElementById("comment-" + comment_id + "-" + action + "-len");
 
 	var len = comment_content.value.length;
 	comment_len.innerHTML = len;
-	comment_submit.disabled = (len > 10000);
+	comment_submit.disabled = (len <= 0 || len > 5000);
 }
 
 // Toggles visibility of the edit editor for the comment with the given ID.

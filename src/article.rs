@@ -248,6 +248,7 @@ pub async fn get(
 				Some(&replies),
 				user_id.as_ref(),
 				&article.id,
+                None,
 				admin,
 			)
 			.await?,
@@ -257,13 +258,7 @@ pub async fn get(
 	let html = html.replace("{comments}", &comments_html);
 
 	let comment_editor_html = match user_login {
-		Some(user_login) => {
-			let e = get_comment_editor("post", None, None);
-			format!(
-				r#"<img class="comment-avatar" src="/avatar/{user_login}" />
-				{e}"#
-			)
-		}
+		Some(user_login) => get_comment_editor(&user_login, "post", None, None),
 
 		None => format!(
 			r#"<center><a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a></center>"#,
