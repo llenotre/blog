@@ -248,7 +248,7 @@ pub async fn get(
 				Some(&replies),
 				user_id.as_ref(),
 				&article.id,
-                None,
+                user_login.as_deref(),
 				admin,
 			)
 			.await?,
