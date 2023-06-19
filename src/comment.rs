@@ -298,15 +298,15 @@ pub async fn comment_to_html(
 	));
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(
-			r#"<a class="comment-button" onclick="toggle_edit('{com_id}')"><i class="fa-solid fa-pen-to-square"></i></a>"#
+			r##"<a href="#comment-{com_id}-edit-content" class="comment-button" onclick="toggle_edit('{com_id}')"><i class="fa-solid fa-pen-to-square"></i></a>"##
 		));
 		buttons.push(format!(
-			r#"<a class="comment-button" onclick="del('{com_id}')"><i class="fa-solid fa-trash"></i></a>"#
+			r##"<a class="comment-button" onclick="del('{com_id}')"><i class="fa-solid fa-trash"></i></a>"##
 		));
 	}
 	if user_id.is_some() && replies.is_some() {
 		buttons.push(format!(
-			r#"<a class="comment-button" onclick="toggle_reply('{com_id}')"><i class="fa-solid fa-reply"></i></a>"#
+			r##"<a href="#comment-{com_id}-post-content" class="comment-button" onclick="toggle_reply('{com_id}')"><i class="fa-solid fa-reply"></i></a>"##
 		));
 	}
 	let buttons_html = if !buttons.is_empty() {

@@ -478,6 +478,8 @@ div.comment-header div * {
 
 img.comment-avatar {
 	border-radius: 100%;
+	margin: auto;
+	margin-top: 0;
 	width: 50px;
 }
 
