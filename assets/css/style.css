@@ -520,10 +520,6 @@ div.comment-editor {
 	display: flex;
 }
 
-div.comment-editor textarea {
-	flex-grow: 1;
-}
-
 @media(max-width: 1200px) {
 	div.split {
 		flex-direction: reverse;
