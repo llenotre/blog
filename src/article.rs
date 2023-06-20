@@ -204,10 +204,10 @@ impl ArticleContent {
 #[get("/article/{id}/{name}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
-	id: web::Path<String>,
+    path: web::Path<(String, String)>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let id_str = id.into_inner();
+	let (id_str, _) = path.into_inner();
 	session.insert("last_article", id_str.clone())?;
 
 	let id = ObjectId::parse_str(&id_str).map_err(|_| error::ErrorBadRequest(""))?;

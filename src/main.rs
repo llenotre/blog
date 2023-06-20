@@ -134,7 +134,7 @@ async fn root(
 			r#"<div class="article-element">
 				<img class="article-cover" src="{article_cover_url}"></img>
 				<div class="article-element-content">
-					<h3><a href="/article/{article_id}">{article_title}</a></h3>
+					<h3><a href="{article_path}">{article_title}</a></h3>
 
 					<ul class="tags">
 						<li><h6 style="color: gray;">{post_date}</h6></li>
@@ -146,12 +146,12 @@ async fn root(
 					</p>
 
 					<center>
-						<a class="read-button" href="/article/{article_id}">Read more</a>
+						<a class="read-button" href="{article_path}">Read more</a>
 					</center>
 				</div>
 			</div>"#,
 			article_cover_url = content.cover_url,
-			article_id = article.id,
+			article_path = content.get_path(),
 			article_title = content.title,
 			article_desc = content.desc,
 		));
