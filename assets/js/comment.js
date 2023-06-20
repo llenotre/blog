@@ -37,10 +37,17 @@ function clipboard(id, content) {
 	}, 1000);
 }
 
+var comments_visible = false;
+
 // Toggles visibility of the comments window.
 function toggle_comments() {
 	var comments = document.getElementById("comments");
-	comments.hidden = !comments.hidden;
+	if (comments_visible) {
+		comments.style.display = "none";
+	} else {
+		comments.style.display = "flex";
+	}
+	comments_visible = !comments_visible;
 }
 
 // Toggles visibility of a reactions selector.
@@ -106,6 +113,10 @@ function post(comment_id) {
 		input(comment_id);
 
 		// TODO insert new comment in the list
+
+		// Update comments count
+		var coms_count = document.getElementById("comments-count");
+		coms_count.textContent += 1;
 	} else {
 		// TODO get error message from server
 		alert("Failed to post comment: HTTP error " + xmlHttp.status);
@@ -149,7 +160,13 @@ function del(comment_id) {
     xmlHttp.send(null);
 
 	if (xmlHttp.status == 200) {
-		// TODO delete comment
+		// Remove comment from front-end
+		var com = document.getElementById("com-" + comment_id);
+		com.parentNode.removeChild(com);
+
+		// Update comments count
+		var coms_count = document.getElementById("comments-count");
+		coms_count.textContent -= 1;
 	} else {
 		// TODO get error message from server
 		alert("Failed to delete comment: HTTP error " + xmlHttp.status);
