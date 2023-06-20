@@ -230,12 +230,17 @@ div.article-element-content a.read-button:hover {
 }
 
 div.fixed-buttons {
-	padding-right: 30px;
-	left: 30%;
-	transform: translateX(-100%);
 	position: fixed;
 	flex-direction: column;
 	display: flex;
+}
+
+@media(max-width: 1200px) {
+	div.fixed-buttons {
+		padding: 0;
+		width: 100%;
+		flex-direction: row;
+	}
 }
 
 a.fixed-button {
