@@ -427,7 +427,7 @@ div.comments {
 	box-sizing: border-box;
 	flex-direction: column;
 	gap: 30px;
-	display: flex;
+	display: none;
 }
 
 div.comments-header {
