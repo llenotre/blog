@@ -174,9 +174,34 @@ impl ArticleContent {
 			.await
 			.map(|r| r.inserted_id.as_object_id().unwrap())
 	}
+
+    /// Returns the URL title of the article.
+    pub fn get_url_title(&self) -> String {
+        self.title
+            .chars()
+            .filter_map(|c| {
+                match c {
+                    c if c.is_whitespace() => Some('-'),
+                    c if c.is_ascii() => Some(c),
+                    _ => None,
+                }
+            })
+            .collect::<String>()
+            .to_lowercase()
+    }
+
+    /// Returns the path to the article.
+    pub fn get_path(&self) -> String {
+        format!("/article/{}/{}", self.article_id, self.get_url_title())
+    }
+
+    /// Returns the URL of the article.
+    pub fn get_url(&self) -> String {
+        format!("https://blog.lenot.re{}", self.get_path())
+    }
 }
 
-#[get("/article/{id}")]
+#[get("/article/{id}/{name}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
 	id: web::Path<String>,
@@ -211,6 +236,7 @@ pub async fn get(
 	let html = include_str!("../pages/article.html");
 	let html = html.replace("{article.tags}", &content.tags);
 	let html = html.replace("{article.id}", &id_str);
+	let html = html.replace("{article.url}", &content.get_url());
 	let html = html.replace("{article.title}", &content.title);
 	let html = html.replace(
 		"{article.date}",

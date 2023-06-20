@@ -218,18 +218,23 @@ async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	for a in articles {
-		// TODO use edit_date instead once implemented
-		urls.push((format!("/article/{}", a.id), Some(a.post_date)));
+		let content = a
+			.get_content(&db)
+			.await
+			.map_err(|_| error::ErrorInternalServerError(""))?;
+
+		urls.push((content.get_url(), Some(content.edit_date)));
 	}
 
 	let urls: String =
 		urls.into_iter()
 			.map(|(url, date)| match date {
-				Some(date) => {
-					let date = date.format("%Y-%m-%d");
-					format!("\t\t<url><loc>https://blog.lenot.re{url}</loc><lastmod>{date}</lastmod></url>")
-				}
-				None => format!("\t\t<url><loc>https://blog.lenot.re{url}</loc></url>"),
+                Some(date) => {
+                    let date = date.format("%Y-%m-%d");
+                    format!("\t\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>")
+                },
+
+                None => format!("\t\t<url><loc>{url}</loc></url>"),
 			})
 			.collect();
 
@@ -254,12 +259,12 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 
 	let mut items_str = String::new();
 	for a in articles {
-		let url = format!("https://blog.lenot.re/article/{}", a.id);
 		let date = a.post_date.to_rfc2822();
 		let content = a
 			.get_content(&db)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?;
+        let url = content.get_url();
 
 		items_str.push_str(&format!(
 			"<item><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description></item>",
