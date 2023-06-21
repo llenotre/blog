@@ -7,6 +7,7 @@ mod newsletter;
 mod user;
 mod util;
 
+use crate::newsletter::EmailWorker;
 use crate::user::User;
 use actix_files::Files;
 use actix_governor::{Governor, GovernorConfigBuilder};
@@ -331,6 +332,13 @@ async fn main() -> io::Result<()> {
 		client_id: config.client_id,
 		client_secret: config.client_secret,
 	});
+
+    // Run the email worker
+    let data_clone = data.clone();
+    tokio::spawn(async {
+        let email_worker = EmailWorker::new(data_clone);
+        email_worker.run().await;
+    });
 
 	let governor_conf = GovernorConfigBuilder::default()
 		.per_second(1)
