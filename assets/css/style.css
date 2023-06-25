@@ -107,7 +107,6 @@ a.logo-button {
 	width: 50px;
 	height: 50px;
 	text-align: center;
-	top: 50%;
 	font-size: 25pt;
 	display: block;
 }
@@ -387,6 +386,7 @@ input[type = "text"], textarea {
 
 div.newsletter {
 	flex-direction: row;
+	flex-wrap: nowrap;
 	display: flex;
 }
 
