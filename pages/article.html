@@ -27,36 +27,38 @@
 		<div class="background">
 			<div class="blob"></div>
 		</div>
-		<div class="fixed-buttons">
-			<a class="fixed-button" href="/"><i class="fa-regular fa-arrow-left"></i></a>
-			<a class="fixed-button" style="margin-left: auto;" href="#" onclick="toggle_comments()"><i class="fa-regular fa-comments"></i></a>
-		</div>
-		<div class="content">
-			<div class="article-section article-header">
-				<h1>{article.title}</h1>
-
-				<h6>{article.date}</h6>
-
-				<p>
-					{article.desc}
-				</p>
-
-				<img class="cover" src="{article.cover_url}">
+		<div class="article-content">
+			<div class="fixed-buttons">
+				<a class="fixed-button" href="/"><i class="fa-regular fa-arrow-left"></i></a>
+				<a class="fixed-button" style="margin-left: auto;" href="#" onclick="toggle_comments()"><i class="fa-regular fa-comments"></i></a>
 			</div>
-			<div class="article-section">
-				{article.content}
-			</div>
-			<div class="article-section">
-				<div class="share">
-					<p>Like my work? Share it! ❤️</p>
+			<div class="content">
+				<div class="article-section article-header">
+					<h1>{article.title}</h1>
 
-					<ul class="share">
-						<li><a href="#" id="article-link" onclick="clipboard('article-link', '{article.url}')" alt="Copy link"><i class="fa-solid fa-link"></i></a></li>
-						<li><a href="https://twitter.com/intent/tweet?text={article.title}%12{article.url}" target="_blank" alt="Share on Twitter"><i class="fa-brands fa-twitter"></i></a></li>
-						<li><a href="https://www.linkedin.com/sharing/share-offsite/?url={article.url}" target="_blank" alt="Share on LinkedIn"><i class="fa-brands fa-linkedin"></i></a></li>
-						<li><a href="https://www.reddit.com/submit?title={article.title}&url={article.url}" target="_blank" alt="Share on Reddit"><i class="fa-brands fa-reddit"></i></a></li>
-						<li><a href="https://www.facebook.com/sharer/sharer.php?u={article.url}" target="_blank" alt="Share on Facebook"><i class="fa-brands fa-facebook"></i></a></li>
-					</ul>
+					<h6>{article.date}</h6>
+
+					<p>
+						{article.desc}
+					</p>
+
+					<img class="cover" src="{article.cover_url}">
+				</div>
+				<div class="article-section">
+					{article.content}
+				</div>
+				<div class="article-section">
+					<div class="share">
+						<p>Like my work? Share it! ❤️</p>
+
+						<ul class="share">
+							<li><a href="#" id="article-link" onclick="clipboard('article-link', '{article.url}')" alt="Copy link"><i class="fa-solid fa-link"></i></a></li>
+							<li><a href="https://twitter.com/intent/tweet?text={article.title}%12{article.url}" target="_blank" alt="Share on Twitter"><i class="fa-brands fa-twitter"></i></a></li>
+							<li><a href="https://www.linkedin.com/sharing/share-offsite/?url={article.url}" target="_blank" alt="Share on LinkedIn"><i class="fa-brands fa-linkedin"></i></a></li>
+							<li><a href="https://www.reddit.com/submit?title={article.title}&url={article.url}" target="_blank" alt="Share on Reddit"><i class="fa-brands fa-reddit"></i></a></li>
+							<li><a href="https://www.facebook.com/sharer/sharer.php?u={article.url}" target="_blank" alt="Share on Facebook"><i class="fa-brands fa-facebook"></i></a></li>
+						</ul>
+					</div>
 				</div>
 			</div>
 		</div>

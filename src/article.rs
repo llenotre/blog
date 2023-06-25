@@ -201,14 +201,13 @@ impl ArticleContent {
     }
 }
 
-#[get("/article/{id}/{name}")]
+#[get("/article/{id}/{title}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
     path: web::Path<(String, String)>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let (id_str, _) = path.into_inner();
-	session.insert("last_article", id_str.clone())?;
+	let (id_str, title) = path.into_inner();
 
 	let id = ObjectId::parse_str(&id_str).map_err(|_| error::ErrorBadRequest(""))?;
 
@@ -225,6 +224,14 @@ pub async fn get(
 		.get_content(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	// If URL title does not match, redirect
+	let expected_title = content.get_url_title();
+	if title != expected_title {
+		// TODO
+		/*return Ok(Redirect::to(format!("/article/{id_str}/{expected_title}"))
+			.see_other());*/
+	}
 
 	// If article is not public, the user must be admin to see it
 	let admin = User::check_admin(&db, &session)
@@ -293,6 +300,7 @@ pub async fn get(
 	};
 	let html = html.replace("{comment.editor}", &comment_editor_html);
 
+	session.insert("last_article", id_str.clone())?;
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::html())
 		.body(html))
