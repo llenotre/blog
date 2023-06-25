@@ -276,14 +276,15 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
         let url = content.get_url();
 
 		items_str.push_str(&format!(
-			"<item><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description></item>",
+			"<item><guid>{guid}</guid><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
+			guid = a.id,
 			title = content.title,
 			desc = content.desc
 		));
 	}
 
 	let body = format!(
-		r#"<rss version="2.0"><channel><title>Luc Lenôtre</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{items_str}</channel></rss>"#
+		r#"<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><atom:link href="https://blog.lenot.re/rss" rel="self" type="application/rss+xml" /><title>Luc Lenôtre</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{items_str}</channel></rss>"#
 	);
 
 	Ok(HttpResponse::Ok()
