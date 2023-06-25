@@ -237,8 +237,16 @@ div.article-element-content a.read-button:hover {
 div.fixed-buttons {
 	position: fixed;
 	z-index: 0;
-	flex-direction: column;
+	flex-direction: row;
 	display: flex;
+}
+
+@media(min-width: 1200px) {
+	div.fixed-buttons {
+		margin-left: 30vw;
+		transform: translateX(-130px);
+		gap: 40vw;
+	}
 }
 
 @media(max-width: 1200px) {
@@ -246,7 +254,6 @@ div.fixed-buttons {
 		padding: 0;
 		width: 100%;
 		position: relative;
-		flex-direction: row;
 	}
 
 	div.article-content {
@@ -589,8 +596,8 @@ div.comment-editor {
 	}
 
 	div.article-section {
-		padding-left: 30%;
-		padding-right: 30%;
+		padding-left: 30vw;
+		padding-right: 30vw;
 	}
 
 	div.split {
