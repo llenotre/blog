@@ -47,6 +47,9 @@ struct Config {
 
 	/// The secret key used to secure sessions.
 	session_secret_key: String,
+
+	/// The URL to the Discord server's invitation.
+	discord_invite: String,
 }
 
 /// Structure shared accross the server.
@@ -58,6 +61,9 @@ pub struct GlobalData {
 	pub client_id: String,
 	/// The client secret of the Github application.
 	pub client_secret: String,
+
+	/// The URL to the Discord server's invitation.
+	pub discord_invite: String,
 }
 
 impl GlobalData {
@@ -159,9 +165,11 @@ async fn root(
 	}
 
 	let html = include_str!("../pages/index.html");
+	let html = html.replace("{discord.invite}", &data.discord_invite);
 	let html = html.replace("{articles}", &articles_html);
 
-	let prev_button_html = if page > 0 {
+	// TODO
+	/*let prev_button_html = if page > 0 {
 		format!(
 			"<a href=\"?page={}\" class=\"button page-button\">Previous Page</a>",
 			page - 1
@@ -169,14 +177,14 @@ async fn root(
 	} else {
 		String::new()
 	};
-	let html = html.replace("{button.prev}", &prev_button_html);
-
 	let next_button_html = if page + 1 < pages_count {
 		format!("<a href=\"?page={}\" class=\"button page-button\" style=\"margin-left: auto;\">Next Page</a>", page + 1)
 	} else {
 		String::new()
 	};
-	let html = html.replace("{button.next}", &next_button_html);
+
+	let html = html.replace("{button.prev}", &prev_button_html);
+	let html = html.replace("{button.next}", &next_button_html);*/
 
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::html())
@@ -331,6 +339,8 @@ async fn main() -> io::Result<()> {
 
 		client_id: config.client_id,
 		client_secret: config.client_secret,
+
+		discord_invite: config.discord_invite,
 	});
 
     // Run the email worker
