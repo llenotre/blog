@@ -135,7 +135,6 @@ div.section {
 
 div.split {
 	flex-direction: row;
-	flex-wrap: wrap;
 	display: flex;
 }
 
@@ -181,7 +180,8 @@ div.article-element-content {
 }
 
 div.article-element-content h3 {
-	margin-top: 0;
+	margin: 0;
+	margin-bottom: 10px;
 }
 
 div.article-element-content a {
@@ -208,6 +208,11 @@ ul.tags li.tag {
 	padding: 5px 10px 5px 10px;
 	font-size: 10pt;
 	align-self: start;
+}
+
+ul.tags h6 {
+	margin: 0;
+	padding: 5px 0 5px 0;
 }
 
 div.article-element-content a.read-button {
@@ -239,7 +244,14 @@ div.fixed-buttons {
 	div.fixed-buttons {
 		padding: 0;
 		width: 100%;
+		position: relative;
 		flex-direction: row;
+	}
+
+	div.content {
+		padding-top: 0;
+		width: 100%;
+		overflow-y: scroll;
 	}
 }
 
@@ -285,6 +297,14 @@ div.article-section {
 	margin: 0;
 	padding: 0 10px 0 10px;
 	overflow-wrap: break-word;
+}
+
+div.article-header h1 {
+	margin: 0 0 10px 0;
+}
+
+div.article-header h6 {
+	color: gray;
 }
 
 div.article-section img {
