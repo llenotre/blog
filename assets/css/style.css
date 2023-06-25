@@ -282,6 +282,10 @@ a.fixed-button:hover {
 	opacity: 0.5;
 }
 
+.right {
+	margin-left: auto;
+}
+
 div.share {
 	margin: 20px 0 20px 0;
 	text-align: right;
