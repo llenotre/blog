@@ -236,6 +236,7 @@ div.article-element-content a.read-button:hover {
 
 div.fixed-buttons {
 	position: fixed;
+	z-index: 0;
 	flex-direction: column;
 	display: flex;
 }
@@ -246,6 +247,13 @@ div.fixed-buttons {
 		width: 100%;
 		position: relative;
 		flex-direction: row;
+	}
+
+	div.article-content {
+		width: 100vw;
+		height: 100vh;
+		flex-direction: column;
+		display: flex;
 	}
 
 	div.content {
