@@ -276,8 +276,7 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
         let url = content.get_url();
 
 		items_str.push_str(&format!(
-			"<item><guid>{guid}</guid><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
-			guid = a.id,
+			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
 			title = content.title,
 			desc = content.desc
 		));
