@@ -62,7 +62,7 @@ function input(comment_id, action) {
 	var comment_submit = document.getElementById("comment-" + comment_id + "-" + action + "-submit");
 	var comment_len = document.getElementById("comment-" + comment_id + "-" + action + "-len");
 
-	var len = comment_content.value.length;
+	var len = new TextEncoder().encode(comment_content.value).length;
 	comment_len.innerHTML = len;
 	comment_submit.disabled = (len <= 0 || len > 5000);
 }

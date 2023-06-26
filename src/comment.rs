@@ -431,7 +431,7 @@ pub async fn post(
 	if info.content.is_empty() {
 		return Err(error::ErrorBadRequest(""));
 	}
-	if info.content.len() > MAX_CHARS {
+	if info.content.as_bytes().len() > MAX_CHARS {
 		return Err(error::ErrorPayloadTooLarge(""));
 	}
 
@@ -519,7 +519,7 @@ pub async fn edit(
 	if info.content.is_empty() {
 		return Err(error::ErrorBadRequest(""));
 	}
-	if info.content.len() > MAX_CHARS {
+	if info.content.as_bytes().len() > MAX_CHARS {
 		return Err(error::ErrorPayloadTooLarge(""));
 	}
 
