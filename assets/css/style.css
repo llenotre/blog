@@ -151,6 +151,22 @@ div.articles-list {
 	display: flex;
 }
 
+div.articles-list a {
+	text-decoration: none;
+	flex-basis: 100%;
+	transition: 0.3s;
+}
+
+div.articles-list a:hover {
+	transform: scale(1.05, 1.05);
+}
+
+@media(min-width: 1200px) {
+	div.articles-list a {
+		flex-basis: 30%;
+	}
+}
+
 div.article-element {
 	background: #4f4f4f7f;
 	backdrop-filter: blur(5px);
@@ -158,13 +174,16 @@ div.article-element {
 	border-radius: 20px;
 	color: #fff;
 	text-decoration: none;
-	width: 0;
 	min-height: 240px;
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
 	box-sizing: border-box;
-	flex-basis: 100%;
 	overflow-wrap: break-word;
+	transition: 0.3s;
+}
+
+div.article-element:hover {
+	background: #2f2f2f7f;
 }
 
 img.article-cover {
@@ -181,11 +200,6 @@ div.article-element-content {
 div.article-element-content h3 {
 	margin: 0;
 	margin-bottom: 10px;
-}
-
-div.article-element-content a {
-	color: #fff;
-	text-decoration: none;
 }
 
 ul.tags {
@@ -212,25 +226,6 @@ ul.tags li.tag {
 ul.tags h6 {
 	margin: 0;
 	padding: 5px 0 5px 0;
-}
-
-div.article-element-content a.read-button {
-	background: transparent;
-	border: 3px solid #1abc9c;
-	border-radius: 30px;
-	color: #1abc9c;
-	margin-top: 10px;
-	padding: 10px 20px 10px 20px;
-	height: 30px;
-	text-align: center;
-	font-size: 15pt;
-	vertical-align: bottom;
-	display: inline-flex;
-}
-
-div.article-element-content a.read-button:hover {
-	background: #1abc9c;
-	color: white;
 }
 
 div.fixed-buttons {
@@ -610,10 +605,6 @@ div.comment-editor {
 
 	div.split-half {
 		flex-basis: 50%;
-	}
-
-	div.article-element {
-		flex-basis: 30%;
 	}
 
 	div.comments {
