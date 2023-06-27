@@ -13,6 +13,8 @@ const GITHUB_USER_AGENT: &str = "maestro";
 /// The Github API version.
 const GITHUB_API_VERSION: &str = "2022-11-28";
 
+// TODO update users from github data from time to time
+
 /// Returns the authentication URL.
 pub fn get_auth_url(client_id: &str) -> String {
 	format!(
@@ -66,6 +68,8 @@ pub struct User {
 	#[serde(rename = "_id")]
 	pub id: ObjectId,
 
+	/// The user's Github access token.
+	pub access_token: String,
 	/// User informations.
 	pub github_info: GithubUser,
 
@@ -208,6 +212,7 @@ pub async fn oauth(
 			let user = User {
 				id: ObjectId::new(),
 
+				access_token,
 				github_info,
 
 				admin: false,
