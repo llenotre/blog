@@ -133,7 +133,6 @@ div.section {
 }
 
 div.split {
-	flex-direction: row;
 	display: flex;
 }
 
@@ -583,7 +582,7 @@ div.comment-editor {
 
 @media(max-width: 1200px) {
 	div.split {
-		flex-direction: reverse;
+		flex-direction: column;
 	}
 
 	div.split.reverse {
