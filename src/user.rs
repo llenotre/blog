@@ -256,8 +256,11 @@ pub async fn avatar(user: web::Path<String>) -> actix_web::Result<impl Responder
 	if let Some(content_type) = response.headers().get("Content-Type") {
 		Ok(builder
 			.content_type(content_type)
+			.insert_header(("Cache-Control", "max-age=604800"))
 			.streaming(response.bytes_stream()))
 	} else {
-		Ok(builder.streaming(response.bytes_stream()))
+		Ok(builder
+			.insert_header(("Cache-Control", "max-age=604800"))
+			.streaming(response.bytes_stream()))
 	}
 }
