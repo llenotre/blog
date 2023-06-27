@@ -10,7 +10,6 @@ mod util;
 use crate::newsletter::EmailWorker;
 use crate::user::User;
 use actix_files::Files;
-use actix_governor::{Governor, GovernorConfigBuilder};
 use actix_session::storage::CookieSessionStore;
 use actix_session::Session;
 use actix_session::SessionMiddleware;
@@ -348,18 +347,11 @@ async fn main() -> io::Result<()> {
         email_worker.run().await;
     });
 
-	let governor_conf = GovernorConfigBuilder::default()
-		.per_second(1)
-		.burst_size(50)
-		.finish()
-		.unwrap();
-
 	HttpServer::new(move || {
 		App::new()
 			.wrap(middleware::Logger::new(
 				"[%t] %a: %r - Response: %s (in %D ms)",
 			))
-			//.wrap(Governor::new(&governor_conf))
 			.wrap(SessionMiddleware::new(
 				CookieSessionStore::default(),
 				Key::from(config.session_secret_key.as_bytes()), // TODO parse hex
