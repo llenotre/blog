@@ -157,13 +157,13 @@ div.articles-list a {
 	transition: 0.3s;
 }
 
-div.articles-list a:hover {
-	transform: scale(1.05, 1.05);
-}
-
 @media(min-width: 1200px) {
 	div.articles-list a {
 		flex-basis: 30%;
+	}
+
+	div.articles-list a:hover {
+		transform: scale(1.05, 1.05);
 	}
 }
 
@@ -384,13 +384,16 @@ input[type = "text"], textarea {
 }
 
 div.newsletter {
+	max-width: 100%;
 	flex-direction: row;
 	flex-wrap: nowrap;
 	display: flex;
 }
 
-div.newsletter input[type = "text"] {
+div.newsletter input {
 	border-radius: 50px 0 0 50px;
+	min-width: 0;
+	width: auto;
 	height: 80px;
 }
 
@@ -406,7 +409,7 @@ div.newsletter div.newsletter-button * {
 	padding-left: 30px;
 	padding-right: 30px;
 	border-radius: 30px;
-	flex-grow: 1;
+	flex: 1;
 }
 
 input[type = "checkbox"] {
