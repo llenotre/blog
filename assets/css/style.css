@@ -37,6 +37,7 @@ div.blob {
 div.content {
 	color: white;
 	padding-top: 10vh;
+	padding-bottom: 10vh;
 	z-index: 0;
 }
 
@@ -85,10 +86,6 @@ li {
 
 .highlight {
 	color: #1abc9c;
-}
-
-div.spaced {
-	margin-top: 30px;
 }
 
 div.inline {
@@ -309,6 +306,10 @@ div.article-section {
 	margin: 0;
 	padding: 0 10px 0 10px;
 	overflow-wrap: break-word;
+}
+
+div.article-section.spaced {
+	margin-top: 10vh;
 }
 
 div.article-header h1 {
