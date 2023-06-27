@@ -138,25 +138,23 @@ async fn root(
 			.collect();
 
 		articles_html.push_str(&format!(
-			r#"<div class="article-element">
-				<img class="article-cover" src="{article_cover_url}"></img>
-				<div class="article-element-content">
-					<h3><a href="{article_path}">{article_title}</a></h3>
+			r#"<a href="{article_path}">
+				<div class="article-element">
+					<img class="article-cover" src="{article_cover_url}"></img>
+					<div class="article-element-content">
+						<h3>{article_title}</h3>
 
-					<ul class="tags">
-						<li><h6 style="color: gray;">{post_date}</h6></li>
-						{tags_html}
-					</ul>
+						<ul class="tags">
+							<li><h6 style="color: gray;">{post_date}</h6></li>
+							{tags_html}
+						</ul>
 
-					<p>
-						{article_desc}
-					</p>
-
-					<center>
-						<a class="read-button" href="{article_path}">Read more</a>
-					</center>
+						<p>
+							{article_desc}
+						</p>
+					</div>
 				</div>
-			</div>"#,
+			</a>"#,
 			article_cover_url = content.cover_url,
 			article_path = content.get_path(),
 			article_title = content.title,
