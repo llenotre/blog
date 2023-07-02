@@ -55,8 +55,6 @@ pub struct GithubUser {
 	pub login: String,
 	/// The user's ID.
 	pub id: i64,
-	/// The URL to the user's avatar.
-	pub avatar_url: String,
 	/// The URL to the user's profile.
 	pub html_url: String,
 }
