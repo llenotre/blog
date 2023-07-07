@@ -15,4 +15,5 @@ RUN cargo build --release
 FROM debian:buster-slim AS runtime
 WORKDIR /usr/src/blog
 COPY --from=build /usr/src/blog/target/release/blog /usr/local/bin
+COPY config.toml .
 ENTRYPOINT ["/usr/local/bin/blog"]
