@@ -198,7 +198,12 @@ impl CommentContent {
 /// - `article` is the action to perform.
 /// - `comment_id` is the ID of the comment for which the action is performed.
 /// - `content` is the default content of the editor.
-pub fn get_comment_editor(user_login: &str, action: &str, comment_id: Option<&str>, content: Option<&str>) -> String {
+pub fn get_comment_editor(
+	user_login: &str,
+	action: &str,
+	comment_id: Option<&str>,
+	content: Option<&str>,
+) -> String {
 	let id = comment_id
 		.map(|s| format!("{}", s))
 		.unwrap_or("null".to_owned());
@@ -269,7 +274,8 @@ pub async fn comment_to_html(
 	replies: Option<&'async_recursion [Comment]>,
 	user_id: Option<&'async_recursion ObjectId>,
 	article_id: &ObjectId,
-    user_login: Option<&'async_recursion str>,
+	article_title: &str,
+	user_login: Option<&'async_recursion str>,
 	admin: bool,
 ) -> actix_web::Result<String> {
 	let com_id = comment.id;
@@ -279,7 +285,19 @@ pub async fn comment_to_html(
 		Some(replies) => {
 			let mut html = String::new();
 			for com in replies {
-				html.push_str(&comment_to_html(db, com, None, user_id, article_id, user_login, admin).await?);
+				html.push_str(
+					&comment_to_html(
+						db,
+						com,
+						None,
+						user_id,
+						article_id,
+						article_title,
+						user_login,
+						admin,
+					)
+					.await?,
+				);
 			}
 
 			format!(
@@ -294,7 +312,7 @@ pub async fn comment_to_html(
 	// HTML for comment's buttons
 	let mut buttons = Vec::with_capacity(4);
 	buttons.push(format!(
-		r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##
+		r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}/{article_title}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##
 	));
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(
@@ -367,13 +385,18 @@ pub async fn comment_to_html(
 	}
 
 	let (edit_editor, reply_editor) = match user_login {
-        Some(user_login) => (
-            get_comment_editor(user_login, "edit", Some(&com_id.to_hex()), Some(&content.content)),
-            get_comment_editor(user_login, "post", Some(&com_id.to_hex()), None)
-        ),
+		Some(user_login) => (
+			get_comment_editor(
+				user_login,
+				"edit",
+				Some(&com_id.to_hex()),
+				Some(&content.content),
+			),
+			get_comment_editor(user_login, "post", Some(&com_id.to_hex()), None),
+		),
 
-        None => (String::new(), String::new()),
-    };
+		None => (String::new(), String::new()),
+	};
 
 	Ok(format!(
 		r##"<div class="comment" id="com-{com_id}">

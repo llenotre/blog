@@ -232,17 +232,17 @@ async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 		urls.push((content.get_url(), Some(content.edit_date)));
 	}
 
-	let urls: String =
-		urls.into_iter()
-			.map(|(url, date)| match date {
-                Some(date) => {
-                    let date = date.format("%Y-%m-%d");
-                    format!("\t\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>")
-                },
+	let urls: String = urls
+		.into_iter()
+		.map(|(url, date)| match date {
+			Some(date) => {
+				let date = date.format("%Y-%m-%d");
+				format!("\t\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>")
+			}
 
-                None => format!("\t\t<url><loc>{url}</loc></url>"),
-			})
-			.collect();
+			None => format!("\t\t<url><loc>{url}</loc></url>"),
+		})
+		.collect();
 
 	let body = format!(
 		r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -270,7 +270,7 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 			.get_content(&db)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?;
-        let url = content.get_url();
+		let url = content.get_url();
 
 		items_str.push_str(&format!(
 			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
@@ -340,12 +340,12 @@ async fn main() -> io::Result<()> {
 		discord_invite: config.discord_invite,
 	});
 
-    // Run the email worker
-    let data_clone = data.clone();
-    tokio::spawn(async {
-        let email_worker = EmailWorker::new(data_clone);
-        email_worker.run().await;
-    });
+	// Run the email worker
+	let data_clone = data.clone();
+	tokio::spawn(async {
+		let email_worker = EmailWorker::new(data_clone);
+		email_worker.run().await;
+	});
 
 	HttpServer::new(move || {
 		App::new()
