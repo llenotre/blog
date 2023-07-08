@@ -22,7 +22,7 @@ pub mod serde_date_time {
 	use serde::Serializer;
 
 	/// Serialization format.
-	const FORMAT: &str = "%Y-%m-%d %H:%M:%S";
+	pub const FORMAT: &str = "%Y-%m-%d %H:%M:%S";
 
 	/// Serialize
 	pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>

@@ -158,7 +158,7 @@ impl User {
 					"_id": self.id,
 				},
 				doc! {
-					"last_post": last_post,
+					"last_post": format!("{}", last_post.format(util::serde_date_time::FORMAT)),
 				},
 				None,
 			)
