@@ -118,8 +118,7 @@ function post(comment_id) {
 		var coms_count = document.getElementById("comments-count");
 		coms_count.textContent += 1;
 	} else {
-		// TODO get error message from server
-		alert("Failed to post comment: HTTP error " + xmlHttp.status);
+		alert("Failed to post comment:" + xmlHttp.response);
 	}
 }
 
@@ -144,8 +143,7 @@ function edit(comment_id) {
 	if (xmlHttp.status == 200) {
 		// TODO update comment's content
 	} else {
-		// TODO get error message from server
-		alert("Failed to edit comment: HTTP error " + xmlHttp.status);
+		alert("Failed to edit comment" + xmlHttp.response);
 	}
 }
 
@@ -168,7 +166,6 @@ function del(comment_id) {
 		var coms_count = document.getElementById("comments-count");
 		coms_count.textContent -= 1;
 	} else {
-		// TODO get error message from server
-		alert("Failed to delete comment: HTTP error " + xmlHttp.status);
+		alert("Failed to delete comment" + xmlHttp.response);
 	}
 }
