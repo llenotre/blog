@@ -1,10 +1,13 @@
 //! This module implements user accounts.
 
+use crate::util;
 use crate::GlobalData;
 use actix_session::Session;
 use actix_web::{error, get, http::StatusCode, web, web::Redirect, HttpResponseBuilder, Responder};
 use bson::doc;
 use bson::oid::ObjectId;
+use chrono::DateTime;
+use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -75,6 +78,13 @@ pub struct User {
 	pub admin: bool,
 	/// Tells whether the user has been banned.
 	pub banned: bool,
+
+	/// The date/time at which the user registered.
+	#[serde(with = "util::serde_date_time")]
+	pub register_time: DateTime<Utc>,
+	/// The date/time of the last post, used for cooldown.
+	#[serde(with = "util::serde_date_time")]
+	pub last_post: DateTime<Utc>,
 }
 
 impl User {
@@ -131,6 +141,50 @@ impl User {
 		collection.insert_one(self, None).await.map(|_| ())
 	}
 
+	/// Updates the user's cooldown.
+	///
+	/// Arguments:
+	/// - `db` is the database.
+	/// - `last_post` is the date/time of the last post from the user.
+	pub async fn update_cooldown(
+		&self,
+		db: &mongodb::Database,
+		last_post: DateTime<Utc>,
+	) -> Result<(), mongodb::error::Error> {
+		let collection = db.collection::<Self>("user");
+		collection
+			.update_one(
+				doc! {
+					"_id": self.id,
+				},
+				doc! {
+					"last_post": last_post,
+				},
+				None,
+			)
+			.await
+			.map(|_| ())
+	}
+
+	/// Returns the user of the current session.
+	///
+	/// `db` is the database.
+	pub async fn current_user(
+		db: &mongodb::Database,
+		session: &Session,
+	) -> Result<Option<Self>, mongodb::error::Error> {
+		let user_id = session
+			.get::<String>("user_id")
+			.ok()
+			.flatten()
+			.map(|user_id| ObjectId::parse_str(user_id).ok())
+			.flatten();
+		match user_id {
+			Some(user_id) => Self::from_id(db, user_id).await,
+			None => Ok(None),
+		}
+	}
+
 	/// Checks the given session has admin permissions.
 	///
 	/// `db` is the database.
@@ -138,20 +192,8 @@ impl User {
 		db: &mongodb::Database,
 		session: &Session,
 	) -> Result<bool, mongodb::error::Error> {
-		let user_id = session
-			.get::<String>("user_id")
-			.ok()
-			.flatten()
-			.and_then(|user_id| ObjectId::parse_str(user_id).ok());
-
-		match user_id {
-			Some(user_id) => {
-				let user = Self::from_id(db, user_id).await?;
-				Ok(user.map(|u| u.admin).unwrap_or(false))
-			}
-
-			None => Ok(false),
-		}
+		let user = Self::current_user(db, session).await?;
+		Ok(user.map(|u| u.admin).unwrap_or(false))
 	}
 }
 
@@ -215,6 +257,9 @@ pub async fn oauth(
 
 				admin: false,
 				banned: false,
+
+				register_time: Utc::now(),
+				last_post: Default::default(),
 			};
 			user.insert(&db)
 				.await

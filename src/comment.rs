@@ -16,9 +16,13 @@ use futures_util::stream::TryStreamExt;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::time::Duration;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;
+
+/// Minimum post cooldown.
+const INTERVAL: Duration = Duration::from_secs(10);
 
 // TODO support pinned comments
 
@@ -460,10 +464,6 @@ pub async fn post(
 
 	let db = data.get_database();
 
-	let admin = User::check_admin(&db, &session)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-
 	// Check article exists
 	let article_id = ObjectId::parse_str(info.article_id).map_err(|_| error::ErrorNotFound(""))?;
 	let article = Article::from_id(&db, &article_id)
@@ -476,14 +476,30 @@ pub async fn post(
 		.get_content(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
-	if !article_content.public && !admin {
+
+	// Get user
+	let user = User::current_user(&db, &session)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(user) = user else {
+        return Err(error::ErrorForbidden(""));
+    };
+
+	if !article_content.public && !user.admin {
 		return Err(error::ErrorNotFound(""));
 	}
 
-	let Some(user_id) = session.get::<String>("user_id").unwrap() else {
-		return Err(error::ErrorForbidden(""));
-	};
-	let user_id = ObjectId::parse_str(&user_id).map_err(|_| error::ErrorBadRequest(""))?;
+	// Check user's cooldown
+	if !user.admin {
+		let now = Utc::now();
+		let cooldown_end = user.last_post + chrono::Duration::from_std(INTERVAL).unwrap();
+		if now < cooldown_end {
+			let remaining = (cooldown_end - now).num_seconds();
+			return Ok(
+				HttpResponse::TooManyRequests().body(format!("wait {remaining} before retrying"))
+			);
+		}
+	}
 
 	let id = ObjectId::new();
 	let date = chrono::offset::Utc::now();
@@ -506,7 +522,7 @@ pub async fn post(
 
 		article: article_id,
 		response_to: info.response_to,
-		author: user_id,
+		author: user.id,
 		post_date: date,
 
 		content_id,
@@ -515,6 +531,10 @@ pub async fn post(
 	};
 	comment
 		.insert(&db)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	user.update_cooldown(&db, Utc::now())
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -548,14 +568,25 @@ pub async fn edit(
 
 	let db = data.get_database();
 
-	let admin = User::check_admin(&db, &session)
+	// Get user
+	let user = User::current_user(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(user) = user else {
+        return Err(error::ErrorForbidden(""));
+    };
 
-	let Some(user_id) = session.get::<String>("user_id").unwrap() else {
-		return Err(error::ErrorForbidden(""));
-	};
-	let user_id = ObjectId::parse_str(&user_id).map_err(|_| error::ErrorBadRequest(""))?;
+	// Check user's cooldown
+	if !user.admin {
+		let now = Utc::now();
+		let cooldown_end = user.last_post + chrono::Duration::from_std(INTERVAL).unwrap();
+		if now < cooldown_end {
+			let remaining = (cooldown_end - now).num_seconds();
+			return Ok(
+				HttpResponse::TooManyRequests().body(format!("wait {remaining} before retrying"))
+			);
+		}
+	}
 
 	// Check comment exists
 	let comment_id = ObjectId::parse_str(info.comment_id).map_err(|_| error::ErrorNotFound(""))?;
@@ -566,7 +597,7 @@ pub async fn edit(
 		return Err(error::ErrorNotFound(""));
 	};
 
-	if !admin && comment.author != user_id {
+	if !user.admin && comment.author != user.id {
 		return Err(error::ErrorForbidden(""));
 	}
 
@@ -587,6 +618,10 @@ pub async fn edit(
 	// Update comment's content
 	comment
 		.update_content(&db, content_id)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	user.update_cooldown(&db, Utc::now())
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
