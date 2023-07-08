@@ -220,7 +220,7 @@ pub fn get_comment_editor(
                 <i class="fa-regular fa-paper-plane"></i>
             </button>
         </div>
-		<h6><span id="comment-{id}-{action}-len">0</span>/{MAX_CHARS} characters - Markdown is supported - Make sure you follow the <a href="/legal#conduct" target="_blank">Code of conduct</a></h6>"#
+		<h6><span id="comment-{id}-{action}-len">0</span>/{MAX_CHARS} characters - Markdown is supported - Make sure you follow the <a href="/legal#conduct" target="_blank">Code of conduct</a> - <a href="/logout">Logout</a></h6>"#
 	)
 }
 
