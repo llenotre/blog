@@ -151,6 +151,8 @@ impl User {
 		db: &mongodb::Database,
 		last_post: DateTime<Utc>,
 	) -> Result<(), mongodb::error::Error> {
+		let last_post = format!("{}", last_post.format(util::serde_date_time::FORMAT));
+
 		let collection = db.collection::<Self>("user");
 		collection
 			.update_one(
@@ -158,7 +160,9 @@ impl User {
 					"_id": self.id,
 				},
 				doc! {
-					"last_post": format!("{}", last_post.format(util::serde_date_time::FORMAT)),
+					"$set": doc! {
+						"last_post": last_post,
+					}
 				},
 				None,
 			)
