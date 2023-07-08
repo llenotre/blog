@@ -456,10 +456,10 @@ pub async fn post(
 	let info = info.into_inner();
 
 	if info.content.is_empty() {
-		return Err(error::ErrorBadRequest(""));
+		return Err(error::ErrorBadRequest("no content provided"));
 	}
 	if info.content.as_bytes().len() > MAX_CHARS {
-		return Err(error::ErrorPayloadTooLarge(""));
+		return Err(error::ErrorPayloadTooLarge("content is too long"));
 	}
 
 	let db = data.get_database();
@@ -470,7 +470,7 @@ pub async fn post(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(article) = article else {
-		return Err(error::ErrorNotFound(""));
+		return Err(error::ErrorNotFound("article not found"));
 	};
 	let article_content = article
 		.get_content(&db)
@@ -482,11 +482,11 @@ pub async fn post(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(user) = user else {
-        return Err(error::ErrorForbidden(""));
+        return Err(error::ErrorForbidden("forbidden"));
     };
 
 	if !article_content.public && !user.admin {
-		return Err(error::ErrorNotFound(""));
+		return Err(error::ErrorNotFound("article not found"));
 	}
 
 	// Check user's cooldown
@@ -560,10 +560,10 @@ pub async fn edit(
 	let info = info.into_inner();
 
 	if info.content.is_empty() {
-		return Err(error::ErrorBadRequest(""));
+		return Err(error::ErrorBadRequest("no content provided"));
 	}
 	if info.content.as_bytes().len() > MAX_CHARS {
-		return Err(error::ErrorPayloadTooLarge(""));
+		return Err(error::ErrorPayloadTooLarge("content is too long"));
 	}
 
 	let db = data.get_database();
@@ -573,7 +573,7 @@ pub async fn edit(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(user) = user else {
-        return Err(error::ErrorForbidden(""));
+        return Err(error::ErrorForbidden("forbidden"));
     };
 
 	// Check user's cooldown
@@ -594,11 +594,11 @@ pub async fn edit(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(comment) = comment else {
-		return Err(error::ErrorNotFound(""));
+		return Err(error::ErrorNotFound("comment not found"));
 	};
 
 	if !user.admin && comment.author != user.id {
-		return Err(error::ErrorForbidden(""));
+		return Err(error::ErrorForbidden("forbidden"));
 	}
 
 	// Insert comment content
@@ -638,7 +638,7 @@ pub async fn delete(
 	let comment_id = ObjectId::parse_str(&comment_id).map_err(|_| error::ErrorBadRequest(""))?;
 
 	let Some(user_id) = session.get::<String>("user_id").unwrap() else {
-		return Err(error::ErrorForbidden(""));
+		return Err(error::ErrorForbidden("forbidden"));
 	};
 	let user_id = ObjectId::parse_str(&user_id).map_err(|_| error::ErrorBadRequest(""))?;
 
