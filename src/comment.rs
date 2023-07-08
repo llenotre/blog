@@ -359,8 +359,8 @@ pub async fn comment_to_html(
 	let Some(author) = author else {
 		return Ok(String::new());
 	};
-	let html_url = author.github_info.html_url;
-	let login = author.github_info.login;
+	let html_url = ammonia::clean(&author.github_info.html_url);
+	let login = ammonia::clean(&author.github_info.login);
 
 	// Get content of comment
 	let content = CommentContent::from_id(db, comment.content_id)
