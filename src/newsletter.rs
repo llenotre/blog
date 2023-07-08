@@ -1,19 +1,19 @@
 //! TODO doc
 
-use lettre::Message;
-use futures_util::TryStreamExt;
-use bson::Bson;
-use actix_web::HttpResponse;
-use actix_web::Responder;
+use crate::util;
+use crate::GlobalData;
 use actix_web::error;
 use actix_web::post;
 use actix_web::web;
+use actix_web::HttpResponse;
+use actix_web::Responder;
 use bson::doc;
 use bson::oid::ObjectId;
+use bson::Bson;
 use chrono::DateTime;
 use chrono::Utc;
-use crate::GlobalData;
-use crate::util;
+use futures_util::TryStreamExt;
+use lettre::Message;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -42,8 +42,8 @@ pub enum NewsletterMessageState {
 		#[serde(with = "util::serde_date_time")]
 		date: DateTime<Utc>,
 	},
-    /// The email has been cancelled.
-    Cancelled,
+	/// The email has been cancelled.
+	Cancelled,
 }
 
 /// An email message either sent or to be sent.
@@ -81,67 +81,78 @@ pub struct NewsletterTemplate {
 
 /// Component scheduling email sending.
 pub struct EmailWorker {
-    /// Global data, containing database client.
-    data: web::Data<GlobalData>,
+	/// Global data, containing database client.
+	data: web::Data<GlobalData>,
 }
 
 impl EmailWorker {
-    /// Creates a new instance.
-    pub fn new(data: web::Data<GlobalData>) -> Self {
-        Self {
-            data,
-        }
-    }
+	/// Creates a new instance.
+	pub fn new(data: web::Data<GlobalData>) -> Self {
+		Self {
+			data,
+		}
+	}
 
-    /// Runs the worker.
-    pub async fn run(&self) {
-        // TODO
-    }
+	/// Runs the worker.
+	pub async fn run(&self) {
+		// TODO
+	}
 
-    /// Sends a mail.
-    pub async fn enqueue(&self, msg: NewsletterMessage) -> Result<(), mongodb::error::Error> {
-        let coll = self.data.get_database().collection("newsletter_message");
-        coll.insert_one(msg, None).await.map(|_| ())
-    }
+	/// Sends a mail.
+	pub async fn enqueue(&self, msg: NewsletterMessage) -> Result<(), mongodb::error::Error> {
+		let coll = self.data.get_database().collection("newsletter_message");
+		coll.insert_one(msg, None).await.map(|_| ())
+	}
 
-    /// Launches an email campain on all registered emails.
-    pub async fn launch_campain(&self, template: &NewsletterTemplate) -> Result<(), mongodb::error::Error> {
-        let subscribers_coll = self.data.get_database().collection::<NewsletterEmail>("newsletter_subscriber");
-        let mut stream = subscribers_coll.find(doc! {
-            "email": {"$ne": Bson::Null },
-            "unsubscribed": false
-        }, None)
-            .await?;
+	/// Launches an email campain on all registered emails.
+	pub async fn launch_campain(
+		&self,
+		template: &NewsletterTemplate,
+	) -> Result<(), mongodb::error::Error> {
+		let subscribers_coll = self
+			.data
+			.get_database()
+			.collection::<NewsletterEmail>("newsletter_subscriber");
+		let mut stream = subscribers_coll
+			.find(
+				doc! {
+					"email": {"$ne": Bson::Null },
+					"unsubscribed": false
+				},
+				None,
+			)
+			.await?;
 
-        // TODO implement errors handling, retrying on reboot, etc...
-        while let Some(email) = stream.try_next().await? {
-            let Some(email) = email.email else {
+		// TODO implement errors handling, retrying on reboot, etc...
+		while let Some(email) = stream.try_next().await? {
+			let Some(email) = email.email else {
                 continue;
             };
 
-            // Build mail
-            let message = Message::builder()
-                .from("newsletter <newsletter@blog.lenot.re>".parse().unwrap())
-                .to(email.parse().unwrap())
-                .subject(template.title.clone())
-                // TODO fill template with unsubscribe URL
-                .body(template.content_template.clone())
-                .unwrap();
-            // TODO sign message (DKIM)
+			// Build mail
+			let message = Message::builder()
+				.from("newsletter <newsletter@blog.lenot.re>".parse().unwrap())
+				.to(email.parse().unwrap())
+				.subject(template.title.clone())
+				// TODO fill template with unsubscribe URL
+				.body(template.content_template.clone())
+				.unwrap();
+			// TODO sign message (DKIM)
 
-            // Enqueue mail
-            self.enqueue(NewsletterMessage {
-                template_id: ObjectId::new(),
+			// Enqueue mail
+			self.enqueue(NewsletterMessage {
+				template_id: ObjectId::new(),
 
-                to: Some(email),
-                content: message.formatted(),
+				to: Some(email),
+				content: message.formatted(),
 
-                state: NewsletterMessageState::Pending,
-            }).await?;
-        }
+				state: NewsletterMessageState::Pending,
+			})
+			.await?;
+		}
 
-        Ok(())
-    }
+		Ok(())
+	}
 }
 
 /// Payload of request to register a newsletter subscriber.

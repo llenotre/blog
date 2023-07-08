@@ -11,7 +11,8 @@ use crate::util;
 use crate::GlobalData;
 use actix_session::Session;
 use actix_web::{
-	error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
+	error, get, http::header::ContentType, post, web, web::Redirect, Either, HttpResponse,
+	Responder,
 };
 use bson::oid::ObjectId;
 use bson::Bson;
@@ -175,36 +176,34 @@ impl ArticleContent {
 			.map(|r| r.inserted_id.as_object_id().unwrap())
 	}
 
-    /// Returns the URL title of the article.
-    pub fn get_url_title(&self) -> String {
-        self.title
-            .chars()
-            .filter_map(|c| {
-                match c {
-                    c if c.is_whitespace() => Some('-'),
-                    c if c.is_ascii() => Some(c),
-                    _ => None,
-                }
-            })
-            .collect::<String>()
-            .to_lowercase()
-    }
+	/// Returns the URL title of the article.
+	pub fn get_url_title(&self) -> String {
+		self.title
+			.chars()
+			.filter_map(|c| match c {
+				c if c.is_whitespace() => Some('-'),
+				c if c.is_ascii() => Some(c),
+				_ => None,
+			})
+			.collect::<String>()
+			.to_lowercase()
+	}
 
-    /// Returns the path to the article.
-    pub fn get_path(&self) -> String {
-        format!("/article/{}/{}", self.article_id, self.get_url_title())
-    }
+	/// Returns the path to the article.
+	pub fn get_path(&self) -> String {
+		format!("/article/{}/{}", self.article_id, self.get_url_title())
+	}
 
-    /// Returns the URL of the article.
-    pub fn get_url(&self) -> String {
-        format!("https://blog.lenot.re{}", self.get_path())
-    }
+	/// Returns the URL of the article.
+	pub fn get_url(&self) -> String {
+		format!("https://blog.lenot.re{}", self.get_path())
+	}
 }
 
 #[get("/article/{id}/{title}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
-    path: web::Path<(String, String)>,
+	path: web::Path<(String, String)>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let (id_str, title) = path.into_inner();
@@ -228,9 +227,7 @@ pub async fn get(
 	// If URL title does not match, redirect
 	let expected_title = content.get_url_title();
 	if title != expected_title {
-		// TODO
-		/*return Ok(Redirect::to(format!("/article/{id_str}/{expected_title}"))
-			.see_other());*/
+		return Ok(Either::Left(Redirect::to(content.get_path()).see_other()));
 	}
 
 	// If article is not public, the user must be admin to see it
@@ -269,7 +266,7 @@ pub async fn get(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let comments_count = comments.len();
-	let html = html.replace("{comments.count}", &format!("{}", comments_count));
+	let html = html.replace("{comments.count}", &comments_count.to_string());
 
 	let comments = group_comments(comments);
 	let mut comments_html = String::new();
@@ -281,7 +278,8 @@ pub async fn get(
 				Some(&replies),
 				user_id.as_ref(),
 				&article.id,
-                user_login.as_deref(),
+				&expected_title,
+				user_login.as_deref(),
 				admin,
 			)
 			.await?,
@@ -301,9 +299,11 @@ pub async fn get(
 	let html = html.replace("{comment.editor}", &comment_editor_html);
 
 	session.insert("last_article", id_str.clone())?;
-	Ok(HttpResponse::Ok()
-		.content_type(ContentType::html())
-		.body(html))
+	Ok(Either::Right(
+		HttpResponse::Ok()
+			.content_type(ContentType::html())
+			.body(html),
+	))
 }
 
 /// Article edition coming from the editor.
