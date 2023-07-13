@@ -244,7 +244,7 @@ pub async fn get(
 	let html = html.replace("{article.title}", &content.title);
 	let html = html.replace(
 		"{article.date}",
-		&article.post_date.format("%d/%m/%Y %H:%M:%S").to_string(), // TODO use user's timezone)
+		&article.post_date.to_rfc3339()
 	);
 	let html = html.replace("{article.desc}", &content.desc);
 	let html = html.replace("{article.cover_url}", &content.cover_url);

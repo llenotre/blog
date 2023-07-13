@@ -115,7 +115,7 @@ async fn root(
 		if !admin && !content.public {
 			continue;
 		}
-		let post_date = article.post_date.format("%d/%m/%Y"); // TODO use user's timezone
+		let post_date = article.post_date.to_rfc3339();
 
 		let mut tags = vec![];
 
@@ -144,7 +144,7 @@ async fn root(
 						<h3>{article_title}</h3>
 
 						<ul class="tags">
-							<li><h6 style="color: gray;">{post_date}</h6></li>
+							<li><h6 style="color: gray;"><span id="date">{post_date}</span></h6></li>
 							{tags_html}
 						</ul>
 
