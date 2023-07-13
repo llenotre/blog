@@ -377,12 +377,12 @@ pub async fn comment_to_html(
 
 	let mut date_text = if content.edit_date > comment.post_date {
 		format!(
-			"{} UTC (edit: {} UTC)",
-			comment.post_date.format("%d/%m/%Y %H:%M:%S"),
-			content.edit_date.format("%d/%m/%Y %H:%M:%S")
+			r#"<span id="date-long">{}</span> (edit: <span id="date-long">{}</span>)"#,
+			comment.post_date.to_rfc3339(),
+			content.edit_date.to_rfc3339()
 		)
 	} else {
-		format!("{} UTC", comment.post_date.format("%d/%m/%Y %H:%M:%S"))
+		format!(r#"<span id="date-long">{}</span>"#, comment.post_date.to_rfc3339())
 	};
 	if comment.removed && admin {
 		date_text.push_str(" - REMOVED");
