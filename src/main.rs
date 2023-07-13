@@ -349,19 +349,6 @@ async fn main() -> io::Result<()> {
 
 	HttpServer::new(move || {
 		App::new()
-			.wrap(middleware::Logger::new(
-				"[%t] %a: %r - Response: %s (in %D ms)",
-			))
-			.wrap(SessionMiddleware::new(
-				CookieSessionStore::default(),
-				Key::from(config.session_secret_key.as_bytes()), // TODO parse hex
-			))
-			.wrap(analytics::Analytics {
-				global: data.clone().into_inner(),
-			})
-			.wrap(ErrorHandlers::new().default_handler(error_handler))
-			.app_data(data.clone())
-			.app_data(web::PayloadConfig::new(1024 * 1024))
 			.service(Files::new("/assets", "./assets"))
 			.service(article::editor)
 			.service(article::get)
@@ -384,6 +371,19 @@ async fn main() -> io::Result<()> {
 			.service(user::avatar)
 			.service(user::logout)
 			.service(user::oauth)
+			.wrap(ErrorHandlers::new().default_handler(error_handler))
+			.wrap(analytics::Analytics {
+				global: data.clone().into_inner(),
+			})
+			.wrap(SessionMiddleware::new(
+				CookieSessionStore::default(),
+				Key::from(config.session_secret_key.as_bytes()), // TODO parse hex
+			))
+			.app_data(data.clone())
+			.app_data(web::PayloadConfig::new(1024 * 1024))
+			.wrap(middleware::Logger::new(
+				"[%t] %a: %r - Response: %s (in %D ms)",
+			))
 	})
 	.bind(format!("0.0.0.0:{}", config.port))?
 	.run()

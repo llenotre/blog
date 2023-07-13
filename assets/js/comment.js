@@ -85,7 +85,7 @@ function toggle_reply(comment_id) {
 
 /// Expands editor on click.
 function expand_editor(id) {
-	document.getElementById(id).style.height = "300px";
+	document.getElementById(id).classList.add("expanded");
 }
 
 // Posts a comment.
