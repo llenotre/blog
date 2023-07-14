@@ -24,3 +24,4 @@ serde = { version = "1.0.160", features = ["derive"] }
 tokio = "1.27.0"
 tokio-util = "0.7.8"
 toml = "0.7.3"
+tracing = "*"

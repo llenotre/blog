@@ -230,10 +230,16 @@ pub async fn oauth(
 		])
 		.send()
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?
-		.json()
+		.map_err(|error| {
+            tracing::error!(error = %error, "could not authenticate using Github");
+            error::ErrorInternalServerError("")
+        })?
+        .json()
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|error| {
+            tracing::error!(error = %error, "invalid payload returned from Github");
+            error::ErrorInternalServerError("")
+        })?;
 
 	let Some(access_token) = body.access_token else {
 		return Err(error::ErrorInternalServerError(""));
@@ -242,12 +248,18 @@ pub async fn oauth(
 	// Get user ID
 	let github_info = User::query_info(&access_token)
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|error| {
+            tracing::info!(error = %error, "could not retrieve user's informations from Github");
+            error::ErrorInternalServerError("")
+        })?;
 
 	let db = data.get_database();
 	let user = User::from_github_id(&db, github_info.id as _)
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|error| {
+            tracing::info!(error = %error, "could not reach database");
+            error::ErrorInternalServerError("")
+        })?;
 	let user = match user {
 		Some(user) => user,
 
@@ -267,7 +279,10 @@ pub async fn oauth(
 			};
 			user.insert(&db)
 				.await
-				.map_err(|_| error::ErrorInternalServerError(""))?;
+				.map_err(|error| {
+                    tracing::error!(error = %error, "could not reach database");
+                    error::ErrorInternalServerError("")
+                })?;
 
 			user
 		}
@@ -301,7 +316,10 @@ pub async fn avatar(user: web::Path<String>) -> actix_web::Result<impl Responder
 		.get(format!("https://github.com/{user}.png"))
 		.send()
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|error| {
+            tracing::error!(error = %error, user, "could not get avatar from Github");
+            error::ErrorInternalServerError("")
+        })?;
 
 	let status = StatusCode::from_u16(response.status().as_u16()).unwrap();
 	let mut builder = HttpResponseBuilder::new(status);
