@@ -1,6 +1,8 @@
 services:
   web:
     build: .
+    depends_on:
+      - mongo
     restart: always
     ports:
       - 8080:8080
@@ -14,6 +16,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
   mongo-express:
     image: mongo-express
+    depends_on:
+      - mongo
     restart: always
     ports:
       - 8081:8081
@@ -26,6 +30,8 @@ services:
       ME_CONFIG_BASICAUTH: "true"
   backup:
     build: backup/
+    depends_on:
+      - mongo
     restart: always
     environment:
       MONGO_ROOT_USERNAME: root
