@@ -18,7 +18,7 @@ tar cf $TIMESTAMP.tar mongodb-$TIMESTAMP
 gzip $TIMESTAMP.tar
  
 # Upload
-aws s3 cp $TIMESTAMP.tar.gz s3://backup/mongodb/$DBNAME
+aws s3 cp $TIMESTAMP.tar.gz s3://maestro/backup/mongodb/$DBNAME
  
 
 # Cleanup
