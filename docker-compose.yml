@@ -24,3 +24,9 @@ services:
       ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_ROOT_PASSWORD}
       ME_CONFIG_MONGODB_URL: mongodb://root:${MONGO_ROOT_PASSWORD}@mongo:27017/
       ME_CONFIG_BASICAUTH: "true"
+  backup:
+    build: backup/
+    restart: always
+    environment:
+      MONGO_ROOT_USERNAME: root
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
