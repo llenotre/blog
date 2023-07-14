@@ -15,7 +15,7 @@ COPY . .
 RUN cargo build --release
 
 # Prepare runtime
-FROM debian:12.0-slim AS runtime
+FROM debian:buster-slim AS runtime
 WORKDIR /usr/src/blog
 COPY --from=build /usr/src/blog/target/release/blog /usr/local/bin
 COPY config.toml .

@@ -20,4 +20,5 @@ COPY backup.sh /usr/bin/backup.sh
 CMD chmod +x /usr/bin/backup.sh
 RUN echo '0 7 * * 0 bash /usr/bin/backup.sh' >>/etc/crontab
 
-ENTRYPOINT ["cron"]
+# Run
+CMD ["cron", "-f"]
