@@ -16,6 +16,8 @@ RUN cargo build --release
 
 # Prepare runtime
 FROM debian:buster-slim AS runtime
+RUN apt-get update
+RUN apt-get install -y libssl-dev ca-certificates
 WORKDIR /usr/src/blog
 COPY --from=build /usr/src/blog/target/release/blog /usr/local/bin
 COPY config.toml .
