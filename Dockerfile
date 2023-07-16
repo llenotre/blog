@@ -20,5 +20,6 @@ RUN apt-get update
 RUN apt-get install -y libssl-dev ca-certificates
 WORKDIR /usr/src/blog
 COPY --from=build /usr/src/blog/target/release/blog /usr/local/bin
+COPY assets/ .
 COPY config.toml .
 ENTRYPOINT ["/usr/local/bin/blog"]
