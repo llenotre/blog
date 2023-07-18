@@ -9,13 +9,12 @@ cd backup/
 
 echo "Performing backup $TIMESTAMP..."
 
-mongodump --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@mongo:27017" --oplog
+mongodump --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@mongo:27017"
 
 echo "Mongodb dump: OK"
  
 # Add timestamp to backup
-mv dump $TIMESTAMP
-tar cf $TIMESTAMP.tar mongodb-$TIMESTAMP
+tar --force-local -cf $TIMESTAMP.tar dump
 gzip $TIMESTAMP.tar
 
 echo "Compression: OK"
