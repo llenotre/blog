@@ -115,7 +115,7 @@ impl Article {
 		&self,
 		db: &mongodb::Database,
 	) -> Result<ArticleContent, mongodb::error::Error> {
-		Ok(ArticleContent::from_id(&db, &self.content_id)
+		Ok(ArticleContent::from_id(db, &self.content_id)
 			.await?
 			.unwrap())
 	}
@@ -497,7 +497,7 @@ async fn editor(
 	let html = html.replace("{article.title}", article_title);
 	let html = html.replace("{article.desc}", article_desc);
 	let html = html.replace("{article.cover_url}", article_cover_url);
-	let html = html.replace("{article.content}", &article_content);
+	let html = html.replace("{article.content}", article_content);
 	let html = html.replace(
 		"{article.published}",
 		if article_public { "checked" } else { "" },
