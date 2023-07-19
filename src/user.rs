@@ -162,7 +162,7 @@ impl User {
 		db: &mongodb::Database,
 		last_post: DateTime<Utc>,
 	) -> Result<(), mongodb::error::Error> {
-		let last_post = format!("{}", last_post.format(util::serde_date_time::FORMAT));
+		let last_post = last_post.to_rfc3339();
 
 		let collection = db.collection::<Self>("user");
 		collection

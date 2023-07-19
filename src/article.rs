@@ -21,7 +21,7 @@ pub struct Article {
 	pub content_id: ObjectId,
 	/// Timestamp since epoch at which the article has been posted.
 	#[serde(with = "util::serde_date_time")]
-	pub post_date: DateTime<Utc>,
+	pub post_date: Option<DateTime<Utc>>,
 }
 
 impl Article {
