@@ -1,5 +1,6 @@
 //! This module handles articles.
 
+use crate::util::DateTimeWrapper;
 use crate::util;
 use bson::oid::ObjectId;
 use bson::Bson;
@@ -20,8 +21,8 @@ pub struct Article {
 	/// The ID of the article's content.
 	pub content_id: ObjectId,
 	/// Timestamp since epoch at which the article has been posted.
-	#[serde(with = "util::serde_date_time")]
-	pub post_date: Option<DateTime<Utc>>,
+    #[serde(flatten)]
+	pub post_date: Option<DateTimeWrapper>,
 }
 
 impl Article {

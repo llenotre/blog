@@ -1,8 +1,12 @@
 //! Module implementing utilities.
 
+use chrono::DateTime;
+use chrono::Utc;
 use lazy_static::lazy_static;
 use pulldown_cmark::{html, Options, Parser};
 use regex::Regex;
+use serde::Deserialize;
+use serde::Serialize;
 
 /// Module handling serialization/deserialization of dates.
 pub mod serde_date_time {
@@ -12,7 +16,6 @@ pub mod serde_date_time {
 	use serde::Deserializer;
 	use serde::Serializer;
 
-	/// Serialize
 	pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: Serializer,
@@ -20,7 +23,6 @@ pub mod serde_date_time {
 		serializer.serialize_str(&date.to_rfc3339())
 	}
 
-	/// Deserialize
 	pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -31,6 +33,10 @@ pub mod serde_date_time {
 			.map_err(serde::de::Error::custom)
 	}
 }
+
+/// Wrapper used to allow serializing/deserializing `Option<DateTime<T>>`.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DateTimeWrapper(#[serde(with = "serde_date_time")] pub DateTime<Utc>);
 
 lazy_static! {
 	/// Email validation regex.
