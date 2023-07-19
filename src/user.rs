@@ -78,7 +78,11 @@ pub struct User {
 
 impl User {
 	/// Queries the access token from the given `code` returned by Github.
-	pub async fn query_access_token(client_id: &str, client_secret: &str, code: &str) -> Result<Option<String>, reqwest::Error> {
+	pub async fn query_access_token(
+		client_id: &str,
+		client_secret: &str,
+		code: &str,
+	) -> Result<Option<String>, reqwest::Error> {
 		let client = reqwest::Client::new();
 		let body: GithubToken = client
 			.post("https://github.com/login/oauth/access_token")

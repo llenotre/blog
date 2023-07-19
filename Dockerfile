@@ -8,7 +8,6 @@ COPY src/ src/
 COPY pages/ pages/
 ADD Cargo.toml .
 ADD Cargo.lock .
-RUN rm -rf target/
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Build
@@ -21,7 +20,6 @@ COPY assets/ assets/
 ADD Cargo.toml .
 ADD Cargo.lock .
 ADD config.toml .
-RUN rm -rf target/
 RUN cargo build --release
 
 # Prepare runtime

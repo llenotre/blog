@@ -1,7 +1,7 @@
 //! This module handles articles.
 
-use crate::util::DateTimeWrapper;
 use crate::util;
+use crate::util::DateTimeWrapper;
 use bson::oid::ObjectId;
 use bson::Bson;
 use chrono::DateTime;
@@ -21,7 +21,7 @@ pub struct Article {
 	/// The ID of the article's content.
 	pub content_id: ObjectId,
 	/// Timestamp since epoch at which the article has been posted.
-    #[serde(flatten)]
+	#[serde(flatten)]
 	pub post_date: Option<DateTimeWrapper>,
 }
 
@@ -71,14 +71,36 @@ impl Article {
 	}
 
 	/// Updates the articles with the given ID.
+	///
+	/// Arguments:
+	/// - `content_id` is the ID of the article's new content.
+	/// - `post_date` is the post date. It is updated if set and only at the first call.
 	pub async fn update(
 		db: &mongodb::Database,
 		id: ObjectId,
-		update: bson::Document,
+		content_id: ObjectId,
+		post_date: Option<DateTime<Utc>>,
 	) -> Result<(), mongodb::error::Error> {
+		let set = if let Some(post_date) = post_date {
+			doc! {
+				"content_id": content_id,
+				"post_date": {
+					"$cond": {
+						"if": { "ifNull": [ "post_date", false ] },
+						"then": post_date,
+						"else": "$post_date"
+					}
+				}
+			}
+		} else {
+			doc! {
+				"content_id": content_id,
+			}
+		};
+
 		let collection = db.collection::<Self>("article");
 		collection
-			.update_one(doc! { "_id": id }, doc! { "$set": update }, None)
+			.update_one(doc! { "_id": id }, doc! { "$set": set }, None)
 			.await
 			.map(|_| ())
 	}

@@ -2,6 +2,7 @@
 
 use crate::user::User;
 use crate::util;
+use actix_web::error;
 use async_recursion::async_recursion;
 use bson::doc;
 use bson::oid::ObjectId;
@@ -11,7 +12,6 @@ use futures_util::stream::TryStreamExt;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use actix_web::error;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;

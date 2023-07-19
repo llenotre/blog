@@ -1,16 +1,16 @@
-use actix_web::{Either, error, get, HttpResponse, post, Responder, web};
-use actix_session::Session;
-use bson::oid::ObjectId;
-use crate::util::DateTimeWrapper;
-use actix_web::http::header::ContentType;
-use serde::Deserialize;
-use chrono::Utc;
-use bson::doc;
-use actix_web::web::Redirect;
 use crate::article::{Article, ArticleContent};
-use crate::{GlobalData, user, util};
-use crate::comment::{Comment, comment_to_html, get_comment_editor, group_comments};
+use crate::comment::{comment_to_html, get_comment_editor, group_comments, Comment};
 use crate::user::User;
+use crate::util::DateTimeWrapper;
+use crate::{user, util, GlobalData};
+use actix_session::Session;
+use actix_web::http::header::ContentType;
+use actix_web::web::Redirect;
+use actix_web::{error, get, post, web, Either, HttpResponse, Responder};
+use bson::doc;
+use bson::oid::ObjectId;
+use chrono::Utc;
+use serde::Deserialize;
 
 #[get("/article/{id}/{title}")]
 pub async fn get(
@@ -48,11 +48,11 @@ pub async fn get(
 	if (!content.public || article.post_date.is_none()) && !admin {
 		return Err(error::ErrorNotFound(""));
 	}
-    let post_date = if let Some(post_date) = article.post_date {
-        post_date.0.to_rfc3339()
-    } else {
-        "<not posted yet>".to_string()
-    };
+	let post_date = if let Some(post_date) = article.post_date {
+		post_date.0.to_rfc3339()
+	} else {
+		"not posted yet".to_string()
+	};
 
 	let html = include_str!("../../pages/article.html");
 	let html = html.replace("{article.tags}", &content.tags);
@@ -241,16 +241,16 @@ pub async fn post(
 	}
 
 	let info = info.into_inner();
-    let public = info.public.map(|p| p == "on").unwrap_or(false);
-    let sponsor = info.sponsor.map(|p| p == "on").unwrap_or(false);
-    let comments_locked = info.comments_locked.map(|p| p == "on").unwrap_or(false);
+	let public = info.public.map(|p| p == "on").unwrap_or(false);
+	let sponsor = info.sponsor.map(|p| p == "on").unwrap_or(false);
+	let comments_locked = info.comments_locked.map(|p| p == "on").unwrap_or(false);
 	let date = Utc::now();
 
-    let post_date = if public {
-        Some(DateTimeWrapper(date))
-    } else {
-        None
-    };
+	let post_date = if public {
+		Some(DateTimeWrapper(date))
+	} else {
+		None
+	};
 
 	let id = match info.id {
 		// Update article
@@ -272,27 +272,17 @@ pub async fn post(
 
 				edit_date: date,
 			};
-			let content_id = content
-				.insert(&db)
-				.await
-				.map_err(|_| error::ErrorInternalServerError(""))?;
+			let content_id = content.insert(&db).await.map_err(|e| {
+				tracing::error!(error = %e, "mongodb");
+				error::ErrorInternalServerError("")
+			})?;
 
-			Article::update(
-				&db,
-				id,
-				doc! {
-					"content_id": content_id,
-                    "post_date": {
-                        "$cond": [
-                            { "$not": ["post_date"] },
-                            post_date.map(|d| d.0),
-                            "$post_date"
-                        ]
-                    }
-				},
-			)
-			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?;
+			Article::update(&db, id, content_id, post_date.map(|d| d.0))
+				.await
+				.map_err(|e| {
+					tracing::error!(error = %e, "mongodb");
+					error::ErrorInternalServerError("")
+				})?;
 
 			id_str
 		}
@@ -316,20 +306,20 @@ pub async fn post(
 
 				edit_date: date,
 			};
-			let content_id = content
-				.insert(&db)
-				.await
-				.map_err(|_| error::ErrorInternalServerError(""))?;
+			let content_id = content.insert(&db).await.map_err(|e| {
+				tracing::error!(error = %e, "mongodb");
+				error::ErrorInternalServerError("")
+			})?;
 
 			let a = Article {
 				id: article_id,
 				content_id,
 				post_date,
 			};
-			let id = a
-				.insert(&db)
-				.await
-				.map_err(|_| error::ErrorInternalServerError(""))?;
+			let id = a.insert(&db).await.map_err(|e| {
+				tracing::error!(error = %e, "mongodb");
+				error::ErrorInternalServerError("")
+			})?;
 
 			id.as_object_id().unwrap().to_string()
 		}
