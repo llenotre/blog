@@ -7,7 +7,7 @@ use chrono::Utc;
 use bson::doc;
 use actix_web::web::Redirect;
 use crate::article::{Article, ArticleContent};
-use crate::{GlobalData, markdown, user};
+use crate::{GlobalData, user, util};
 use crate::comment::{Comment, comment_to_html, get_comment_editor, group_comments};
 use crate::user::User;
 
@@ -56,7 +56,7 @@ pub async fn get(
 	let html = html.replace("{article.date}", &article.post_date.to_rfc3339());
 	let html = html.replace("{article.desc}", &content.desc);
 	let html = html.replace("{article.cover_url}", &content.cover_url);
-	let markdown = markdown::to_html(&content.content, false);
+	let markdown = util::markdown_to_html(&content.content, false);
 	let html = html.replace("{article.content}", &markdown);
 
 	let user_id = session

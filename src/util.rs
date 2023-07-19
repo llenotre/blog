@@ -1,6 +1,7 @@
 //! Module implementing utilities.
 
 use lazy_static::lazy_static;
+use pulldown_cmark::{html, Options, Parser};
 use regex::Regex;
 
 /// Module handling serialization/deserialization of dates.
@@ -43,4 +44,23 @@ lazy_static! {
 /// Tells whether the given email is valid.
 pub fn validate_email(email: &str) -> bool {
 	EMAIL_VALIDATION.is_match(email)
+}
+
+/// Converts the given Markdown to HTML.
+///
+/// Arguments:
+/// - `md` is the Markdown content.
+/// - `escape` tells whether unsafe HTML must be sanitized.
+pub fn markdown_to_html(md: &str, escape: bool) -> String {
+	let options = Options::all();
+	let parser = Parser::new_ext(md, options);
+
+	let mut html_output = String::new();
+	html::push_html(&mut html_output, parser);
+
+	if escape {
+		ammonia::clean(&html_output)
+	} else {
+		html_output
+	}
 }

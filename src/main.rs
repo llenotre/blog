@@ -1,7 +1,6 @@
-mod analytics;
+mod middleware;
 mod article;
 mod comment;
-mod markdown;
 mod newsletter;
 mod route;
 mod user;
@@ -14,7 +13,7 @@ use actix_session::Session;
 use actix_session::SessionMiddleware;
 use actix_web::{
 	body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, error, get, http::header,
-	http::header::ContentType, http::header::HeaderValue, middleware,
+	http::header::ContentType, http::header::HeaderValue,
 	middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web, App, HttpResponse,
 	HttpServer, Responder,
 };
@@ -26,6 +25,8 @@ use std::env;
 use std::fs;
 use std::io;
 use std::process::exit;
+use actix_web::middleware::Logger;
+use crate::middleware::analytics::Analytics;
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -333,7 +334,7 @@ async fn main() -> io::Result<()> {
 			.service(route::user::logout)
 			.service(route::user::oauth)
 			.wrap(ErrorHandlers::new().default_handler(error_handler))
-			.wrap(analytics::Analytics {
+			.wrap(Analytics {
 				global: data.clone().into_inner(),
 			})
 			.wrap(SessionMiddleware::new(
@@ -342,7 +343,7 @@ async fn main() -> io::Result<()> {
 			))
 			.app_data(data.clone())
 			.app_data(web::PayloadConfig::new(1024 * 1024))
-			.wrap(middleware::Logger::new(
+			.wrap(Logger::new(
 				"[%t] %a: %r - Response: %s (in %D ms)",
 			))
 	})
