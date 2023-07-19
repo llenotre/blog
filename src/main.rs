@@ -1,21 +1,22 @@
-mod middleware;
 mod article;
 mod comment;
+mod middleware;
 mod newsletter;
 mod route;
 mod user;
 mod util;
 
+use crate::middleware::analytics::Analytics;
 use crate::user::User;
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
 use actix_session::Session;
 use actix_session::SessionMiddleware;
+use actix_web::middleware::Logger;
 use actix_web::{
 	body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, error, get, http::header,
-	http::header::ContentType, http::header::HeaderValue,
-	middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web, App, HttpResponse,
-	HttpServer, Responder,
+	http::header::ContentType, http::header::HeaderValue, middleware::ErrorHandlerResponse,
+	middleware::ErrorHandlers, web, App, HttpResponse, HttpServer, Responder,
 };
 use article::Article;
 use base64::Engine;
@@ -25,8 +26,6 @@ use std::env;
 use std::fs;
 use std::io;
 use std::process::exit;
-use actix_web::middleware::Logger;
-use crate::middleware::analytics::Analytics;
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -92,10 +91,11 @@ async fn root(data: web::Data<GlobalData>, session: Session) -> actix_web::Resul
 			continue;
 		}
 
-		let Some(post_date) = article.post_date else {
-            continue;
-        };
-        let post_date = post_date.0.to_rfc3339();
+		let post_date = if let Some(post_date) = article.post_date {
+			post_date.0.to_rfc3339()
+		} else {
+			"not posted yet".to_string()
+		};
 
 		let mut tags = vec![];
 
@@ -228,9 +228,9 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 	let mut items_str = String::new();
 	for a in articles {
 		let Some(ref post_date) = a.post_date else {
-            continue;
-        };
-        let post_date = post_date.0.to_rfc2822();
+			continue;
+		};
+		let post_date = post_date.0.to_rfc2822();
 
 		let content = a
 			.get_content(&db)
@@ -351,9 +351,7 @@ async fn main() -> io::Result<()> {
 			))
 			.app_data(data.clone())
 			.app_data(web::PayloadConfig::new(1024 * 1024))
-			.wrap(Logger::new(
-				"[%t] %a: %r - Response: %s (in %D ms)",
-			))
+			.wrap(Logger::new("[%t] %a: %r - Response: %s (in %D ms)"))
 	})
 	.bind(format!("0.0.0.0:{}", config.port))?
 	.run()

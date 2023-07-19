@@ -1,13 +1,13 @@
-use actix_web::{delete, error, HttpResponse, patch, post, Responder, web};
+use crate::article::Article;
+use crate::comment::{Comment, CommentContent, MAX_CHARS};
+use crate::user::User;
+use crate::GlobalData;
 use actix_session::Session;
+use actix_web::{delete, error, patch, post, web, HttpResponse, Responder};
 use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
 use std::time::Duration;
-use crate::article::Article;
-use crate::comment::{Comment, CommentContent, MAX_CHARS};
-use crate::GlobalData;
-use crate::user::User;
 
 /// Minimum post cooldown.
 const INTERVAL: Duration = Duration::from_secs(10);
@@ -60,8 +60,8 @@ pub async fn post(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(user) = user else {
-        return Err(error::ErrorForbidden("forbidden"));
-    };
+		return Err(error::ErrorForbidden("forbidden"));
+	};
 
 	if !article_content.public && !user.admin {
 		return Err(error::ErrorNotFound("article not found"));
@@ -151,8 +151,8 @@ pub async fn edit(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(user) = user else {
-        return Err(error::ErrorForbidden("forbidden"));
-    };
+		return Err(error::ErrorForbidden("forbidden"));
+	};
 
 	// Check user's cooldown
 	if !user.admin {

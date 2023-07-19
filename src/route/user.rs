@@ -1,12 +1,12 @@
-use actix_web::{error, get, HttpResponseBuilder, Responder, web};
+use crate::user::User;
+use crate::{user, GlobalData};
 use actix_session::Session;
-use bson::oid::ObjectId;
-use chrono::Utc;
 use actix_web::http::StatusCode;
 use actix_web::web::Redirect;
+use actix_web::{error, get, web, HttpResponseBuilder, Responder};
+use bson::oid::ObjectId;
+use chrono::Utc;
 use serde::Deserialize;
-use crate::{GlobalData, user};
-use crate::user::{User};
 
 #[get("/auth")]
 pub async fn auth(data: web::Data<GlobalData>) -> impl Responder {
@@ -31,10 +31,12 @@ pub async fn oauth(
 	};
 
 	// Get access token
-	let access_token = User::query_access_token(&data.client_id, &data.client_secret, &code).await.map_err(|error| {
-		tracing::error!(error = %error, "could not retrieve access token from Github");
-		error::ErrorInternalServerError("")
-	})?;
+	let access_token = User::query_access_token(&data.client_id, &data.client_secret, &code)
+		.await
+		.map_err(|error| {
+			tracing::error!(error = %error, "could not retrieve access token from Github");
+			error::ErrorInternalServerError("")
+		})?;
 	let Some(access_token) = access_token else {
 		// TODO log
 		return Err(error::ErrorInternalServerError(""));
