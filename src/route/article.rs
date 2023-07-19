@@ -1,6 +1,7 @@
 use actix_web::{Either, error, get, HttpResponse, post, Responder, web};
 use actix_session::Session;
 use bson::oid::ObjectId;
+use crate::util::DateTimeWrapper;
 use actix_web::http::header::ContentType;
 use serde::Deserialize;
 use chrono::Utc;
@@ -18,7 +19,6 @@ pub async fn get(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let (id_str, title) = path.into_inner();
-
 	let id = ObjectId::parse_str(&id_str).map_err(|_| error::ErrorBadRequest(""))?;
 
 	let db = data.get_database();
@@ -48,12 +48,17 @@ pub async fn get(
 	if !content.public && !admin {
 		return Err(error::ErrorNotFound(""));
 	}
+    let Some(post_date) = article.post_date else {
+		return Err(error::ErrorNotFound(""));
+    };
+    let post_date = post_date.0.to_rfc3339();
+
 	let html = include_str!("../../pages/article.html");
 	let html = html.replace("{article.tags}", &content.tags);
 	let html = html.replace("{article.id}", &id_str);
 	let html = html.replace("{article.url}", &content.get_url());
 	let html = html.replace("{article.title}", &content.title);
-	let html = html.replace("{article.date}", &article.post_date.to_rfc3339());
+	let html = html.replace("{article.date}", &post_date);
 	let html = html.replace("{article.desc}", &content.desc);
 	let html = html.replace("{article.cover_url}", &content.cover_url);
 	let markdown = util::markdown_to_html(&content.content, false);
@@ -234,9 +239,18 @@ pub async fn post(
 		return Err(error::ErrorForbidden(""));
 	}
 
+	let info = info.into_inner();
+    let public = info.public.map(|p| p == "on").unwrap_or(false);
+    let sponsor = info.sponsor.map(|p| p == "on").unwrap_or(false);
+    let comments_locked = info.comments_locked.map(|p| p == "on").unwrap_or(false);
 	let date = Utc::now();
 
-	let info = info.into_inner();
+    let post_date = if public {
+        Some(DateTimeWrapper(date))
+    } else {
+        None
+    };
+
 	let id = match info.id {
 		// Update article
 		Some(id_str) => {
@@ -251,9 +265,9 @@ pub async fn post(
 				cover_url: info.cover_url,
 				content: info.content,
 				tags: info.tags,
-				public: info.public.map(|p| p == "on").unwrap_or(false),
-				sponsor: info.sponsor.map(|p| p == "on").unwrap_or(false),
-				comments_locked: info.comments_locked.map(|p| p == "on").unwrap_or(false),
+				public,
+				sponsor,
+				comments_locked,
 
 				edit_date: date,
 			};
@@ -267,6 +281,13 @@ pub async fn post(
 				id,
 				doc! {
 					"content_id": content_id,
+                    "post_date": {
+                        "$cond": [
+                            { "$not": ["post_date"] },
+                            post_date.map(|d| d.0),
+                            "$post_date"
+                        ]
+                    }
 				},
 			)
 			.await
@@ -288,9 +309,9 @@ pub async fn post(
 				cover_url: info.cover_url,
 				content: info.content,
 				tags: info.tags,
-				public: info.public.map(|p| p == "on").unwrap_or(false),
-				sponsor: info.sponsor.map(|p| p == "on").unwrap_or(false),
-				comments_locked: info.comments_locked.map(|p| p == "on").unwrap_or(false),
+				public,
+				sponsor,
+				comments_locked,
 
 				edit_date: date,
 			};
@@ -302,7 +323,7 @@ pub async fn post(
 			let a = Article {
 				id: article_id,
 				content_id,
-				post_date: date,
+				post_date,
 			};
 			let id = a
 				.insert(&db)
@@ -313,6 +334,5 @@ pub async fn post(
 		}
 	};
 
-	// Redirect user
 	Ok(Redirect::to(format!("/article/{}/redirect", id)).see_other())
 }

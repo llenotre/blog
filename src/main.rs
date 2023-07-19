@@ -91,7 +91,11 @@ async fn root(data: web::Data<GlobalData>, session: Session) -> actix_web::Resul
 		if !admin && !content.public {
 			continue;
 		}
-		let post_date = article.post_date.to_rfc3339();
+
+		let Some(post_date) = article.post_date else {
+            continue;
+        };
+        let post_date = post_date.0.to_rfc3339();
 
 		let mut tags = vec![];
 
@@ -223,7 +227,11 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 
 	let mut items_str = String::new();
 	for a in articles {
-		let date = a.post_date.to_rfc2822();
+		let Some(ref post_date) = a.post_date else {
+            continue;
+        };
+        let post_date = post_date.0.to_rfc2822();
+
 		let content = a
 			.get_content(&db)
 			.await
@@ -231,7 +239,7 @@ async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 		let url = content.get_url();
 
 		items_str.push_str(&format!(
-			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
+			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{post_date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
 			title = content.title,
 			desc = content.desc
 		));
