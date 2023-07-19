@@ -30,7 +30,7 @@ pub fn get_auth_url(client_id: &str) -> String {
 pub fn redirect_to_last_article(session: &Session) -> Redirect {
 	let last_article = session.get::<String>("last_article");
 	let uri = match last_article {
-		Ok(Some(last_article)) => format!("/article/{}/redirect", last_article),
+		Ok(Some(last_article)) => format!("/article/{last_article}/redirect"),
 		_ => "/".to_owned(),
 	};
 
@@ -297,12 +297,9 @@ pub async fn oauth(
 
 #[get("/logout")]
 pub async fn logout(session: Session) -> actix_web::Result<impl Responder> {
-	// End session
-	let _ = session.remove("user_id");
-	let _ = session.remove("user_login");
-
-	// Redirect user
-	Ok(redirect_to_last_article(&session))
+	let redirect = redirect_to_last_article(&session);
+	session.purge();
+	Ok(redirect)
 }
 
 /// Avatar proxy, used to protect non-logged users from Github (RGPD)

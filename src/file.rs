@@ -98,7 +98,6 @@ pub async fn manage(
 		.body(html))
 }
 
-// TODO if uploaded file has size zero, cancel
 #[post("/file/upload")]
 pub async fn upload(
 	data: web::Data<GlobalData>,
