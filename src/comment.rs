@@ -382,7 +382,10 @@ pub async fn comment_to_html(
 			content.edit_date.to_rfc3339()
 		)
 	} else {
-		format!(r#"<span id="date-long">{}</span>"#, comment.post_date.to_rfc3339())
+		format!(
+			r#"<span id="date-long">{}</span>"#,
+			comment.post_date.to_rfc3339()
+		)
 	};
 	if comment.removed && admin {
 		date_text.push_str(" - REMOVED");

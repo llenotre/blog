@@ -1,9 +1,9 @@
 //! This module implements analytics.
 
-use actix_session::Session;
-use actix_session::SessionExt;
 use crate::util;
 use crate::GlobalData;
+use actix_session::Session;
+use actix_session::SessionExt;
 use actix_web::dev::forward_ready;
 use actix_web::dev::Service;
 use actix_web::dev::ServiceRequest;
@@ -93,11 +93,11 @@ where
 	forward_ready!(service);
 
 	fn call(&self, req: ServiceRequest) -> Self::Future {
-        // Get user login, if logged
-        let (req, payload) = req.into_parts();
-        let session: Session = req.get_session();
-        let logged_user = session.get("user_login").ok().flatten();
-        let req = ServiceRequest::from_parts(req, payload);
+		// Get user login, if logged
+		let (req, payload) = req.into_parts();
+		let session: Session = req.get_session();
+		let logged_user = session.get("user_login").ok().flatten();
+		let req = ServiceRequest::from_parts(req, payload);
 
 		let request = req.request();
 		if let Some(addr) = request.peer_addr() {
