@@ -45,13 +45,14 @@ pub async fn get(
 	let admin = User::check_admin(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
-	if !content.public && !admin {
+	if (!content.public || article.post_date.is_none()) && !admin {
 		return Err(error::ErrorNotFound(""));
 	}
-    let Some(post_date) = article.post_date else {
-		return Err(error::ErrorNotFound(""));
+    let post_date = if let Some(post_date) = article.post_date {
+        post_date.0.to_rfc3339()
+    } else {
+        "<not posted yet>".to_string()
     };
-    let post_date = post_date.0.to_rfc3339();
 
 	let html = include_str!("../../pages/article.html");
 	let html = html.replace("{article.tags}", &content.tags);
