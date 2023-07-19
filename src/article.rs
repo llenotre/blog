@@ -81,26 +81,24 @@ impl Article {
 		content_id: ObjectId,
 		post_date: Option<DateTime<Utc>>,
 	) -> Result<(), mongodb::error::Error> {
-		let set = if let Some(post_date) = post_date {
-			doc! {
-				"content_id": content_id,
-				"post_date": {
-					"$cond": {
-						"if": { "ifNull": [ "post_date", false ] },
-						"then": post_date,
-						"else": "$post_date"
-					}
-				}
-			}
-		} else {
-			doc! {
-				"content_id": content_id,
-			}
-		};
-
 		let collection = db.collection::<Self>("article");
+
+		if let Some(post_date) = post_date {
+			collection
+				.update_one(
+					doc! { "_id": id, "post_date": { "$exists": false } },
+					doc! { "$set": { "post_date": post_date } },
+					None,
+				)
+				.await?;
+		}
+
 		collection
-			.update_one(doc! { "_id": id }, doc! { "$set": set }, None)
+			.update_one(
+				doc! { "_id": id },
+				doc! { "$set": { "content_id": content_id } },
+				None,
+			)
 			.await
 			.map(|_| ())
 	}
