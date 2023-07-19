@@ -52,7 +52,7 @@ pub async fn manage(
 		return Err(error::ErrorForbidden(""));
 	}
 
-	let html = include_str!("../pages/file_manage.html");
+	let html = include_str!("../../pages/file_manage.html");
 
 	let bucket = db.gridfs_bucket(None);
 
