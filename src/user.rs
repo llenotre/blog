@@ -1,9 +1,8 @@
 //! This module implements user accounts.
 
 use crate::util;
-use crate::GlobalData;
 use actix_session::Session;
-use actix_web::{error, get, http::StatusCode, web, web::Redirect, HttpResponseBuilder, Responder};
+use actix_web::web::Redirect;
 use bson::doc;
 use bson::oid::ObjectId;
 use chrono::DateTime;
@@ -20,10 +19,7 @@ const GITHUB_API_VERSION: &str = "2022-11-28";
 
 /// Returns the authentication URL.
 pub fn get_auth_url(client_id: &str) -> String {
-	format!(
-		"https://github.com/login/oauth/authorize?client_id={}",
-		client_id
-	)
+	format!("https://github.com/login/oauth/authorize?client_id={client_id}")
 }
 
 /// Returns a redirection to the last article consulted by the session's user.
@@ -35,13 +31,6 @@ pub fn redirect_to_last_article(session: &Session) -> Redirect {
 	};
 
 	Redirect::to(uri).see_other()
-}
-
-/// The query containing informations returned by Github for OAuth.
-#[derive(Deserialize)]
-pub struct OauthQuery {
-	/// The code allowing to retrieve the user's token.
-	code: Option<String>,
 }
 
 /// Payload describing the Github access token for a user.
@@ -88,6 +77,28 @@ pub struct User {
 }
 
 impl User {
+	/// Queries the access token from the given `code` returned by Github.
+	pub async fn query_access_token(client_id: &str, client_secret: &str, code: &str) -> Result<Option<String>, reqwest::Error> {
+		let client = reqwest::Client::new();
+		let body: GithubToken = client
+			.post("https://github.com/login/oauth/access_token")
+			.header("Accept", "application/json")
+			.header("User-Agent", GITHUB_USER_AGENT)
+			.header("X-GitHub-Api-Version", GITHUB_API_VERSION)
+			.query(&[
+				("client_id", client_id),
+				("client_secret", client_secret),
+				("code", code),
+			])
+			.send()
+			.await?
+			.json()
+			.await?;
+
+		// TODO handle Github's error message
+		Ok(body.access_token)
+	}
+
 	/// Queries user informations from Github.
 	///
 	/// `access_token` is the access token.
@@ -197,132 +208,5 @@ impl User {
 	) -> Result<bool, mongodb::error::Error> {
 		let user = Self::current_user(db, session).await?;
 		Ok(user.map(|u| u.admin).unwrap_or(false))
-	}
-}
-
-#[get("/auth")]
-pub async fn auth(data: web::Data<GlobalData>) -> impl Responder {
-	Redirect::to(get_auth_url(&data.client_id)).see_other()
-}
-
-#[get("/oauth")]
-pub async fn oauth(
-	data: web::Data<GlobalData>,
-	query: web::Query<OauthQuery>,
-	session: Session,
-) -> actix_web::Result<impl Responder> {
-	let Some(code) = query.into_inner().code else {
-		return Err(error::ErrorBadRequest(""));
-	};
-
-	// Make call to Github to retrieve token
-	let client = reqwest::Client::new();
-	let body: GithubToken = client
-		.post("https://github.com/login/oauth/access_token")
-		.header("Accept", "application/json")
-		.header("User-Agent", GITHUB_USER_AGENT)
-		.header("X-GitHub-Api-Version", GITHUB_API_VERSION)
-		.query(&[
-			("client_id", &data.client_id),
-			("client_secret", &data.client_secret),
-			("code", &code),
-		])
-		.send()
-		.await
-		.map_err(|error| {
-			tracing::error!(error = %error, "could not authenticate using Github");
-			error::ErrorInternalServerError("")
-		})?
-		.json()
-		.await
-		.map_err(|error| {
-			tracing::error!(error = %error, "invalid payload returned from Github");
-			error::ErrorInternalServerError("")
-		})?;
-
-	let Some(access_token) = body.access_token else {
-		return Err(error::ErrorInternalServerError(""));
-	};
-
-	// Get user ID
-	let github_info = User::query_info(&access_token).await.map_err(|error| {
-		tracing::info!(error = %error, "could not retrieve user's informations from Github");
-		error::ErrorInternalServerError("")
-	})?;
-
-	let db = data.get_database();
-	let user = User::from_github_id(&db, github_info.id as _)
-		.await
-		.map_err(|error| {
-			tracing::info!(error = %error, "could not reach database");
-			error::ErrorInternalServerError("")
-		})?;
-	let user = match user {
-		Some(user) => user,
-
-		None => {
-			// Insert new user
-			let user = User {
-				id: ObjectId::new(),
-
-				access_token,
-				github_info,
-
-				admin: false,
-				banned: false,
-
-				register_time: Utc::now(),
-				last_post: Default::default(),
-			};
-			user.insert(&db).await.map_err(|error| {
-				tracing::error!(error = %error, "could not reach database");
-				error::ErrorInternalServerError("")
-			})?;
-
-			user
-		}
-	};
-
-	// Create user's session
-	session.insert("user_id", user.id.to_hex())?;
-	session.insert("user_login", user.github_info.login)?;
-
-	// Redirect user
-	Ok(redirect_to_last_article(&session))
-}
-
-#[get("/logout")]
-pub async fn logout(session: Session) -> actix_web::Result<impl Responder> {
-	let redirect = redirect_to_last_article(&session);
-	session.purge();
-	Ok(redirect)
-}
-
-/// Avatar proxy, used to protect non-logged users from Github (RGPD)
-#[get("/avatar/{user}")]
-pub async fn avatar(user: web::Path<String>) -> actix_web::Result<impl Responder> {
-	let user = user.into_inner();
-
-	let client = reqwest::Client::new();
-	let response = client
-		.get(format!("https://github.com/{user}.png"))
-		.send()
-		.await
-		.map_err(|error| {
-			tracing::error!(error = %error, user, "could not get avatar from Github");
-			error::ErrorInternalServerError("")
-		})?;
-
-	let status = StatusCode::from_u16(response.status().as_u16()).unwrap();
-	let mut builder = HttpResponseBuilder::new(status);
-	if let Some(content_type) = response.headers().get("Content-Type") {
-		Ok(builder
-			.content_type(content_type)
-			.insert_header(("Cache-Control", "max-age=604800"))
-			.streaming(response.bytes_stream()))
-	} else {
-		Ok(builder
-			.insert_header(("Cache-Control", "max-age=604800"))
-			.streaming(response.bytes_stream()))
 	}
 }

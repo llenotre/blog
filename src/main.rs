@@ -1,9 +1,9 @@
 mod analytics;
 mod article;
 mod comment;
-mod file;
 mod markdown;
 mod newsletter;
+mod route;
 mod user;
 mod util;
 
@@ -311,27 +311,27 @@ async fn main() -> io::Result<()> {
 	HttpServer::new(move || {
 		App::new()
 			.service(Files::new("/assets", "./assets"))
-			.service(article::editor)
-			.service(article::get)
-			.service(article::post)
+			.service(route::article::editor)
+			.service(route::article::get)
+			.service(route::article::post)
 			.service(bio)
-			.service(comment::delete)
-			.service(comment::edit)
-			.service(comment::post)
-			.service(file::delete)
-			.service(file::get)
-			.service(file::manage)
-			.service(file::upload)
+			.service(route::comment::delete)
+			.service(route::comment::edit)
+			.service(route::comment::post)
+			.service(route::file::delete)
+			.service(route::file::get)
+			.service(route::file::manage)
+			.service(route::file::upload)
 			.service(legal)
 			.service(newsletter::subscribe)
 			.service(robots)
 			.service(root)
 			.service(rss)
 			.service(sitemap)
-			.service(user::auth)
-			.service(user::avatar)
-			.service(user::logout)
-			.service(user::oauth)
+			.service(route::user::auth)
+			.service(route::user::avatar)
+			.service(route::user::logout)
+			.service(route::user::oauth)
 			.wrap(ErrorHandlers::new().default_handler(error_handler))
 			.wrap(analytics::Analytics {
 				global: data.clone().into_inner(),
