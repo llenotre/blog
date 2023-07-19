@@ -38,27 +38,14 @@ pub struct Article {
 }
 
 impl Article {
-	/// Returns the total number of articles.
-	pub async fn get_total_count(db: &mongodb::Database) -> Result<u32, mongodb::error::Error> {
-		let collection = db.collection::<Self>("article");
-		collection.count_documents(None, None).await.map(|n| n as _)
-	}
-
-	/// Returns the list of articles for the given page.
+	/// Returns the list of articles.
 	///
-	/// Arguments:
-	/// - `db` is the database.
-	/// - `page` is the page number.
-	/// - `per_page` is the number of articles per page.
+	/// `db` is the database.
 	pub async fn list(
 		db: &mongodb::Database,
-		page: u32,
-		per_page: u32,
 	) -> Result<Vec<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("article");
 		let find_options = FindOptions::builder()
-			.skip(Some((page * per_page) as _))
-			.limit(Some(per_page as _))
 			.sort(Some(doc! {
 				"post_date": -1
 			}))
@@ -426,7 +413,7 @@ pub async fn post(
 	};
 
 	// Redirect user
-	Ok(Redirect::to(format!("/article/{}", id)).see_other())
+	Ok(Redirect::to(format!("/article/{}/redirect", id)).see_other())
 }
 
 /// Editor page query.
@@ -437,7 +424,7 @@ pub struct EditorQuery {
 }
 
 #[get("/editor")]
-async fn editor(
+pub async fn editor(
 	data: web::Data<GlobalData>,
 	query: web::Query<EditorQuery>,
 	session: Session,

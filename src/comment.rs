@@ -209,7 +209,7 @@ pub fn get_comment_editor(
 	content: Option<&str>,
 ) -> String {
 	let id = comment_id
-		.map(|s| format!("{}", s))
+		.map(|s| s.to_string())
 		.unwrap_or("null".to_owned());
 	let id_quoted = comment_id
 		.map(|s| format!("'{}'", s))
@@ -502,7 +502,7 @@ pub async fn post(
 	}
 
 	let id = ObjectId::new();
-	let date = chrono::offset::Utc::now();
+	let date = Utc::now();
 
 	// Insert comment content
 	let comment_content = CommentContent {
@@ -602,7 +602,7 @@ pub async fn edit(
 	}
 
 	// Insert comment content
-	let date = chrono::offset::Utc::now();
+	let date = Utc::now();
 	let comment_content = CommentContent {
 		comment_id,
 

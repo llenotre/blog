@@ -7,7 +7,6 @@ mod newsletter;
 mod user;
 mod util;
 
-use crate::newsletter::EmailWorker;
 use crate::user::User;
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
@@ -21,15 +20,11 @@ use actix_web::{
 };
 use article::Article;
 use mongodb::options::ClientOptions;
-use mongodb::Client;
 use serde::Deserialize;
 use std::env;
 use std::fs;
 use std::io;
 use std::process::exit;
-
-/// The number of articles per page.
-const ARTICLES_PER_PAGE: u32 = 10;
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -51,7 +46,7 @@ struct Config {
 	discord_invite: String,
 }
 
-/// Structure shared accross the server.
+/// Structure shared across the server.
 pub struct GlobalData {
 	/// The connection to the MongoDB database.
 	pub mongo: mongodb::Client,
@@ -72,38 +67,20 @@ impl GlobalData {
 	}
 }
 
-/// Query specifying the current page.
-#[derive(Deserialize)]
-pub struct PageQuery {
-	/// The current page number.
-	page: Option<u32>,
-}
-
 #[get("/")]
 async fn root(
 	data: web::Data<GlobalData>,
-	page: web::Query<PageQuery>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let page = page.into_inner().page.unwrap_or(0);
-
 	let db = data.get_database();
 	let admin = User::check_admin(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
 	// Get articles
-	let total_articles = Article::get_total_count(&db)
+	let articles = Article::list(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
-	let articles = Article::list(&db, page, ARTICLES_PER_PAGE)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-
-	let pages_count = util::ceil_div(total_articles, ARTICLES_PER_PAGE);
-	if page != 0 && page >= pages_count {
-		return Err(error::ErrorNotFound(""));
-	}
 
 	// Produce articles HTML
 	let mut articles_html = String::new();
@@ -165,24 +142,6 @@ async fn root(
 	let html = html.replace("{discord.invite}", &data.discord_invite);
 	let html = html.replace("{articles}", &articles_html);
 
-	// TODO
-	/*let prev_button_html = if page > 0 {
-		format!(
-			"<a href=\"?page={}\" class=\"button page-button\">Previous Page</a>",
-			page - 1
-		)
-	} else {
-		String::new()
-	};
-	let next_button_html = if page + 1 < pages_count {
-		format!("<a href=\"?page={}\" class=\"button page-button\" style=\"margin-left: auto;\">Next Page</a>", page + 1)
-	} else {
-		String::new()
-	};
-
-	let html = html.replace("{button.prev}", &prev_button_html);
-	let html = html.replace("{button.next}", &next_button_html);*/
-
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::html())
 		.body(html))
@@ -220,7 +179,7 @@ async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 	urls.push(("/legal".to_owned(), None));
 
 	let db = data.get_database();
-	let articles = Article::list(&db, 0, 100)
+	let articles = Article::list(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	for a in articles {
@@ -259,7 +218,7 @@ async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 #[get("/rss")]
 async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 	let db = data.get_database();
-	let articles = Article::list(&db, 0, 100)
+	let articles = Article::list(&db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -326,10 +285,17 @@ async fn main() -> io::Result<()> {
 			exit(1);
 		});
 
-	// TODO handle errors
 	// Open database connection
-	let client_options = ClientOptions::parse(&config.mongo_url).await.unwrap();
-	let client = Client::with_options(client_options).unwrap();
+	let client_options = ClientOptions::parse(&config.mongo_url).await
+		.unwrap_or_else(|e| {
+			eprintln!("mongodb: {e}");
+			exit(1);
+		});
+	let client = mongodb::Client::with_options(client_options)
+		.unwrap_or_else(|e| {
+			eprintln!("mongodb: {e}");
+			exit(1);
+		});
 
 	let data = web::Data::new(GlobalData {
 		mongo: client,
@@ -338,13 +304,6 @@ async fn main() -> io::Result<()> {
 		client_secret: config.client_secret,
 
 		discord_invite: config.discord_invite,
-	});
-
-	// Run the email worker
-	let data_clone = data.clone();
-	tokio::spawn(async {
-		let email_worker = EmailWorker::new(data_clone);
-		email_worker.run().await;
 	});
 
 	HttpServer::new(move || {
