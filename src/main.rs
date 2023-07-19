@@ -19,6 +19,7 @@ use actix_web::{
 	HttpServer, Responder,
 };
 use article::Article;
+use base64::Engine;
 use mongodb::options::ClientOptions;
 use serde::Deserialize;
 use std::env;
@@ -68,10 +69,7 @@ impl GlobalData {
 }
 
 #[get("/")]
-async fn root(
-	data: web::Data<GlobalData>,
-	session: Session,
-) -> actix_web::Result<impl Responder> {
+async fn root(data: web::Data<GlobalData>, session: Session) -> actix_web::Result<impl Responder> {
 	let db = data.get_database();
 	let admin = User::check_admin(&db, &session)
 		.await
@@ -286,16 +284,16 @@ async fn main() -> io::Result<()> {
 		});
 
 	// Open database connection
-	let client_options = ClientOptions::parse(&config.mongo_url).await
+	let client_options = ClientOptions::parse(&config.mongo_url)
+		.await
 		.unwrap_or_else(|e| {
 			eprintln!("mongodb: {e}");
 			exit(1);
 		});
-	let client = mongodb::Client::with_options(client_options)
-		.unwrap_or_else(|e| {
-			eprintln!("mongodb: {e}");
-			exit(1);
-		});
+	let client = mongodb::Client::with_options(client_options).unwrap_or_else(|e| {
+		eprintln!("mongodb: {e}");
+		exit(1);
+	});
 
 	let data = web::Data::new(GlobalData {
 		mongo: client,
@@ -305,6 +303,10 @@ async fn main() -> io::Result<()> {
 
 		discord_invite: config.discord_invite,
 	});
+
+	let session_secret_key = base64::engine::general_purpose::STANDARD
+		.decode(config.session_secret_key)
+		.unwrap();
 
 	HttpServer::new(move || {
 		App::new()
@@ -336,7 +338,7 @@ async fn main() -> io::Result<()> {
 			})
 			.wrap(SessionMiddleware::new(
 				CookieSessionStore::default(),
-				Key::from(config.session_secret_key.as_bytes()), // TODO parse hex
+				Key::from(&session_secret_key),
 			))
 			.app_data(data.clone())
 			.app_data(web::PayloadConfig::new(1024 * 1024))

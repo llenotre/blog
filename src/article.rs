@@ -41,9 +41,7 @@ impl Article {
 	/// Returns the list of articles.
 	///
 	/// `db` is the database.
-	pub async fn list(
-		db: &mongodb::Database,
-	) -> Result<Vec<Self>, mongodb::error::Error> {
+	pub async fn list(db: &mongodb::Database) -> Result<Vec<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("article");
 		let find_options = FindOptions::builder()
 			.sort(Some(doc! {
@@ -229,10 +227,7 @@ pub async fn get(
 	let html = html.replace("{article.id}", &id_str);
 	let html = html.replace("{article.url}", &content.get_url());
 	let html = html.replace("{article.title}", &content.title);
-	let html = html.replace(
-		"{article.date}",
-		&article.post_date.to_rfc3339()
-	);
+	let html = html.replace("{article.date}", &article.post_date.to_rfc3339());
 	let html = html.replace("{article.desc}", &content.desc);
 	let html = html.replace("{article.cover_url}", &content.cover_url);
 	let markdown = markdown::to_html(&content.content, false);

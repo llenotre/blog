@@ -502,6 +502,7 @@ dependencies = [
  "actix-web",
  "ammonia",
  "async-recursion",
+ "base64 0.21.2",
  "bson",
  "chrono",
  "env_logger",
