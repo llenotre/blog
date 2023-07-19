@@ -239,10 +239,6 @@ pub async fn get(
 		.transpose()?;
 	let user_login = session.get::<String>("user_login")?;
 
-	// Get article reactions
-	// TODO
-	let html = html.replace("{reactions}", "TODO");
-
 	// Get article comments
 	let comments = Comment::list_for_article(&db, id, !admin)
 		.await
