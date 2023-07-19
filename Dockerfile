@@ -4,18 +4,28 @@ WORKDIR /usr/src/blog
 
 # Prepare
 FROM base AS prepare
-COPY . .
+COPY src/ src/
+COPY pages/ pages/
+ADD Cargo.toml .
+ADD Cargo.lock .
+RUN rm -rf target/
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Build
 FROM base as build
 COPY --from=prepare /usr/src/blog/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
-COPY . .
+COPY src/ src/
+COPY pages/ pages/
+COPY assets/ assets/
+ADD Cargo.toml .
+ADD Cargo.lock .
+ADD config.toml .
+RUN rm -rf target/
 RUN cargo build --release
 
 # Prepare runtime
-FROM debian:buster-slim AS runtime
+FROM debian:bullseye-slim AS runtime
 RUN apt-get update
 RUN apt-get install -y libssl-dev ca-certificates
 WORKDIR /usr/src/blog
