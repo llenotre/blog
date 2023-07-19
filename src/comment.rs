@@ -1,6 +1,5 @@
 //! This module handles comments on articles.
 
-use crate::markdown;
 use crate::user::User;
 use crate::util;
 use async_recursion::async_recursion;
@@ -366,7 +365,7 @@ pub async fn comment_to_html(
 	let Some(content) = content else {
 		return Ok(String::new());
 	};
-	let markdown = markdown::to_html(&content.content, true);
+	let markdown = util::markdown_to_html(&content.content, true);
 
 	let mut date_text = if content.edit_date > comment.post_date {
 		format!(
