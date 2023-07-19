@@ -7,22 +7,17 @@ use regex::Regex;
 /// Module handling serialization/deserialization of dates.
 pub mod serde_date_time {
 	use chrono::DateTime;
-	use chrono::TimeZone;
 	use chrono::Utc;
 	use serde::Deserialize;
 	use serde::Deserializer;
 	use serde::Serializer;
-
-	/// Serialization format.
-	pub const FORMAT: &str = "%Y-%m-%d %H:%M:%S";
 
 	/// Serialize
 	pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: Serializer,
 	{
-		let s = format!("{}", date.format(FORMAT));
-		serializer.serialize_str(&s)
+		serializer.serialize_str(&date.to_rfc3339())
 	}
 
 	/// Deserialize
@@ -31,7 +26,8 @@ pub mod serde_date_time {
 		D: Deserializer<'de>,
 	{
 		let s = String::deserialize(deserializer)?;
-		Utc.datetime_from_str(&s, FORMAT)
+		DateTime::parse_from_rfc3339(&s)
+			.map(|d| d.with_timezone(&Utc))
 			.map_err(serde::de::Error::custom)
 	}
 }
