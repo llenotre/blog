@@ -1,7 +1,6 @@
 use crate::article::{Article, ArticleContent};
 use crate::comment::{comment_to_html, get_comment_editor, group_comments, Comment};
 use crate::user::User;
-use crate::util::DateTimeWrapper;
 use crate::{user, util, GlobalData};
 use actix_session::Session;
 use actix_web::http::header::ContentType;
@@ -49,7 +48,7 @@ pub async fn get(
 		return Err(error::ErrorNotFound(""));
 	}
 	let post_date = if let Some(post_date) = article.post_date {
-		post_date.0.to_rfc3339()
+		post_date.to_rfc3339()
 	} else {
 		"not posted yet".to_string()
 	};
@@ -243,13 +242,9 @@ pub async fn post(
 	let public = info.public.map(|p| p == "on").unwrap_or(false);
 	let sponsor = info.sponsor.map(|p| p == "on").unwrap_or(false);
 	let comments_locked = info.comments_locked.map(|p| p == "on").unwrap_or(false);
-	let date = Utc::now();
 
-	let post_date = if public {
-		Some(DateTimeWrapper(date))
-	} else {
-		None
-	};
+	let date = Utc::now();
+	let post_date = public.then_some(date);
 
 	let id = match info.id {
 		// Update article
@@ -276,7 +271,7 @@ pub async fn post(
 				error::ErrorInternalServerError("")
 			})?;
 
-			Article::update(&db, id, content_id, post_date.map(|d| d.0))
+			Article::update(&db, id, content_id, post_date)
 				.await
 				.map_err(|e| {
 					tracing::error!(error = %e, "mongodb");

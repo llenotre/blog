@@ -1,12 +1,8 @@
 //! Module implementing utilities.
 
-use chrono::DateTime;
-use chrono::Utc;
 use lazy_static::lazy_static;
 use pulldown_cmark::{html, Options, Parser};
 use regex::Regex;
-use serde::Deserialize;
-use serde::Serialize;
 
 /// Module handling serialization/deserialization of dates.
 pub mod serde_date_time {
@@ -28,15 +24,45 @@ pub mod serde_date_time {
 		D: Deserializer<'de>,
 	{
 		let s = String::deserialize(deserializer)?;
-		DateTime::parse_from_rfc3339(&s)
+		let r = DateTime::parse_from_rfc3339(&s)
 			.map(|d| d.with_timezone(&Utc))
-			.map_err(serde::de::Error::custom)
+			.map_err(serde::de::Error::custom);
+		dbg!(&r);
+		r
 	}
 }
 
-/// Wrapper used to allow serializing/deserializing `Option<DateTime<T>>`.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct DateTimeWrapper(#[serde(with = "serde_date_time")] pub DateTime<Utc>);
+/// Module handling serialization/deserialization of options of dates.
+pub mod serde_option_date_time {
+	use chrono::DateTime;
+	use chrono::Utc;
+	use serde::de::IntoDeserializer;
+	use serde::Deserialize;
+	use serde::Deserializer;
+	use serde::Serializer;
+
+	pub fn serialize<S>(date: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		match date {
+			Some(date) => serializer.serialize_some(&date.to_rfc3339()),
+			None => serializer.serialize_none(),
+		}
+	}
+
+	pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		Option::<&str>::deserialize(deserializer)?
+			.map(|s| {
+				let deserializer = s.into_deserializer();
+				super::serde_date_time::deserialize(deserializer)
+			})
+			.transpose()
+	}
+}
 
 lazy_static! {
 	/// Email validation regex.
