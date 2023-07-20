@@ -210,7 +210,7 @@ pub fn get_comment_editor(
 
 	format!(
 		r#"<div class="comment-editor">
-            <img class="comment-avatar" src="/avatar/{user_login}" />
+            <a href="https://github.com/{user_login}" target="_blank"><img class="comment-avatar" src="/avatar/{user_login}" /></a>
             <textarea id="comment-{id}-{action}-content" name="content" placeholder="What are your thoughts?" onfocus="expand_editor('comment-{id}-{action}-content')" oninput="input({id_quoted}, '{action}')">{content}</textarea>
             <button id="comment-{id}-{action}-submit" onclick="{action}({id_quoted})">
                 <i class="fa-regular fa-paper-plane"></i>
@@ -298,7 +298,7 @@ pub async fn comment_to_html(
 	// HTML for comment's buttons
 	let mut buttons = Vec::with_capacity(4);
 	buttons.push(format!(
-		r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}/{article_title}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##,
+		r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/a/{article_id}/{article_title}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##,
 		article_id = comment.article
 	));
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {

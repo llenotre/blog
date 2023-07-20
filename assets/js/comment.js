@@ -1,6 +1,12 @@
 var article_id = document.getElementById("article-id").value;
 
+var comments_visible = false;
 highlight_selected_comment();
+
+var stored_visible = window.localStorage.getItem("comments_visible") == "true";
+if (stored_visible && !comments_visible) {
+	toggle_comments();
+}
 
 // Highlights the select comment
 function highlight_selected_comment() {
@@ -37,8 +43,6 @@ function clipboard(id, content) {
 	}, 1000);
 }
 
-var comments_visible = false;
-
 // Toggles visibility of the comments window.
 function toggle_comments() {
 	var comments = document.getElementById("comments");
@@ -47,7 +51,10 @@ function toggle_comments() {
 	} else {
 		comments.style.display = "flex";
 	}
+
 	comments_visible = !comments_visible;
+	// Keep comments panel open across pages
+	window.localStorage.setItem("comments_visible", comments_visible);
 }
 
 // Toggles visibility of a reactions selector.
@@ -114,6 +121,10 @@ async function post(comment_id) {
 				return null;
 			}
 		});
+	if (id == null) {
+		return;
+	}
+
 	// Get new comment's HTML
 	var comment_html = await fetch("/comment/" + id)
 		.then(async function(response) {
@@ -125,6 +136,9 @@ async function post(comment_id) {
 				return null;
 			}
 		});
+	if (comment_html == null) {
+		return;
+	}
 
     // Add comment on front-end
 	var comments_list;

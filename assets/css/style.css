@@ -8,6 +8,11 @@
 	src: url('/assets/font/FiraCode.ttf');
 }
 
+::selection {
+	color: white;
+	background: #1abc9c;
+}
+
 body {
 	background: #1f1f1f;
 	margin: 0;
