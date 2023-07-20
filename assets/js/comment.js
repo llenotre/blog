@@ -71,6 +71,11 @@ function input(comment_id, action) {
 
 	var len = new TextEncoder().encode(comment_content.value).length;
 	comment_len.innerHTML = len;
+	if (len > 5000) {
+		comment_len.style.color = 'red';
+	} else {
+		comment_len.style.color = 'white';
+	}
 	comment_submit.disabled = (len <= 0 || len > 5000);
 }
 
