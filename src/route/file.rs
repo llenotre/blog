@@ -131,7 +131,6 @@ pub async fn upload(
 
 		// Upload file to database
 		let mut db_stream = bucket.open_upload_stream(filename, None);
-		dbg!(&filename);
 		while let Some(chunk) = field.next().await {
 			let chunk = chunk?;
 			db_stream.write_all(&chunk).await?;
