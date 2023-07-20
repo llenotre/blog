@@ -106,19 +106,20 @@ function post(comment_id) {
 	});
     xmlHttp.send(payload);
 	if (xmlHttp.status != 200) {
-		alert("Failed to post comment:" + xmlHttp.response);
+		alert("Failed to post comment:" + xmlHttp.responseText);
 		return;
 	}
-	var result = JSON.parse(xmlHttp.response);
+	var result = JSON.parse(xmlHttp.responseText);
 
     // Get new comment's HTML
+	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", "/comment/" + result["id"], false);
     xmlHttp.send(null);
 	if (xmlHttp.status != 200) {
-		alert("Failed to post comment:" + xmlHttp.response);
+		alert("Failed to post comment:" + xmlHttp.responseText);
 		return;
 	}
-	var content = xmlHttp.response;
+	var content = xmlHttp.responseText;
 
     // Add comment on front-end
     var comments_list = document.getElementById("comments-list");
@@ -150,7 +151,7 @@ function edit(comment_id) {
 	});
     xmlHttp.send(payload);
 	if (xmlHttp.status != 200) {
-		alert("Failed to edit comment" + xmlHttp.response);
+		alert("Failed to edit comment" + xmlHttp.responseText);
 	}
 
     // Update comment on front-end
@@ -167,7 +168,7 @@ function del(comment_id) {
     xmlHttp.open("DELETE", "/comment/" + comment_id, false);
     xmlHttp.send(null);
 	if (xmlHttp.status != 200) {
-		alert("Failed to delete comment" + xmlHttp.response);
+		alert("Failed to delete comment" + xmlHttp.responseText);
 	}
 
     // Remove comment from front-end
