@@ -12,7 +12,7 @@ use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
 
-#[get("/article/{id}/{title}")]
+#[get("/a/{id}/{title}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
 	path: web::Path<(String, String)>,
@@ -224,7 +224,7 @@ pub struct ArticleEdit {
 	comments_locked: Option<String>,
 }
 
-#[post("/article")]
+#[post("/a")]
 pub async fn post(
 	data: web::Data<GlobalData>,
 	info: web::Form<ArticleEdit>,
@@ -325,5 +325,5 @@ pub async fn post(
 		}
 	};
 
-	Ok(Redirect::to(format!("/article/{}/redirect", id)).see_other())
+	Ok(Redirect::to(format!("/a/{}/redirect", id)).see_other())
 }

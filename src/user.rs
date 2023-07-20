@@ -26,7 +26,7 @@ pub fn get_auth_url(client_id: &str) -> String {
 pub fn redirect_to_last_article(session: &Session) -> Redirect {
 	let last_article = session.get::<String>("last_article");
 	let uri = match last_article {
-		Ok(Some(last_article)) => format!("/article/{last_article}/redirect"),
+		Ok(Some(last_article)) => format!("/a/{last_article}/redirect"),
 		_ => "/".to_owned(),
 	};
 
