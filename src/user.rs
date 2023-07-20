@@ -22,6 +22,22 @@ pub fn get_auth_url(client_id: &str) -> String {
 	format!("https://github.com/login/oauth/authorize?client_id={client_id}")
 }
 
+/// Creates a session for the given user.
+pub fn create_session(session: &Session, user: &User) -> actix_web::Result<()> {
+	let insert_fields = || {
+		session.insert("user_id", user.id.to_hex())?;
+		session.insert("user_login", &user.github_info.login)?;
+		Ok(())
+	};
+	if insert_fields().is_err() {
+		// Delete session and retry
+		session.purge();
+		insert_fields()
+	} else {
+		Ok(())
+	}
+}
+
 /// Returns a redirection to the last article consulted by the session's user.
 pub fn redirect_to_last_article(session: &Session) -> Redirect {
 	let last_article = session.get::<String>("last_article");

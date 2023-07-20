@@ -18,12 +18,18 @@ pub async fn root(
 	let db = data.get_database();
 	let admin = User::check_admin(&db, &session)
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|e| {
+			tracing::error!(error = %e, "mongodb: user");
+			error::ErrorInternalServerError("")
+		})?;
 
 	// Get articles
 	let articles = Article::list(&db)
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|e| {
+			tracing::error!(error = %e, "mongodb: articles");
+			error::ErrorInternalServerError("")
+		})?;
 
 	// Produce articles HTML
 	let mut articles_html = String::new();
@@ -31,7 +37,10 @@ pub async fn root(
 		let content = article
 			.get_content(&db)
 			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?;
+			.map_err(|e| {
+				tracing::error!(error = %e, "mongodb: article content");
+				error::ErrorInternalServerError("")
+			})?;
 		if !admin && !content.public {
 			continue;
 		}

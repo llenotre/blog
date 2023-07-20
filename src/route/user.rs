@@ -81,11 +81,7 @@ pub async fn oauth(
 		}
 	};
 
-	// Create user's session
-	session.insert("user_id", user.id.to_hex())?;
-	session.insert("user_login", user.github_info.login)?;
-
-	// Redirect user
+	user::create_session(&session, &user)?;
 	Ok(user::redirect_to_last_article(&session))
 }
 
