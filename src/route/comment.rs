@@ -79,7 +79,6 @@ pub struct PostCommentPayload {
 	content: String,
 }
 
-// TODO error if article's comments are locked
 #[post("/comment")]
 pub async fn post(
 	data: web::Data<GlobalData>,
@@ -118,9 +117,14 @@ pub async fn post(
 		return Err(error::ErrorForbidden("forbidden"));
 	};
 
-	if !article_content.public && !user.admin {
-		return Err(error::ErrorNotFound("article not found"));
-	}
+    if !user.admin {
+        if !article_content.public {
+            return Err(error::ErrorNotFound("article not found"));
+        }
+        if !article_content.comments_locked {
+            return Err(error::ErrorForbidden("comments are locked"));
+        }
+    }
 
 	// Check user's cooldown
 	if !user.admin {
@@ -203,6 +207,26 @@ pub async fn edit(
 
 	let db = data.get_database();
 
+	// Check comment exists
+	let comment_id = ObjectId::parse_str(info.comment_id).map_err(|_| error::ErrorNotFound(""))?;
+	let comment = Comment::from_id(&db, &comment_id)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(comment) = comment else {
+		return Err(error::ErrorNotFound("comment not found"));
+	};
+
+	let article = Article::from_id(&db, &comment.article)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let Some(article) = article else {
+		return Err(error::ErrorNotFound("article not found"));
+	};
+	let article_content = article
+		.get_content(&db)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
 	// Get user
 	let user = User::current_user(&db, &session)
 		.await
@@ -210,6 +234,18 @@ pub async fn edit(
 	let Some(user) = user else {
 		return Err(error::ErrorForbidden("forbidden"));
 	};
+
+    if !user.admin {
+        if !article_content.public {
+            return Err(error::ErrorNotFound("article not found"));
+        }
+        if !article_content.comments_locked {
+            return Err(error::ErrorForbidden("comments are locked"));
+        }
+        if comment.author != user.id {
+            return Err(error::ErrorForbidden("forbidden"));
+        }
+    }
 
 	// Check user's cooldown
 	if !user.admin {
@@ -221,19 +257,6 @@ pub async fn edit(
 				HttpResponse::TooManyRequests().body(format!("wait {remaining} before retrying"))
 			);
 		}
-	}
-
-	// Check comment exists
-	let comment_id = ObjectId::parse_str(info.comment_id).map_err(|_| error::ErrorNotFound(""))?;
-	let comment = Comment::from_id(&db, &comment_id)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-	let Some(comment) = comment else {
-		return Err(error::ErrorNotFound("comment not found"));
-	};
-
-	if !user.admin && comment.author != user.id {
-		return Err(error::ErrorForbidden("forbidden"));
 	}
 
 	// Insert comment content

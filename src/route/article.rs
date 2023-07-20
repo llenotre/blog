@@ -175,6 +175,7 @@ pub async fn editor(
 	let article_content = content.as_ref().map(|a| a.content.as_str()).unwrap_or("");
 	let article_public = content.as_ref().map(|a| a.public).unwrap_or(false);
 	let article_sponsor = content.as_ref().map(|a| a.sponsor).unwrap_or(false);
+	let comments_locked = content.as_ref().map(|a| a.comments_locked).unwrap_or(false);
 	let article_tags = content.as_ref().map(|a| a.tags.as_str()).unwrap_or("");
 
 	let html = include_str!("../../pages/editor.html");
@@ -190,6 +191,10 @@ pub async fn editor(
 	let html = html.replace(
 		"{article.sponsor}",
 		if article_sponsor { "checked" } else { "" },
+	);
+	let html = html.replace(
+		"{article.comments_locked}",
+		if comments_locked { "checked" } else { "" },
 	);
 	let html = html.replace("{article.tags}", article_tags);
 

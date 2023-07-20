@@ -24,11 +24,9 @@ pub mod serde_date_time {
 		D: Deserializer<'de>,
 	{
 		let s = String::deserialize(deserializer)?;
-		let r = DateTime::parse_from_rfc3339(&s)
+		DateTime::parse_from_rfc3339(&s)
 			.map(|d| d.with_timezone(&Utc))
-			.map_err(serde::de::Error::custom);
-		dbg!(&r);
-		r
+			.map_err(serde::de::Error::custom)
 	}
 }
 
