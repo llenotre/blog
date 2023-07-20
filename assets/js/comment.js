@@ -100,6 +100,20 @@ function expand_editor(id) {
 	document.getElementById(id).classList.add("expanded");
 }
 
+/// Fetches the HTML of a comment with the given ID.
+async function fetch_comment(id) {
+	return await fetch("/comment/" + id)
+		.then(async function(response) {
+			var body = await response.text();
+			if (response.status == 200) {
+				return body;
+			} else {
+				alert("Failed to post comment:" + body);
+				return null;
+			}
+		});
+}
+
 // Posts a comment.
 async function post(comment_id) {
 	var comment_content = document.getElementById("comment-" + comment_id + "-post-content");
@@ -131,16 +145,7 @@ async function post(comment_id) {
 	}
 
 	// Get new comment's HTML
-	var comment_html = await fetch("/comment/" + id)
-		.then(async function(response) {
-			var body = await response.text();
-			if (response.status == 200) {
-				return body;
-			} else {
-				alert("Failed to post comment:" + body);
-				return null;
-			}
-		});
+	var comment_html = await fetch_comment(id);
 	if (comment_html == null) {
 		return;
 	}
@@ -188,8 +193,17 @@ async function edit(comment_id) {
 		return;
 	}
 
+	// Fetch updated HTML
+	var comment_html = await fetch_comment(comment_id);
+	if (comment_html == null) {
+		return;
+	}
+
     // Update comment on front-end
-    // TODO
+	var com = document.getElementById("com-" + comment_id);
+	com.outerHTML = comment_html;
+	// FIXME: doesn't work when there are several dates
+	format_date_long(com.querySelector("#date-long"));
 }
 
 // Deletes the comment with the given ID.
