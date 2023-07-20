@@ -281,16 +281,8 @@ pub async fn comment_to_html(
 			let mut html = String::new();
 			for com in replies {
 				html.push_str(
-					&comment_to_html(
-						db,
-						article_title,
-						com,
-						None,
-						user_id,
-						user_login,
-						admin,
-					)
-					.await?,
+					&comment_to_html(db, article_title, com, None, user_id, user_login, admin)
+						.await?,
 				);
 			}
 

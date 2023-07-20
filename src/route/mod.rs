@@ -1,9 +1,9 @@
-use actix_web::{error, get, HttpResponse, Responder, web};
-use actix_web::http::header::ContentType;
-use actix_session::Session;
 use crate::article::Article;
-use crate::GlobalData;
 use crate::user::User;
+use crate::GlobalData;
+use actix_session::Session;
+use actix_web::http::header::ContentType;
+use actix_web::{error, get, web, HttpResponse, Responder};
 
 pub mod article;
 pub mod comment;
@@ -11,7 +11,10 @@ pub mod file;
 pub mod user;
 
 #[get("/")]
-pub async fn root(data: web::Data<GlobalData>, session: Session) -> actix_web::Result<impl Responder> {
+pub async fn root(
+	data: web::Data<GlobalData>,
+	session: Session,
+) -> actix_web::Result<impl Responder> {
 	let db = data.get_database();
 	let admin = User::check_admin(&db, &session)
 		.await
