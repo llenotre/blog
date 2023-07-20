@@ -1,9 +1,9 @@
 use crate::article::Article;
-use crate::comment::{Comment, comment_to_html, CommentContent, MAX_CHARS};
+use crate::comment::{comment_to_html, Comment, CommentContent, MAX_CHARS};
 use crate::user::User;
 use crate::GlobalData;
 use actix_session::Session;
-use actix_web::{get, delete, error, patch, post, web, HttpResponse, Responder};
+use actix_web::{delete, error, get, patch, post, web, HttpResponse, Responder};
 use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
@@ -27,7 +27,8 @@ pub async fn get(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
-	let comment = Comment::from_id(&db, &id).await
+	let comment = Comment::from_id(&db, &id)
+		.await
 		.map_err(|e| {
 			tracing::error!(error = %e, "mongodb");
 			error::ErrorInternalServerError("")
@@ -38,21 +39,30 @@ pub async fn get(
 		return Err(error::ErrorNotFound("comment not found"));
 	}
 
-	let article = Article::from_id(&db, &comment.article).await
+	let article = Article::from_id(&db, &comment.article)
+		.await
 		.map_err(|e| {
 			tracing::error!(error = %e, "mongodb");
 			error::ErrorInternalServerError("")
 		})?
 		.ok_or_else(|| error::ErrorNotFound("comment not found"))?;
-	let content = article.get_content(&db).await
-		.map_err(|e| {
-			tracing::error!(error = %e, "mongodb");
-			error::ErrorInternalServerError("")
-		})?;
+	let content = article.get_content(&db).await.map_err(|e| {
+		tracing::error!(error = %e, "mongodb");
+		error::ErrorInternalServerError("")
+	})?;
 
 	let user_id = user.as_ref().map(|u| &u.id);
 	let user_login = user.as_ref().map(|u| u.github_info.login.as_str());
-	let html = comment_to_html(&db, &content.title, &comment, None, user_id, user_login, admin).await?;
+	let html = comment_to_html(
+		&db,
+		&content.title,
+		&comment,
+		None,
+		user_id,
+		user_login,
+		admin,
+	)
+	.await?;
 	Ok(HttpResponse::Ok().body(html))
 }
 
