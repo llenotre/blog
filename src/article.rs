@@ -1,7 +1,6 @@
 //! This module handles articles.
 
 use crate::util;
-use crate::util::DateTimeWrapper;
 use bson::oid::ObjectId;
 use bson::Bson;
 use chrono::DateTime;
@@ -21,8 +20,8 @@ pub struct Article {
 	/// The ID of the article's content.
 	pub content_id: ObjectId,
 	/// Timestamp since epoch at which the article has been posted.
-	#[serde(flatten)]
-	pub post_date: Option<DateTimeWrapper>,
+    #[serde(with = "util::serde_option_date_time")]
+	pub post_date: Option<DateTime<Utc>>,
 }
 
 impl Article {
@@ -86,8 +85,11 @@ impl Article {
 		if let Some(post_date) = post_date {
 			collection
 				.update_one(
-					doc! { "_id": id, "post_date": { "$exists": false } },
-					doc! { "$set": { "post_date": post_date } },
+					doc! { "_id": id, "$or": [
+                        { "post_date": { "$exists": false } },
+                        { "post_date": None::<String> },
+                    ]},
+					doc! { "$set": { "post_date": post_date.to_rfc3339() } },
 					None,
 				)
 				.await?;
