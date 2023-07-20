@@ -127,8 +127,12 @@ async function post(comment_id) {
 		});
 
     // Add comment on front-end
-	// TODO if reply to another comment, select the appropriate div
-    var comments_list = document.getElementById("comments-list");
+	var comments_list;
+	if (comment_id == null) {
+		comments_list = document.getElementById("comments-list");
+	} else {
+		comments_list = document.getElementById("comment-" + comment_id + "-replies");
+	}
     comments_list.innerHTML += comment_html;
 
 	// Format comment's date
