@@ -95,31 +95,41 @@ function post(comment_id) {
 		return;
 	}
 
+    // Post comment
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("POST", "/comment", false);
     xmlHttp.setRequestHeader("Content-Type", "application/json");
-
 	var payload = JSON.stringify({
 		"article_id": article_id,
 		"response_to": comment_id,
-
 		"content": comment_content.value
 	});
     xmlHttp.send(payload);
-
-	if (xmlHttp.status == 200) {
-		// Empty text editor
-		comment_content.value = "";
-		input(comment_id);
-
-		// TODO insert new comment in the list
-
-		// Update comments count
-		var coms_count = document.getElementById("comments-count");
-		coms_count.textContent += 1;
-	} else {
+	if (xmlHttp.status != 200) {
 		alert("Failed to post comment:" + xmlHttp.response);
+		return;
 	}
+
+    // Empty text editor
+    comment_content.value = "";
+    input(comment_id);
+
+    // Get new comment's HTML
+    xmlHttp.open("GET", "/comment/" + comment_id, false);
+    xmlHttp.send(null);
+	if (xmlHttp.status != 200) {
+		alert("Failed to post comment:" + xmlHttp.response);
+		return;
+	}
+	var content = xmlHttp.response;
+
+    // Add comment on front-end
+    var comments_list = document.getElementById("comments-list");
+    comments_list.innerHTML += content;
+
+    // Update comments count
+    var coms_count = document.getElementById("comments-count");
+    coms_count.textContent += 1;
 }
 
 // Edits the comment with the given ID.
@@ -129,22 +139,21 @@ function edit(comment_id) {
 		return;
 	}
 
+    // Update comment
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("PATCH", "/comment", false);
     xmlHttp.setRequestHeader("Content-Type", "application/json");
-
 	var payload = JSON.stringify({
 		"comment_id": comment_id,
-
 		"content": comment_content.value
 	});
     xmlHttp.send(payload);
-
-	if (xmlHttp.status == 200) {
-		// TODO update comment's content
-	} else {
+	if (xmlHttp.status != 200) {
 		alert("Failed to edit comment" + xmlHttp.response);
 	}
+
+    // Update comment on front-end
+    // TODO
 }
 
 // Deletes the comment with the given ID.
@@ -156,16 +165,15 @@ function del(comment_id) {
 	var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("DELETE", "/comment/" + comment_id, false);
     xmlHttp.send(null);
-
-	if (xmlHttp.status == 200) {
-		// Remove comment from front-end
-		var com = document.getElementById("com-" + comment_id);
-		com.parentNode.removeChild(com);
-
-		// Update comments count
-		var coms_count = document.getElementById("comments-count");
-		coms_count.textContent -= 1;
-	} else {
+	if (xmlHttp.status != 200) {
 		alert("Failed to delete comment" + xmlHttp.response);
 	}
+
+    // Remove comment from front-end
+    var com = document.getElementById("com-" + comment_id);
+    com.parentNode.removeChild(com);
+
+    // Update comments count
+    var coms_count = document.getElementById("comments-count");
+    coms_count.textContent -= 1;
 }
