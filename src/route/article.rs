@@ -84,11 +84,10 @@ pub async fn get(
 		comments_html.push_str(
 			&comment_to_html(
 				&db,
+				&expected_title,
 				&com,
 				Some(&replies),
 				user_id.as_ref(),
-				&article.id,
-				&expected_title,
 				user_login.as_deref(),
 				admin,
 			)

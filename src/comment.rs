@@ -257,20 +257,19 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 ///
 /// Arguments:
 /// - `db` is the database.
+/// - `article_title` is the title of the comment's article.
 /// - `comment` is the comment.
 /// - `replies` is the list of replies. If `None`, the comment itself is a reply.
 /// - `user_id` is the ID of the current user. If not logged, the value is `None`.
-/// - `article_id` is the ID of the current article.
 /// - `user_login` is the handle of the logged user. If `None`, the user is not logged.
 /// - `admin` tells whether the current user is admin.
 #[async_recursion]
 pub async fn comment_to_html(
 	db: &mongodb::Database,
+	article_title: &str,
 	comment: &Comment,
 	replies: Option<&'async_recursion [Comment]>,
 	user_id: Option<&'async_recursion ObjectId>,
-	article_id: &ObjectId,
-	article_title: &str,
 	user_login: Option<&'async_recursion str>,
 	admin: bool,
 ) -> actix_web::Result<String> {
@@ -284,11 +283,10 @@ pub async fn comment_to_html(
 				html.push_str(
 					&comment_to_html(
 						db,
+						article_title,
 						com,
 						None,
 						user_id,
-						article_id,
-						article_title,
 						user_login,
 						admin,
 					)
@@ -308,7 +306,8 @@ pub async fn comment_to_html(
 	// HTML for comment's buttons
 	let mut buttons = Vec::with_capacity(4);
 	buttons.push(format!(
-		r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}/{article_title}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##
+		r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/article/{article_id}/{article_title}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##,
+		article_id = comment.article
 	));
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(

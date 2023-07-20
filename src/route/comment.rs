@@ -1,9 +1,9 @@
 use crate::article::Article;
-use crate::comment::{Comment, CommentContent, MAX_CHARS};
+use crate::comment::{Comment, comment_to_html, CommentContent, MAX_CHARS};
 use crate::user::User;
 use crate::GlobalData;
 use actix_session::Session;
-use actix_web::{delete, error, patch, post, web, HttpResponse, Responder};
+use actix_web::{get, delete, error, patch, post, web, HttpResponse, Responder};
 use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
@@ -11,6 +11,50 @@ use std::time::Duration;
 
 /// Minimum post cooldown.
 const INTERVAL: Duration = Duration::from_secs(10);
+
+#[get("/comment/{id}")]
+pub async fn get(
+	data: web::Data<GlobalData>,
+	id: web::Path<String>,
+	session: Session,
+) -> actix_web::Result<impl Responder> {
+	let id = id.into_inner();
+	let id = ObjectId::parse_str(id).map_err(|_| error::ErrorNotFound(""))?;
+
+	let db = data.get_database();
+
+	let user = User::current_user(&db, &session)
+		.await
+		.map_err(|_| error::ErrorInternalServerError(""))?;
+
+	let comment = Comment::from_id(&db, &id).await
+		.map_err(|e| {
+			tracing::error!(error = %e, "mongodb");
+			error::ErrorInternalServerError("")
+		})?
+		.ok_or_else(|| error::ErrorNotFound("comment not found"))?;
+	let admin = user.as_ref().map(|u| u.admin).unwrap_or(false);
+	if comment.removed && !admin {
+		return Err(error::ErrorNotFound("comment not found"));
+	}
+
+	let article = Article::from_id(&db, &comment.article).await
+		.map_err(|e| {
+			tracing::error!(error = %e, "mongodb");
+			error::ErrorInternalServerError("")
+		})?
+		.ok_or_else(|| error::ErrorNotFound("comment not found"))?;
+	let content = article.get_content(&db).await
+		.map_err(|e| {
+			tracing::error!(error = %e, "mongodb");
+			error::ErrorInternalServerError("")
+		})?;
+
+	let user_id = user.as_ref().map(|u| &u.id);
+	let user_login = user.as_ref().map(|u| u.github_info.login.as_str());
+	let html = comment_to_html(&db, &content.title, &comment, None, user_id, user_login, admin).await?;
+	Ok(HttpResponse::Ok().body(html))
+}
 
 /// The payload for the request allowing to post a comment.
 #[derive(Deserialize)]

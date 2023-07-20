@@ -323,6 +323,7 @@ async fn main() -> io::Result<()> {
 			.service(route::article::editor)
 			.service(route::article::get)
 			.service(route::article::post)
+			.service(route::comment::get)
 			.service(bio)
 			.service(route::comment::delete)
 			.service(route::comment::edit)
