@@ -7,18 +7,15 @@ mod user;
 mod util;
 
 use crate::middleware::analytics::Analytics;
-use crate::user::User;
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
-use actix_session::Session;
 use actix_session::SessionMiddleware;
 use actix_web::middleware::Logger;
 use actix_web::{
-	body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, error, get, http::header,
-	http::header::ContentType, http::header::HeaderValue, middleware::ErrorHandlerResponse,
-	middleware::ErrorHandlers, web, App, HttpResponse, HttpServer, Responder,
+	App, body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse,
+	http::header, http::header::HeaderValue,
+	HttpServer, middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web,
 };
-use article::Article;
 use base64::Engine;
 use mongodb::options::ClientOptions;
 use serde::Deserialize;
@@ -66,192 +63,6 @@ impl GlobalData {
 	pub fn get_database(&self) -> mongodb::Database {
 		self.mongo.database("blog")
 	}
-}
-
-#[get("/")]
-async fn root(data: web::Data<GlobalData>, session: Session) -> actix_web::Result<impl Responder> {
-	let db = data.get_database();
-	let admin = User::check_admin(&db, &session)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-
-	// Get articles
-	let articles = Article::list(&db)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-
-	// Produce articles HTML
-	let mut articles_html = String::new();
-	for article in articles {
-		let content = article
-			.get_content(&db)
-			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?;
-		if !admin && !content.public {
-			continue;
-		}
-
-		let post_date = if let Some(post_date) = article.post_date {
-			post_date.0.to_rfc3339()
-		} else {
-			"not posted yet".to_string()
-		};
-
-		let mut tags = vec![];
-
-		if admin {
-			let pub_tag = if content.public { "Public" } else { "Private" };
-			tags.push(pub_tag);
-		}
-
-		if content.sponsor {
-			tags.push("<i>Sponsors early access</i>&nbsp;❤️");
-		}
-		if !content.tags.is_empty() {
-			tags.extend(content.tags.split(','));
-		}
-
-		let tags_html: String = tags
-			.into_iter()
-			.map(|s| format!(r#"<li class="tag">{s}</li>"#))
-			.collect();
-
-		articles_html.push_str(&format!(
-			r#"<a href="{article_path}">
-				<div class="article-element">
-					<img class="article-cover" src="{article_cover_url}"></img>
-					<div class="article-element-content">
-						<h3>{article_title}</h3>
-
-						<ul class="tags">
-							<li><h6 style="color: gray;"><span id="date">{post_date}</span></h6></li>
-							{tags_html}
-						</ul>
-
-						<p>
-							{article_desc}
-						</p>
-					</div>
-				</div>
-			</a>"#,
-			article_cover_url = content.cover_url,
-			article_path = content.get_path(),
-			article_title = content.title,
-			article_desc = content.desc,
-		));
-	}
-
-	let html = include_str!("../pages/index.html");
-	let html = html.replace("{discord.invite}", &data.discord_invite);
-	let html = html.replace("{articles}", &articles_html);
-
-	Ok(HttpResponse::Ok()
-		.content_type(ContentType::html())
-		.body(html))
-}
-
-#[get("/bio")]
-async fn bio() -> impl Responder {
-	let html = include_str!("../pages/bio.html");
-	HttpResponse::Ok()
-		.content_type(ContentType::html())
-		.body(html)
-}
-
-#[get("/legal")]
-async fn legal() -> impl Responder {
-	let html = include_str!("../pages/legal.html");
-	HttpResponse::Ok()
-		.content_type(ContentType::html())
-		.body(html)
-}
-
-#[get("/robots.txt")]
-async fn robots() -> impl Responder {
-	r#"User-agent: *
-Allow: /
-Sitemap: https://blog.lenot.re/sitemap.xml"#
-}
-
-#[get("/sitemap.xml")]
-async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
-	let mut urls = vec![];
-
-	urls.push(("/".to_owned(), None));
-	urls.push(("/bio".to_owned(), None));
-	urls.push(("/legal".to_owned(), None));
-
-	let db = data.get_database();
-	let articles = Article::list(&db)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-	for a in articles {
-		let content = a
-			.get_content(&db)
-			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?;
-
-		urls.push((content.get_url(), Some(content.edit_date)));
-	}
-
-	let urls: String = urls
-		.into_iter()
-		.map(|(url, date)| match date {
-			Some(date) => {
-				let date = date.format("%Y-%m-%d");
-				format!("\t\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>")
-			}
-
-			None => format!("\t\t<url><loc>{url}</loc></url>"),
-		})
-		.collect();
-
-	let body = format!(
-		r#"<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-	{urls}
-</urlset>"#
-	);
-
-	Ok(HttpResponse::Ok()
-		.content_type(ContentType::xml())
-		.body(body))
-}
-
-#[get("/rss")]
-async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
-	let db = data.get_database();
-	let articles = Article::list(&db)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-
-	let mut items_str = String::new();
-	for a in articles {
-		let Some(ref post_date) = a.post_date else {
-			continue;
-		};
-		let post_date = post_date.0.to_rfc2822();
-
-		let content = a
-			.get_content(&db)
-			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?;
-		let url = content.get_url();
-
-		items_str.push_str(&format!(
-			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{post_date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
-			title = content.title,
-			desc = content.desc
-		));
-	}
-
-	let body = format!(
-		r#"<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><atom:link href="https://blog.lenot.re/rss" rel="self" type="application/rss+xml" /><title>Luc Lenôtre</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{items_str}</channel></rss>"#
-	);
-
-	Ok(HttpResponse::Ok()
-		.content_type(ContentType::xml())
-		.body(body))
 }
 
 fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
@@ -324,7 +135,7 @@ async fn main() -> io::Result<()> {
 			.service(route::article::get)
 			.service(route::article::post)
 			.service(route::comment::get)
-			.service(bio)
+			.service(route::bio)
 			.service(route::comment::delete)
 			.service(route::comment::edit)
 			.service(route::comment::post)
@@ -332,12 +143,12 @@ async fn main() -> io::Result<()> {
 			.service(route::file::get)
 			.service(route::file::manage)
 			.service(route::file::upload)
-			.service(legal)
+			.service(route::legal)
 			.service(newsletter::subscribe)
-			.service(robots)
-			.service(root)
-			.service(rss)
-			.service(sitemap)
+			.service(route::robots)
+			.service(route::root)
+			.service(route::rss)
+			.service(route::sitemap)
 			.service(route::user::auth)
 			.service(route::user::avatar)
 			.service(route::user::logout)
