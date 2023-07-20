@@ -8,6 +8,7 @@ use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
 use std::time::Duration;
+use serde_json::json;
 
 /// Minimum post cooldown.
 const INTERVAL: Duration = Duration::from_secs(10);
@@ -170,7 +171,9 @@ pub async fn post(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
-	Ok(HttpResponse::Ok().finish())
+	Ok(HttpResponse::Ok().json(json!({
+		"id": comment.id.to_string()
+	})))
 }
 
 /// The payload for the request allowing to edit a comment.

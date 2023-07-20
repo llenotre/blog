@@ -109,13 +109,10 @@ function post(comment_id) {
 		alert("Failed to post comment:" + xmlHttp.response);
 		return;
 	}
-
-    // Empty text editor
-    comment_content.value = "";
-    input(comment_id);
+	var result = JSON.parse(xmlHttp.response);
 
     // Get new comment's HTML
-    xmlHttp.open("GET", "/comment/" + comment_id, false);
+    xmlHttp.open("GET", "/comment/" + result["id"], false);
     xmlHttp.send(null);
 	if (xmlHttp.status != 200) {
 		alert("Failed to post comment:" + xmlHttp.response);
@@ -126,6 +123,10 @@ function post(comment_id) {
     // Add comment on front-end
     var comments_list = document.getElementById("comments-list");
     comments_list.innerHTML += content;
+
+    // Empty text editor
+    comment_content.value = "";
+    input(comment_id);
 
     // Update comments count
     var coms_count = document.getElementById("comments-count");
