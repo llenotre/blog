@@ -154,7 +154,7 @@ async fn main() -> io::Result<()> {
 			.service(route::file::manage)
 			.service(route::file::upload)
 			.service(route::legal)
-			.service(newsletter::subscribe)
+			.service(route::newsletter::subscribe)
 			.service(route::robots)
 			.service(route::root)
 			.service(route::rss)
