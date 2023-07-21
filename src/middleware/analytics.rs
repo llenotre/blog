@@ -26,8 +26,8 @@ pub struct AnalyticsEntry {
 	#[serde(with = "util::serde_date_time")]
 	date: DateTime<Utc>,
 
-	/// The user's address.
-	address: String,
+	/// The user's IP address. If unknown, the value is `None`.
+	peer_addr: Option<String>,
 	/// The user agent.
 	user_agent: Option<String>,
 
@@ -93,38 +93,38 @@ where
 	forward_ready!(service);
 
 	fn call(&self, req: ServiceRequest) -> Self::Future {
-		// Get user login, if logged
 		let (req, payload) = req.into_parts();
+
+		let peer_addr = req.connection_info().realip_remote_addr().map(str::to_owned);
+		let user_agent = req
+			.headers()
+			.get("User-Agent")
+			.and_then(|h| h.to_str().ok())
+			.map(str::to_owned);
+
+		// Get user login, if logged
 		let session: Session = req.get_session();
 		let logged_user = session.get("user_login").ok().flatten();
+
+		let entry = AnalyticsEntry {
+			date: Utc::now(),
+
+			peer_addr,
+			user_agent,
+
+			method: req.method().to_string(),
+			uri: req.uri().to_string(),
+
+			logged_user,
+		};
+		let db = self.global.get_database();
+		tokio::spawn(async move {
+			if let Err(e) = entry.insert(&db).await {
+				tracing::error!(error = %e, "cannot log analytics");
+			}
+		});
+
 		let req = ServiceRequest::from_parts(req, payload);
-
-		let request = req.request();
-		if let Some(addr) = request.peer_addr() {
-			let entry = AnalyticsEntry {
-				date: Utc::now(),
-
-				address: addr.to_string(),
-				user_agent: request
-					.headers()
-					.get("User-Agent")
-					.and_then(|h| h.to_str().ok())
-					.map(|h| h.to_owned()),
-
-				method: request.method().to_string(),
-				uri: request.uri().to_string(),
-
-				logged_user,
-			};
-
-			let db = self.global.get_database();
-			tokio::spawn(async move {
-				if let Err(e) = entry.insert(&db).await {
-					tracing::error!(error = %e, "cannot log analytics");
-				}
-			});
-		}
-
 		Box::pin(self.service.call(req))
 	}
 }
