@@ -1,3 +1,6 @@
+use crate::service::user;
+use crate::service::user::User;
+use crate::GlobalData;
 use actix_session::Session;
 use actix_web::http::StatusCode;
 use actix_web::web::Redirect;
@@ -5,9 +8,6 @@ use actix_web::{error, get, web, HttpResponseBuilder, Responder};
 use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
-use crate::GlobalData;
-use crate::service::user;
-use crate::service::user::User;
 
 #[get("/auth")]
 pub async fn auth(data: web::Data<GlobalData>) -> impl Responder {

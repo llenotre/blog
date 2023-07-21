@@ -1,5 +1,6 @@
 //! This module implements files upload and usage.
 
+use crate::service::user::User;
 use crate::GlobalData;
 use actix_multipart::Multipart;
 use actix_session::Session;
@@ -14,7 +15,6 @@ use futures_util::TryStreamExt;
 use mongodb::options::GridFsFindOptions;
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use tokio_util::io::ReaderStream;
-use crate::service::user::User;
 
 #[get("/file/{id}")]
 pub async fn get(
