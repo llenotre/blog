@@ -92,7 +92,7 @@ pub async fn logout(session: Session) -> actix_web::Result<impl Responder> {
 	Ok(redirect)
 }
 
-/// Avatar proxy, used to protect non-logged users from Github (RGPD)
+/// Avatar proxy, used to protect non-logged users from Github (GDPR)
 #[get("/avatar/{user}")]
 pub async fn avatar(user: web::Path<String>) -> actix_web::Result<impl Responder> {
 	let user = user.into_inner();
