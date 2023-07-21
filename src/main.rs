@@ -106,11 +106,11 @@ async fn main() -> io::Result<()> {
 	let config = fs::read_to_string("config.toml")
 		.map(|s| toml::from_str::<Config>(&s))
 		.unwrap_or_else(|e| {
-			eprintln!("Cannot open configuration file: {}", e);
+			tracing::error!(error = %e, "Cannot open configuration file");
 			exit(1);
 		})
 		.unwrap_or_else(|e| {
-			eprintln!("Invalid configuration file: {}", e);
+			tracing::error!(error = %e, "invalid configuration file");
 			exit(1);
 		});
 
@@ -118,11 +118,11 @@ async fn main() -> io::Result<()> {
 	let client_options = ClientOptions::parse(&config.mongo_url)
 		.await
 		.unwrap_or_else(|e| {
-			eprintln!("mongodb: {e}");
+			tracing::error!(error = %e, "mongodb");
 			exit(1);
 		});
 	let client = mongodb::Client::with_options(client_options).unwrap_or_else(|e| {
-		eprintln!("mongodb: {e}");
+		tracing::error!(error = %e, "mongodb");
 		exit(1);
 	});
 
