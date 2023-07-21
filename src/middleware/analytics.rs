@@ -102,7 +102,7 @@ where
 		let request = req.request();
 		if let Some(addr) = request.peer_addr() {
 			let entry = AnalyticsEntry {
-				date: chrono::offset::Utc::now(),
+				date: Utc::now(),
 
 				address: addr.to_string(),
 				user_agent: request
@@ -120,7 +120,7 @@ where
 			let db = self.global.get_database();
 			tokio::spawn(async move {
 				if let Err(e) = entry.insert(&db).await {
-					eprintln!("Cannot log analytics: {}", e);
+					tracing::error!(error = %e, "cannot log analytics");
 				}
 			});
 		}
