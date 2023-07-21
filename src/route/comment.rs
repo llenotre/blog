@@ -13,6 +13,8 @@ use std::time::Duration;
 /// Minimum post cooldown.
 const INTERVAL: Duration = Duration::from_secs(10);
 
+// TODO cleanup: avoid duplicate code and fix errors handling
+
 #[get("/comment/{id}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
@@ -134,7 +136,7 @@ pub async fn post(
 		if now < cooldown_end {
 			let remaining = (cooldown_end - now).num_seconds();
 			return Ok(
-				HttpResponse::TooManyRequests().content_type("text/plain").body(format!("wait {remaining} before retrying"))
+				HttpResponse::TooManyRequests().content_type("text/plain").body(format!("wait {remaining} seconds before retrying"))
 			);
 		}
 	}
@@ -253,7 +255,7 @@ pub async fn edit(
 		if now < cooldown_end {
 			let remaining = (cooldown_end - now).num_seconds();
 			return Ok(
-				HttpResponse::TooManyRequests().content_type("text/plain").body(format!("wait {remaining} before retrying"))
+				HttpResponse::TooManyRequests().content_type("text/plain").body(format!("wait {remaining} seconds before retrying"))
 			);
 		}
 	}
