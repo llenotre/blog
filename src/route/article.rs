@@ -1,7 +1,3 @@
-use crate::article::{Article, ArticleContent};
-use crate::comment::{comment_to_html, get_comment_editor, group_comments, Comment};
-use crate::user::User;
-use crate::{user, util, GlobalData};
 use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::web::Redirect;
@@ -10,6 +6,11 @@ use bson::doc;
 use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
+use crate::{GlobalData, util};
+use crate::service::article::{Article, ArticleContent};
+use crate::service::comment::{Comment, comment_to_html, get_comment_editor, group_comments};
+use crate::service::user;
+use crate::service::user::User;
 
 #[get("/a/{id}/{title}")]
 pub async fn get(

@@ -1,9 +1,9 @@
-use crate::article::Article;
-use crate::user::User;
 use crate::GlobalData;
 use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::{error, get, web, HttpResponse, Responder};
+use crate::service::article::Article;
+use crate::service::user::User;
 
 pub mod article;
 pub mod comment;
