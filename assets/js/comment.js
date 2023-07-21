@@ -161,7 +161,7 @@ async function post(comment_id) {
 
 	// Format comment's date
 	var com = document.getElementById("com-" + id);
-	format_date_long(com.querySelector("#date-long"));
+	format_date_long(com.querySelector("[id=date-long]"));
 
     // Empty text editor
     comment_content.value = "";
@@ -202,8 +202,10 @@ async function edit(comment_id) {
     // Update comment on front-end
 	var com = document.getElementById("com-" + comment_id);
 	com.outerHTML = comment_html;
-	// FIXME: doesn't work when there are several dates
-	format_date_long(com.querySelector("#date-long"));
+
+	// Update comment's date
+	var com = document.getElementById("com-" + comment_id);
+	format_date_long(com.querySelectorAll("[id=date-long]"));
 }
 
 // Deletes the comment with the given ID.
