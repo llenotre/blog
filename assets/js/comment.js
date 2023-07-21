@@ -108,7 +108,7 @@ async function fetch_comment(id) {
 			if (response.status == 200) {
 				return body;
 			} else {
-				alert("Failed to post comment:" + body);
+				alert("Failed to post comment: " + body);
 				return null;
 			}
 		});
@@ -136,7 +136,7 @@ async function post(comment_id) {
 				return json["id"];
 			} else {
 				var error = await response.text();
-				alert("Failed to post comment:" + error);
+				alert("Failed to post comment: " + error);
 				return null;
 			}
 		});
@@ -189,7 +189,7 @@ async function edit(comment_id) {
 	var response = await fetch("/comment", { method: "PATCH", headers: headers, body: payload });
 	if (response.status != 200) {
 		var error = await response.text();
-		alert("Failed to edit comment" + error);
+		alert("Failed to edit comment: " + error);
 		return;
 	}
 
@@ -215,7 +215,7 @@ async function del(comment_id) {
 	var response = await fetch("/comment/" + comment_id, { method: "DELETE" });
 	if (response.status != 200) {
 		var error = await response.text();
-		alert("Failed to delete comment" + error);
+		alert("Failed to delete comment: " + error);
 		return;
 	}
 
