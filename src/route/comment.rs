@@ -121,13 +121,11 @@ pub async fn post(
         if !article_content.public {
             return Err(error::ErrorNotFound("article not found"));
         }
-        if !article_content.comments_locked {
+        if article_content.comments_locked {
             return Err(error::ErrorForbidden("comments are locked"));
         }
-    }
 
-	// Check user's cooldown
-	if !user.admin {
+		// Check user's cooldown
 		let now = Utc::now();
 		let cooldown_end = user.last_post + chrono::Duration::from_std(INTERVAL).unwrap();
 		if now < cooldown_end {
@@ -239,16 +237,14 @@ pub async fn edit(
         if !article_content.public {
             return Err(error::ErrorNotFound("article not found"));
         }
-        if !article_content.comments_locked {
+        if article_content.comments_locked {
             return Err(error::ErrorForbidden("comments are locked"));
         }
         if comment.author != user.id {
             return Err(error::ErrorForbidden("forbidden"));
         }
-    }
 
-	// Check user's cooldown
-	if !user.admin {
+		// Check user's cooldown
 		let now = Utc::now();
 		let cooldown_end = user.last_post + chrono::Duration::from_std(INTERVAL).unwrap();
 		if now < cooldown_end {
