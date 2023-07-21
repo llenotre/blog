@@ -8,8 +8,8 @@ use actix_web::{error, get, web, HttpResponse, Responder};
 pub mod article;
 pub mod comment;
 pub mod file;
-pub mod user;
 pub mod newsletter;
+pub mod user;
 
 #[get("/")]
 pub async fn root(

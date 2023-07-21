@@ -11,7 +11,11 @@ use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
 use actix_web::middleware::Logger;
-use actix_web::{body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, http::header, http::header::HeaderValue, middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web, App, HttpServer};
+use actix_web::{
+	body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, http::header,
+	http::header::HeaderValue, middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web,
+	App, HttpServer,
+};
 use base64::Engine;
 use mongodb::options::ClientOptions;
 use serde::Deserialize;

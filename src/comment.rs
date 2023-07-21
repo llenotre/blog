@@ -9,10 +9,10 @@ use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
 use futures_util::stream::TryStreamExt;
+use mongodb::Database;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use mongodb::Database;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;
@@ -89,9 +89,12 @@ impl Comment {
 	pub async fn get_replies(&self, db: &Database) -> Result<Vec<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
 		collection
-			.find(Some(doc!{
-				"reply_to": self.id,
-			}), None)
+			.find(
+				Some(doc! {
+					"reply_to": self.id,
+				}),
+				None,
+			)
 			.await?
 			.try_collect()
 			.await
