@@ -90,7 +90,7 @@ impl Comment {
 		let collection = db.collection::<Self>("comment");
 		collection
 			.find(Some(doc!{
-				"response_to": self.id,
+				"reply_to": self.id,
 			}), None)
 			.await?
 			.try_collect()
