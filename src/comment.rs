@@ -12,6 +12,7 @@ use futures_util::stream::TryStreamExt;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use mongodb::Database;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;
@@ -27,8 +28,8 @@ pub struct Comment {
 
 	/// The ID of the article.
 	pub article: ObjectId,
-	/// The ID of the comment this comment responds to. If `None`, this comment is not a response.
-	pub response_to: Option<ObjectId>,
+	/// The ID of the comment this comment replies to. If `None`, this comment is not a reply.
+	pub reply_to: Option<ObjectId>,
 	/// The ID of author of the comment.
 	pub author: ObjectId,
 	/// Timestamp since epoch at which the comment has been posted.
@@ -49,7 +50,7 @@ impl Comment {
 	/// - `db` is the database.
 	/// - `id` is the ID of the comment.
 	pub async fn from_id(
-		db: &mongodb::Database,
+		db: &Database,
 		id: &ObjectId,
 	) -> Result<Option<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
@@ -64,7 +65,7 @@ impl Comment {
 	/// - `not_removed` tells whether to the function must return only comments that are not
 	/// removed.
 	pub async fn list_for_article(
-		db: &mongodb::Database,
+		db: &Database,
 		article_id: ObjectId,
 		not_removed: bool,
 	) -> Result<Vec<Self>, mongodb::error::Error> {
@@ -84,10 +85,22 @@ impl Comment {
 			.await
 	}
 
+	/// Returns replies to the current comment.
+	pub async fn get_replies(&self, db: &Database) -> Result<Vec<Self>, mongodb::error::Error> {
+		let collection = db.collection::<Self>("comment");
+		collection
+			.find(Some(doc!{
+				"response_to": self.id,
+			}), None)
+			.await?
+			.try_collect()
+			.await
+	}
+
 	/// Inserts the current comment in the database.
 	///
 	/// `db` is the database.
-	pub async fn insert(&self, db: &mongodb::Database) -> Result<(), mongodb::error::Error> {
+	pub async fn insert(&self, db: &Database) -> Result<(), mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
 		collection.insert_one(self, None).await.map(|_| ())
 	}
@@ -95,7 +108,7 @@ impl Comment {
 	/// Updates the ID of the comment's content.
 	pub async fn update_content(
 		&self,
-		db: &mongodb::Database,
+		db: &Database,
 		content_id: ObjectId,
 	) -> Result<(), mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
@@ -117,7 +130,7 @@ impl Comment {
 	/// - `user_id` is the ID of the user trying to delete the comment.
 	/// - `bypass_perm` tells whether the function can bypass user's permissions.
 	pub async fn delete(
-		db: &mongodb::Database,
+		db: &Database,
 		comment_id: &ObjectId,
 		user_id: &ObjectId,
 		bypass_perm: bool,
@@ -161,7 +174,7 @@ impl CommentContent {
 	///
 	/// `db` is the database.
 	pub async fn from_id(
-		db: &mongodb::Database,
+		db: &Database,
 		id: ObjectId,
 	) -> Result<Option<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment_content");
@@ -178,7 +191,7 @@ impl CommentContent {
 	/// Inserts the current content in the database.
 	///
 	/// `db` is the database.
-	pub async fn insert(&self, db: &mongodb::Database) -> Result<ObjectId, mongodb::error::Error> {
+	pub async fn insert(&self, db: &Database) -> Result<ObjectId, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment_content");
 		collection
 			.insert_one(self, None)
@@ -227,7 +240,7 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 
 	// Partition comments
 	for com in comments {
-		if com.response_to.is_none() {
+		if com.reply_to.is_none() {
 			base.insert(com.id, (com, vec![]));
 		} else {
 			replies.push(com);
@@ -236,7 +249,7 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 
 	// Assign replies to comments
 	for reply in replies {
-		let base_id = reply.response_to.as_ref().unwrap();
+		let base_id = reply.reply_to.as_ref().unwrap();
 
 		if let Some(b) = base.get_mut(base_id) {
 			b.1.push(reply);
@@ -265,7 +278,7 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 /// - `admin` tells whether the current user is admin.
 #[async_recursion]
 pub async fn comment_to_html(
-	db: &mongodb::Database,
+	db: &Database,
 	article_title: &str,
 	comment: &Comment,
 	replies: Option<&'async_recursion [Comment]>,

@@ -56,13 +56,22 @@ pub async fn get(
 		error::ErrorInternalServerError("")
 	})?;
 
+	// Get replies
+	let replies = match comment.reply_to {
+		None => Some(comment.get_replies(&db).await.map_err(|e| {
+			tracing::error!(error = %e, "mongodb");
+			error::ErrorInternalServerError("")
+		})?),
+		Some(_) => None,
+	};
+
 	let user_id = user.as_ref().map(|u| &u.id);
 	let user_login = user.as_ref().map(|u| u.github_info.login.as_str());
 	let html = comment_to_html(
 		&db,
 		&content.title,
 		&comment,
-		None,
+		replies.as_deref(),
 		user_id,
 		user_login,
 		admin,
@@ -161,7 +170,7 @@ pub async fn post(
 		id,
 
 		article: article_id,
-		response_to: info.response_to,
+		reply_to: info.response_to,
 		author: user.id,
 		post_date: date,
 
