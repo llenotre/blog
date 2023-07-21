@@ -20,7 +20,7 @@ pub struct Article {
 	/// The ID of the article's content.
 	pub content_id: ObjectId,
 	/// Timestamp since epoch at which the article has been posted.
-    #[serde(with = "util::serde_option_date_time")]
+	#[serde(with = "util::serde_option_date_time")]
 	pub post_date: Option<DateTime<Utc>>,
 }
 
@@ -86,9 +86,9 @@ impl Article {
 			collection
 				.update_one(
 					doc! { "_id": id, "$or": [
-                        { "post_date": { "$exists": false } },
-                        { "post_date": None::<String> },
-                    ]},
+						{ "post_date": { "$exists": false } },
+						{ "post_date": None::<String> },
+					]},
 					doc! { "$set": { "post_date": post_date.to_rfc3339() } },
 					None,
 				)

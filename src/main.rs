@@ -11,11 +11,7 @@ use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
 use actix_web::middleware::Logger;
-use actix_web::{
-	body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, http::header,
-	http::header::HeaderValue, middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web,
-	App, HttpServer,
-};
+use actix_web::{body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, http::header, http::header::HeaderValue, middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web, App, HttpServer};
 use base64::Engine;
 use mongodb::options::ClientOptions;
 use serde::Deserialize;
@@ -66,22 +62,36 @@ impl GlobalData {
 }
 
 fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
-	let status = res.status();
+	let pretty_error = res
+		.headers()
+		.get("Content-Type")
+		.map(HeaderValue::to_str)
+		.transpose()
+		.unwrap()
+		.map(|s| s != "text/plain" && s != "application/json")
+		.unwrap_or(true);
+	let response = if pretty_error {
+		let html = include_str!("../pages/error.html");
+		let status = res.status();
+		let html = html.replace("{error.code}", &status.as_u16().to_string());
+		let html = html.replace("{error.reason}", status.canonical_reason().unwrap());
 
-	let html = include_str!("../pages/error.html");
-	let html = html.replace("{error.code}", &format!("{}", status.as_u16()));
-	let html = html.replace("{error.reason}", status.canonical_reason().unwrap());
+		let (req, res) = res.into_parts();
+		let res = res.map_body(|_, _| EitherBody::Right {
+			body: BoxBody::new(html),
+		});
 
-	let (req, res) = res.into_parts();
-	let res = res.map_body(|_, _| EitherBody::Right {
-		body: BoxBody::new(html),
-	});
-
-	let mut response = ServiceResponse::new(req, res);
-	response
-		.response_mut()
-		.headers_mut()
-		.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html"));
+		let mut response = ServiceResponse::new(req, res);
+		response
+			.response_mut()
+			.headers_mut()
+			.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html"));
+		response
+	} else {
+		res.map_body(|_, body| EitherBody::Left {
+			body,
+		})
+	};
 	Ok(ErrorHandlerResponse::Response(response))
 }
 

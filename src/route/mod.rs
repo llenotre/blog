@@ -16,31 +16,24 @@ pub async fn root(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let db = data.get_database();
-	let admin = User::check_admin(&db, &session)
-		.await
-		.map_err(|e| {
-			tracing::error!(error = %e, "mongodb: user");
-			error::ErrorInternalServerError("")
-		})?;
+	let admin = User::check_admin(&db, &session).await.map_err(|e| {
+		tracing::error!(error = %e, "mongodb: user");
+		error::ErrorInternalServerError("")
+	})?;
 
 	// Get articles
-	let articles = Article::list(&db)
-		.await
-		.map_err(|e| {
-			tracing::error!(error = %e, "mongodb: articles");
-			error::ErrorInternalServerError("")
-		})?;
+	let articles = Article::list(&db).await.map_err(|e| {
+		tracing::error!(error = %e, "mongodb: articles");
+		error::ErrorInternalServerError("")
+	})?;
 
 	// Produce articles HTML
 	let mut articles_html = String::new();
 	for article in articles {
-		let content = article
-			.get_content(&db)
-			.await
-			.map_err(|e| {
-				tracing::error!(error = %e, "mongodb: article content");
-				error::ErrorInternalServerError("")
-			})?;
+		let content = article.get_content(&db).await.map_err(|e| {
+			tracing::error!(error = %e, "mongodb: article content");
+			error::ErrorInternalServerError("")
+		})?;
 		if !admin && !content.public {
 			continue;
 		}
