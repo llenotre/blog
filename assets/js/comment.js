@@ -161,7 +161,7 @@ async function post(comment_id) {
 
 	// Format comment's date
 	var com = document.getElementById("com-" + id);
-	format_date_long(com.querySelector("[id=date-long]"));
+	format_date_long(com.querySelectorAll("[id=date-long]"));
 
     // Empty text editor
     comment_content.value = "";
@@ -227,5 +227,5 @@ async function del(comment_id) {
 
     // Update comments count
     var coms_count = document.getElementById("comments-count");
-    coms_count.textContent -= 1;
+    coms_count.textContent = parseInt(coms_count.textContent) - 1;
 }
