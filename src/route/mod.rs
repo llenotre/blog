@@ -9,6 +9,7 @@ pub mod article;
 pub mod comment;
 pub mod file;
 pub mod user;
+pub mod newsletter;
 
 #[get("/")]
 pub async fn root(
