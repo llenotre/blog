@@ -41,7 +41,9 @@ pub async fn get(
 		.ok_or_else(|| error::ErrorNotFound("comment not found"))?;
 	let admin = user.as_ref().map(|u| u.admin).unwrap_or(false);
 	if comment.removed && !admin {
-		return Ok(HttpResponse::NotFound().content_type("text/plain").body("comment not found"));
+		return Ok(HttpResponse::NotFound()
+			.content_type("text/plain")
+			.body("comment not found"));
 	}
 
 	let article = Article::from_id(&db, &comment.article)
@@ -102,10 +104,16 @@ pub async fn post(
 
 	let len = info.content.as_bytes().len();
 	if len == 0 {
-		return Ok(HttpResponse::BadRequest().content_type("text/plain").body("comment is empty"));
+		return Ok(HttpResponse::BadRequest()
+			.content_type("text/plain")
+			.body("comment is empty"));
 	}
 	if len > MAX_CHARS {
-		return Ok(HttpResponse::BadRequest().content_type("text/plain").body(format!("comment is too long ({len}/{MAX_CHARS} characters)")));
+		return Ok(HttpResponse::BadRequest()
+			.content_type("text/plain")
+			.body(format!(
+				"comment is too long ({len}/{MAX_CHARS} characters)"
+			)));
 	}
 
 	let db = data.get_database();
@@ -133,10 +141,14 @@ pub async fn post(
 
 	if !user.admin {
 		if !article_content.public {
-			return Ok(HttpResponse::Forbidden().content_type("text/plain").body("article not found"));
+			return Ok(HttpResponse::Forbidden()
+				.content_type("text/plain")
+				.body("article not found"));
 		}
 		if article_content.comments_locked {
-			return Ok(HttpResponse::Forbidden().content_type("text/plain").body("comments are locked"));
+			return Ok(HttpResponse::Forbidden()
+				.content_type("text/plain")
+				.body("comments are locked"));
 		}
 
 		// Check user's cooldown
@@ -144,9 +156,9 @@ pub async fn post(
 		let cooldown_end = user.last_post + chrono::Duration::from_std(INTERVAL).unwrap();
 		if now < cooldown_end {
 			let remaining = (cooldown_end - now).num_seconds();
-			return Ok(
-				HttpResponse::TooManyRequests().content_type("text/plain").body(format!("wait {remaining} seconds before retrying"))
-			);
+			return Ok(HttpResponse::TooManyRequests()
+				.content_type("text/plain")
+				.body(format!("wait {remaining} seconds before retrying")));
 		}
 	}
 
@@ -252,7 +264,9 @@ pub async fn edit(
 			return Err(error::ErrorNotFound("article not found"));
 		}
 		if article_content.comments_locked {
-			return Ok(HttpResponse::Forbidden().content_type("text/plain").body("comments are locked"));
+			return Ok(HttpResponse::Forbidden()
+				.content_type("text/plain")
+				.body("comments are locked"));
 		}
 		if comment.author != user.id {
 			return Err(error::ErrorForbidden("forbidden"));
@@ -263,9 +277,9 @@ pub async fn edit(
 		let cooldown_end = user.last_post + chrono::Duration::from_std(INTERVAL).unwrap();
 		if now < cooldown_end {
 			let remaining = (cooldown_end - now).num_seconds();
-			return Ok(
-				HttpResponse::TooManyRequests().content_type("text/plain").body(format!("wait {remaining} seconds before retrying"))
-			);
+			return Ok(HttpResponse::TooManyRequests()
+				.content_type("text/plain")
+				.body(format!("wait {remaining} seconds before retrying")));
 		}
 	}
 

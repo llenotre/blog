@@ -95,7 +95,10 @@ where
 	fn call(&self, req: ServiceRequest) -> Self::Future {
 		let (req, payload) = req.into_parts();
 
-		let peer_addr = req.connection_info().realip_remote_addr().map(str::to_owned);
+		let peer_addr = req
+			.connection_info()
+			.realip_remote_addr()
+			.map(str::to_owned);
 		let user_agent = req
 			.headers()
 			.get("User-Agent")
