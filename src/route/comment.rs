@@ -1,6 +1,3 @@
-use crate::article::Article;
-use crate::comment::{comment_to_html, Comment, CommentContent, MAX_CHARS};
-use crate::user::User;
 use crate::GlobalData;
 use actix_session::Session;
 use actix_web::{delete, error, get, patch, post, web, HttpResponse, Responder};
@@ -9,6 +6,9 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
+use crate::service::article::Article;
+use crate::service::comment::{Comment, comment_to_html, CommentContent, MAX_CHARS};
+use crate::service::user::User;
 
 /// Minimum post cooldown.
 const INTERVAL: Duration = Duration::from_secs(10);

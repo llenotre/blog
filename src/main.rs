@@ -1,9 +1,6 @@
-mod article;
-mod comment;
 mod middleware;
-mod newsletter;
 mod route;
-mod user;
+mod service;
 mod util;
 
 use crate::middleware::analytics::Analytics;

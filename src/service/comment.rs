@@ -1,6 +1,5 @@
 //! This module handles comments on articles.
 
-use crate::user::User;
 use crate::util;
 use actix_web::error;
 use async_recursion::async_recursion;
@@ -13,6 +12,7 @@ use mongodb::Database;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use crate::service::user::User;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;
