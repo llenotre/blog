@@ -1,7 +1,7 @@
+use crate::service::newsletter::NewsletterEmail;
 use crate::{util, GlobalData};
 use actix_web::{error, post, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
-use crate::service::newsletter::NewsletterEmail;
 
 /// Payload of request to register a newsletter subscriber.
 #[derive(Deserialize, Serialize)]

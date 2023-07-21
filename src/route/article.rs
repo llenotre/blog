@@ -1,3 +1,8 @@
+use crate::service::article::{Article, ArticleContent};
+use crate::service::comment::Comment;
+use crate::service::user::User;
+use crate::service::{comment, user};
+use crate::{util, GlobalData};
 use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::web::Redirect;
@@ -6,11 +11,6 @@ use bson::doc;
 use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
-use crate::{GlobalData, util};
-use crate::service::article::{Article, ArticleContent};
-use crate::service::comment::{Comment, comment_to_html, get_comment_editor, group_comments};
-use crate::service::user;
-use crate::service::user::User;
 
 #[get("/a/{id}/{title}")]
 pub async fn get(
@@ -78,11 +78,11 @@ pub async fn get(
 	let comments_count = comments.len();
 	let html = html.replace("{comments.count}", &comments_count.to_string());
 
-	let comments = group_comments(comments);
+	let comments = comment::group(comments);
 	let mut comments_html = String::new();
 	for (com, replies) in comments {
 		comments_html.push_str(
-			&comment_to_html(
+			&comment::to_html(
 				&db,
 				&expected_title,
 				&com,
@@ -98,7 +98,7 @@ pub async fn get(
 	let html = html.replace("{comments}", &comments_html);
 
 	let comment_editor_html = match user_login {
-		Some(user_login) => get_comment_editor(&user_login, "post", None, None),
+		Some(user_login) => comment::get_editor(&user_login, "post", None, None),
 
 		None => format!(
 			r#"<center><a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a></center>"#,

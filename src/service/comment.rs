@@ -1,5 +1,6 @@
 //! This module handles comments on articles.
 
+use crate::service::user::User;
 use crate::util;
 use actix_web::error;
 use async_recursion::async_recursion;
@@ -12,7 +13,6 @@ use mongodb::Database;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use crate::service::user::User;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;
@@ -210,7 +210,7 @@ impl CommentContent {
 /// - `article` is the action to perform.
 /// - `comment_id` is the ID of the comment for which the action is performed.
 /// - `content` is the default content of the editor.
-pub fn get_comment_editor(
+pub fn get_editor(
 	user_login: &str,
 	action: &str,
 	comment_id: Option<&str>,
@@ -237,7 +237,7 @@ pub fn get_comment_editor(
 }
 
 /// Groups all comments into a list of comment-replies pairs.
-pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
+pub fn group(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 	let mut base = HashMap::new();
 	let mut replies = Vec::new();
 
@@ -280,7 +280,7 @@ pub fn group_comments(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 /// - `user_login` is the handle of the logged user. If `None`, the user is not logged.
 /// - `admin` tells whether the current user is admin.
 #[async_recursion]
-pub async fn comment_to_html(
+pub async fn to_html(
 	db: &Database,
 	article_title: &str,
 	comment: &Comment,
@@ -297,8 +297,7 @@ pub async fn comment_to_html(
 			let mut html = String::new();
 			for com in replies {
 				html.push_str(
-					&comment_to_html(db, article_title, com, None, user_id, user_login, admin)
-						.await?,
+					&to_html(db, article_title, com, None, user_id, user_login, admin).await?,
 				);
 			}
 
@@ -392,13 +391,13 @@ pub async fn comment_to_html(
 
 	let (edit_editor, reply_editor) = match user_login {
 		Some(user_login) => (
-			get_comment_editor(
+			get_editor(
 				user_login,
 				"edit",
 				Some(&com_id.to_hex()),
 				Some(&content.content),
 			),
-			get_comment_editor(user_login, "post", Some(&com_id.to_hex()), None),
+			get_editor(user_login, "post", Some(&com_id.to_hex()), None),
 		),
 
 		None => (String::new(), String::new()),
