@@ -14,9 +14,7 @@ pub struct NewsletterEmail<'s> {
 	pub email: Option<&'s str>,
 	/// The date at which the user subscribed.
 	#[serde(with = "util::serde_date_time")]
-	pub date: DateTime<Utc>,
-	/// Tells whether the user has unsubscribed.
-	pub unsubscribed: bool,
+	pub subscribe_date: DateTime<Utc>,
 }
 
 impl<'s> NewsletterEmail<'s> {
@@ -27,8 +25,7 @@ impl<'s> NewsletterEmail<'s> {
 			.insert_one(
 				NewsletterEmail {
 					email: Some(email),
-					date: Utc::now(),
-					unsubscribed: false,
+					subscribe_date: Utc::now(),
 				},
 				None,
 			)
