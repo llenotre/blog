@@ -101,7 +101,10 @@ pub async fn get(
 		Some(user_login) => comment::get_editor(&user_login, "post", None, None),
 
 		None => format!(
-			r#"<center><a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a></center>"#,
+			r#"<center>
+                <a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a>
+                <h6>By clicking, you accept the <a href="/legal#privacy" target="_blank">Privacy Policy</a></h6>
+            </center>"#,
 			user::get_auth_url(&data.client_id)
 		),
 	};
