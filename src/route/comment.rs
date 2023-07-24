@@ -24,7 +24,9 @@ pub async fn get(
 ) -> actix_web::Result<impl Responder> {
 	let id = id.into_inner();
 	let Ok(id) = ObjectId::parse_str(id) else {
-		return Ok(HttpResponse::NotFound().content_type("text/plain").body("comment not found"));
+		return Ok(HttpResponse::NotFound()
+			.content_type("text/plain")
+			.body("comment not found"));
 	};
 
 	let db = data.get_database();
@@ -137,7 +139,9 @@ pub async fn post(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(user) = user else {
-		return Ok(HttpResponse::Forbidden().content_type("text/plain").body("login first"));
+		return Ok(HttpResponse::Forbidden()
+			.content_type("text/plain")
+			.body("login first"));
 	};
 
 	if !user.admin {
