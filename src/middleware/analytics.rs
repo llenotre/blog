@@ -1,6 +1,6 @@
 //! This module implements analytics.
 
-use crate::util;
+use crate::service::analytics::AnalyticsEntry;
 use crate::GlobalData;
 use actix_session::Session;
 use actix_session::SessionExt;
@@ -10,45 +10,11 @@ use actix_web::dev::ServiceRequest;
 use actix_web::dev::ServiceResponse;
 use actix_web::dev::Transform;
 use actix_web::Error;
-use chrono::DateTime;
 use chrono::Utc;
 use futures_util::future::LocalBoxFuture;
-use serde::Deserialize;
-use serde::Serialize;
 use std::future::ready;
 use std::future::Ready;
 use std::sync::Arc;
-
-/// Each time a page is visited, an instance of this structure is saved.
-#[derive(Deserialize, Serialize)]
-pub struct AnalyticsEntry {
-	/// The date of the visit.
-	#[serde(with = "util::serde_date_time")]
-	date: DateTime<Utc>,
-
-	/// The user's IP address. If unknown, the value is `None`.
-	peer_addr: Option<String>,
-	/// The user agent.
-	user_agent: Option<String>,
-
-	/// The request method.
-	method: String,
-	/// The request URI.
-	uri: String,
-
-	/// If a user is logged, the name of this user.
-	logged_user: Option<String>,
-}
-
-impl AnalyticsEntry {
-	/// Inserts the analytics entry in the database.
-	///
-	/// `db` is the database.
-	pub async fn insert(&self, db: &mongodb::Database) -> Result<(), mongodb::error::Error> {
-		let collection = db.collection::<Self>("analytics");
-		collection.insert_one(self, None).await.map(|_| ())
-	}
-}
 
 /// Middleware allowing to collect analytics.
 pub struct Analytics {

@@ -2,8 +2,10 @@ mod middleware;
 mod route;
 mod service;
 mod util;
+mod worker;
 
 use crate::middleware::analytics::Analytics;
+use crate::worker::Worker;
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
@@ -20,6 +22,8 @@ use std::env;
 use std::fs;
 use std::io;
 use std::process::exit;
+use std::time::Duration;
+use tokio::time;
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -138,6 +142,18 @@ async fn main() -> io::Result<()> {
 	let session_secret_key = base64::engine::general_purpose::STANDARD
 		.decode(config.session_secret_key)
 		.unwrap();
+
+	// Worker task
+	let data_clone = data.clone();
+	tokio::spawn(async move {
+		let worker = Worker::new(data_clone.into_inner());
+		let mut interval = time::interval(Duration::from_secs(10));
+
+		loop {
+			worker.tick().await;
+			interval.tick().await;
+		}
+	});
 
 	HttpServer::new(move || {
 		App::new()
