@@ -1,9 +1,7 @@
 //! This module implements analytics.
 
-use crate::service::analytics::AnalyticsEntry;
+use crate::service::analytics::{AnalyticsEntry, UserInfo};
 use crate::GlobalData;
-use actix_session::Session;
-use actix_session::SessionExt;
 use actix_web::dev::forward_ready;
 use actix_web::dev::Service;
 use actix_web::dev::ServiceRequest;
@@ -71,20 +69,16 @@ where
 			.and_then(|h| h.to_str().ok())
 			.map(str::to_owned);
 
-		// Get user login, if logged
-		let session: Session = req.get_session();
-		let logged_user = session.get("user_login").ok().flatten();
-
 		let entry = AnalyticsEntry {
 			date: Utc::now(),
 
-			peer_addr,
-			user_agent,
+			user_info: UserInfo::Sensitive {
+				peer_addr,
+				user_agent,
+			},
 
 			method: req.method().to_string(),
 			uri: req.uri().to_string(),
-
-			logged_user,
 		};
 		let db = self.global.get_database();
 		tokio::spawn(async move {
