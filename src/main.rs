@@ -2,10 +2,8 @@ mod middleware;
 mod route;
 mod service;
 mod util;
-mod worker;
 
 use crate::middleware::analytics::Analytics;
-use crate::worker::Worker;
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
@@ -24,6 +22,7 @@ use std::io;
 use std::process::exit;
 use std::time::Duration;
 use tokio::time;
+use crate::service::analytics::AnalyticsEntry;
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -146,11 +145,12 @@ async fn main() -> io::Result<()> {
 	// Worker task
 	let data_clone = data.clone();
 	tokio::spawn(async move {
-		let worker = Worker::new(data_clone.into_inner());
+		let data = data_clone.into_inner();
+		let db = data.get_database();
 		let mut interval = time::interval(Duration::from_secs(10));
 
 		loop {
-			worker.tick().await;
+			let _ = AnalyticsEntry::aggregate(&db).await;
 			interval.tick().await;
 		}
 	});
