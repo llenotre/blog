@@ -13,6 +13,7 @@ use futures_util::future::LocalBoxFuture;
 use std::future::ready;
 use std::future::Ready;
 use std::sync::Arc;
+use bson::oid::ObjectId;
 
 /// Middleware allowing to collect analytics.
 pub struct Analytics {
@@ -70,6 +71,8 @@ where
 			.map(str::to_owned);
 
 		let entry = AnalyticsEntry {
+			id: ObjectId::new(),
+
 			date: Utc::now(),
 
 			user_info: UserInfo::Sensitive {
