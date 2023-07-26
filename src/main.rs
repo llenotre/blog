@@ -4,6 +4,7 @@ mod service;
 mod util;
 
 use crate::middleware::analytics::Analytics;
+use crate::service::analytics::AnalyticsEntry;
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
@@ -22,7 +23,6 @@ use std::io;
 use std::process::exit;
 use std::time::Duration;
 use tokio::time;
-use crate::service::analytics::AnalyticsEntry;
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -92,9 +92,7 @@ fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerRe
 			.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html"));
 		response
 	} else {
-		res.map_body(|_, body| EitherBody::Left {
-			body,
-		})
+		res.map_body(|_, body| EitherBody::Left { body })
 	};
 	Ok(ErrorHandlerResponse::Response(response))
 }
