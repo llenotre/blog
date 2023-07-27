@@ -1,6 +1,6 @@
 //! This module implements analytics.
 
-use crate::service::analytics::{AnalyticsEntry, UserInfo};
+use crate::service::analytics::AnalyticsEntry;
 use crate::GlobalData;
 use actix_web::dev::forward_ready;
 use actix_web::dev::Service;
@@ -8,12 +8,10 @@ use actix_web::dev::ServiceRequest;
 use actix_web::dev::ServiceResponse;
 use actix_web::dev::Transform;
 use actix_web::Error;
-use chrono::Utc;
 use futures_util::future::LocalBoxFuture;
 use std::future::ready;
 use std::future::Ready;
 use std::sync::Arc;
-use bson::oid::ObjectId;
 
 /// Middleware allowing to collect analytics.
 pub struct Analytics {
@@ -70,19 +68,9 @@ where
 			.and_then(|h| h.to_str().ok())
 			.map(str::to_owned);
 
-		let entry = AnalyticsEntry {
-			id: ObjectId::new(),
-
-			date: Utc::now(),
-
-			user_info: UserInfo::Sensitive {
-				peer_addr,
-				user_agent,
-			},
-
-			method: req.method().to_string(),
-			uri: req.uri().to_string(),
-		};
+		let method = req.method().to_string();
+		let uri = req.uri().to_string();
+		let entry = AnalyticsEntry::new(peer_addr, user_agent, method, uri);
 		let db = self.global.get_database();
 		tokio::spawn(async move {
 			if let Err(e) = entry.insert(&db).await {

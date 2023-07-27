@@ -501,6 +501,7 @@ dependencies = [
  "actix-session",
  "actix-web",
  "ammonia",
+ "anyhow",
  "async-recursion",
  "base64 0.21.2",
  "bson",
