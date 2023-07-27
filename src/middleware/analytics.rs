@@ -67,16 +67,18 @@ where
 			.get("User-Agent")
 			.and_then(|h| h.to_str().ok())
 			.map(str::to_owned);
-
 		let method = req.method().to_string();
 		let uri = req.uri().to_string();
-		let entry = AnalyticsEntry::new(peer_addr, user_agent, method, uri);
-		let db = self.global.get_database();
-		tokio::spawn(async move {
-			if let Err(e) = entry.insert(&db).await {
-				tracing::error!(error = %e, "cannot log analytics");
-			}
-		});
+
+		if !uri.starts_with("/assets") {
+			let entry = AnalyticsEntry::new(peer_addr, user_agent, method, uri);
+			let db = self.global.get_database();
+			tokio::spawn(async move {
+				if let Err(e) = entry.insert(&db).await {
+					tracing::error!(error = %e, "cannot log analytics");
+				}
+			});
+		}
 
 		let req = ServiceRequest::from_parts(req, payload);
 		Box::pin(self.service.call(req))
