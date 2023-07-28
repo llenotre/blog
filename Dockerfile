@@ -17,7 +17,6 @@ COPY --from=prepare /usr/src/blog/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 COPY src/ src/
 COPY pages/ pages/
-COPY analytics/ analytics/
 ADD Cargo.toml .
 ADD Cargo.lock .
 ADD config.toml .
@@ -29,6 +28,7 @@ RUN apt-get update
 RUN apt-get install -y libssl-dev ca-certificates
 WORKDIR /usr/src/blog
 COPY --from=build /usr/src/blog/target/release/blog /usr/local/bin
-COPY assets/ .
-COPY config.toml .
+COPY assets/ assets/
+COPY analytics/ analytics/
+ADD config.toml .
 ENTRYPOINT ["/usr/local/bin/blog"]
