@@ -114,7 +114,7 @@ pub async fn get(
 	};
 	let html = html.replace("{comment.editor}", &comment_editor_html);
 
-	session.insert("last_article", id)?;
+	session.insert("last_article", id_str)?;
 	Ok(Either::Right(
 		HttpResponse::Ok()
 			.content_type(ContentType::html())
