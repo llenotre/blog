@@ -10,6 +10,7 @@ use chrono::{DateTime, Duration};
 use serde::Deserialize;
 use serde::Serialize;
 use std::cell::OnceCell;
+use std::fs::File;
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::Mutex;
@@ -35,12 +36,11 @@ impl TryFrom<&str> for UserGeolocation {
 	fn try_from(addr: &str) -> Result<Self, Self::Error> {
 		let addr = IpAddr::from_str(addr)?;
 
-		static GEOIP_DB: Mutex<OnceCell<maxminddb::Reader<&'static [u8]>>> =
-			Mutex::new(OnceCell::new());
+		static GEOIP_DB: Mutex<OnceCell<maxminddb::Reader<Vec<u8>>>> = Mutex::new(OnceCell::new());
 		let geoip_db = GEOIP_DB.lock().unwrap();
 		let geoip_db = geoip_db.get_or_init(|| {
-			let db = include_bytes!("../../analytics/geoip.mmdb");
-			maxminddb::Reader::from_source(db.as_slice()).expect("invalid geoip database")
+			maxminddb::Reader::open_readfile("analytics/geoip.mmdb")
+				.expect("could not read geoip database")
 		});
 		let geolocation: maxminddb::geoip2::City = geoip_db.lookup(addr)?;
 
@@ -101,8 +101,9 @@ impl TryFrom<&str> for UserDevice {
 		static UA_PARSER: Mutex<OnceCell<UserAgentParser>> = Mutex::new(OnceCell::new());
 		let ua_parser = UA_PARSER.lock().unwrap();
 		let ua_parser = ua_parser.get_or_init(|| {
-			let yaml = include_bytes!("../../analytics/uaparser.yaml");
-			UserAgentParser::from_bytes(yaml).expect("invalid user agent parser regexes")
+			let file = File::open("analytics/uaparser.yaml")
+				.expect("could not read user agent parser regexes file");
+			UserAgentParser::from_file(file).expect("invalid user agent parser regexes")
 		});
 		let parsed = ua_parser.parse(user_agent);
 
