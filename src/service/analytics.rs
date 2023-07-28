@@ -49,9 +49,7 @@ impl TryFrom<&str> for UserGeolocation {
 				.city
 				.and_then(|c| c.names)
 				.as_ref()
-				.and_then(|n| n.get("en").or_else(|| {
-					n.values().next()
-				}))
+				.and_then(|n| n.get("en").or_else(|| n.values().next()))
 				.map(|s| (*s).to_owned()),
 			continent: geolocation
 				.continent
