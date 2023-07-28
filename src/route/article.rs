@@ -18,10 +18,10 @@ pub async fn get(
 	path: web::Path<(String, String)>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let (id_str, title) = path.into_inner();
-	let id = ObjectId::parse_str(&id_str).map_err(|_| error::ErrorBadRequest(""))?;
-
 	let db = data.get_database();
+
+	let (id_str, title) = path.into_inner();
+	let id = util::decode_id(&id_str).ok_or_else(|| error::ErrorNotFound(""))?;
 
 	// Get article
 	let article = Article::from_id(&db, &id)
@@ -72,7 +72,7 @@ pub async fn get(
 	let user_login = session.get::<String>("user_login")?;
 
 	// Get article comments
-	let comments = Comment::list_for_article(&db, id, !admin)
+	let comments = Comment::list_for_article(&db, article.id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let comments_count = comments.len();
@@ -81,6 +81,10 @@ pub async fn get(
 	let comments = comment::group(comments);
 	let mut comments_html = String::new();
 	for (com, replies) in comments {
+		if !admin && com.removed && replies.is_empty() {
+			continue;
+		}
+
 		comments_html.push_str(
 			&comment::to_html(
 				&db,
@@ -110,7 +114,7 @@ pub async fn get(
 	};
 	let html = html.replace("{comment.editor}", &comment_editor_html);
 
-	session.insert("last_article", id_str.clone())?;
+	session.insert("last_article", id)?;
 	Ok(Either::Right(
 		HttpResponse::Ok()
 			.content_type(ContentType::html())
@@ -145,9 +149,8 @@ pub async fn editor(
 	let article_id = query
 		.into_inner()
 		.id
-		.map(ObjectId::parse_str)
-		.transpose()
-		.map_err(|_| error::ErrorBadRequest(""))?;
+		.map(|id| util::decode_id(&id).ok_or_else(|| error::ErrorBadRequest("")))
+		.transpose()?;
 	let article = match article_id {
 		Some(article_id) => Article::from_id(&db, &article_id)
 			.await
@@ -168,8 +171,8 @@ pub async fn editor(
 		.as_ref()
 		.map(|a| {
 			format!(
-				"<input name=\"id\" type=\"hidden\" value=\"{}\" />",
-				a.id.to_hex()
+				"<input name=\"id\" type=\"hidden\" value=\"{article_id}\" />",
+				article_id = util::encode_id(&a.id)
 			)
 		})
 		.unwrap_or_default();

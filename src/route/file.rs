@@ -1,14 +1,13 @@
 //! This module implements files upload and usage.
 
 use crate::service::user::User;
-use crate::GlobalData;
+use crate::{util, GlobalData};
 use actix_multipart::Multipart;
 use actix_session::Session;
 use actix_web::{
 	error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
 };
 use bson::doc;
-use bson::oid::ObjectId;
 use futures_util::AsyncWriteExt;
 use futures_util::StreamExt;
 use futures_util::TryStreamExt;
@@ -21,7 +20,7 @@ pub async fn get(
 	data: web::Data<GlobalData>,
 	id: web::Path<String>,
 ) -> actix_web::Result<impl Responder> {
-	let id = ObjectId::parse_str(id.into_inner()).map_err(|_| error::ErrorBadRequest(""))?;
+	let id = util::decode_id(&id.into_inner()).ok_or_else(|| error::ErrorBadRequest(""))?;
 	let db = data.get_database();
 
 	let bucket = db.gridfs_bucket(None);
@@ -70,7 +69,7 @@ pub async fn manage(
 	let files_html = files
 		.map(|file| {
 			let file = file.unwrap(); // TODO handle error
-			let id = file.id.as_object_id().unwrap().to_hex();
+			let id = util::encode_id(&file.id.as_object_id().unwrap());
 			let filename = file.filename.as_deref().unwrap_or("<i>no name</i>");
 			let len = file.length;
 			let date: chrono::DateTime<chrono::Utc> = file.upload_date.into();
@@ -148,9 +147,7 @@ pub async fn delete(
 	id: web::Path<String>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let id = id.into_inner();
-	let id = ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest(""))?;
-
+	let id = util::decode_id(&id.into_inner()).ok_or_else(|| error::ErrorBadRequest(""))?;
 	let db = data.get_database();
 
 	// Check auth
