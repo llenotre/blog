@@ -40,12 +40,12 @@ pub fn create_session(session: &Session, user: &User) -> actix_web::Result<()> {
 
 /// Returns a redirection to the last article consulted by the session's user.
 pub fn redirect_to_last_article(session: &Session) -> Redirect {
-	let last_article = session.get::<String>("last_article");
-	let uri = match last_article {
-		Ok(Some(last_article)) => format!("/a/{last_article}/redirect"),
-		_ => "/".to_owned(),
-	};
-
+	let uri = session
+		.get::<String>("last_article")
+		.ok()
+		.flatten()
+		.map(|id| format!("/a/{id}/redirect"))
+		.unwrap_or_else(|| "/".to_owned());
 	Redirect::to(uri).see_other()
 }
 
