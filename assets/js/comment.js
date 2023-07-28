@@ -108,7 +108,7 @@ async function fetch_comment(id) {
 			if (response.status == 200) {
 				return body;
 			} else {
-				alert("Failed to post comment: " + body);
+				alert("Failed to fetch comment: " + body);
 				return null;
 			}
 		});
@@ -126,7 +126,7 @@ async function post(comment_id) {
 	headers.append("Content-Type", "application/json");
 	var payload = JSON.stringify({
 		"article_id": article_id,
-		"response_to": comment_id,
+		"reply_to": comment_id,
 		"content": comment_content.value
 	});
 	var id = await fetch("/comment", { method: "POST", headers: headers, body: payload })

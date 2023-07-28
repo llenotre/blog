@@ -60,26 +60,14 @@ impl Comment {
 	/// Returns the list of comments for the article with the given id `article_id`.
 	/// Comments are returns ordered by decreasing post date.
 	///
-	/// Arguments:
-	/// - `db` is the database.
-	/// - `not_removed` tells whether to the function must return only comments that are not
-	/// removed.
+	/// `db` is the database.
 	pub async fn list_for_article(
 		db: &Database,
 		article_id: ObjectId,
-		not_removed: bool,
 	) -> Result<Vec<Self>, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment");
-		let filter = if not_removed {
-			doc! {
-				"article": article_id,
-				"removed": false,
-			}
-		} else {
-			doc! {"article": article_id}
-		};
 		collection
-			.find(Some(filter), None)
+			.find(Some(doc! {"article": article_id}), None)
 			.await?
 			.try_collect()
 			.await
@@ -261,9 +249,9 @@ pub fn group(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 	}
 
 	let mut comments: Vec<_> = base.into_values().collect();
-	comments.sort_unstable_by(|c0, c1| c0.0.post_date.cmp(&c1.0.post_date));
+	comments.sort_by(|c0, c1| c0.0.post_date.cmp(&c1.0.post_date));
 	for c in &mut comments {
-		c.1.sort_unstable_by(|c0, c1| c0.post_date.cmp(&c1.post_date));
+		c.1.sort_by(|c0, c1| c0.post_date.cmp(&c1.post_date));
 	}
 
 	comments
@@ -289,7 +277,8 @@ pub async fn to_html(
 	user_login: Option<&'async_recursion str>,
 	admin: bool,
 ) -> actix_web::Result<String> {
-	let com_id = comment.id;
+	let com_id = util::encode_id(&comment.id);
+	let article_id = util::encode_id(&comment.article);
 
 	// HTML for comment's replies
 	let replies_html = match replies {
@@ -312,10 +301,11 @@ pub async fn to_html(
 
 	// HTML for comment's buttons
 	let mut buttons = Vec::with_capacity(4);
-	buttons.push(format!(
-		r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/a/{article_id}/{article_title}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##,
-		article_id = comment.article
-	));
+	if !comment.removed {
+		buttons.push(format!(
+			r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/a/{article_id}/{article_title}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##,
+		));
+	}
 	if (user_id == Some(&comment.author) || admin) && !comment.removed {
 		buttons.push(format!(
 			r##"<a href="#comment-{com_id}-edit-content" class="comment-button" onclick="toggle_edit('{com_id}')"><i class="fa-solid fa-pen-to-square"></i></a>"##
@@ -344,10 +334,10 @@ pub async fn to_html(
 		return Ok(format!(
 			r##"<div class="comment">
 				<div class="comment-header">
-					<p><i class="fa-solid fa-trash"></i>&nbsp;<i>deleted comment</i></p>
+					{buttons_html}
 				</div>
 				<div class="comment-content">
-					{buttons_html}
+					<p><i class="fa-solid fa-trash"></i>&nbsp;<i>deleted comment</i></p>
 				</div>
 				{replies_html}
 			</div>"##
@@ -391,13 +381,8 @@ pub async fn to_html(
 
 	let (edit_editor, reply_editor) = match user_login {
 		Some(user_login) => (
-			get_editor(
-				user_login,
-				"edit",
-				Some(&com_id.to_hex()),
-				Some(&content.content),
-			),
-			get_editor(user_login, "post", Some(&com_id.to_hex()), None),
+			get_editor(user_login, "edit", Some(&com_id), Some(&content.content)),
+			get_editor(user_login, "post", Some(&com_id), None),
 		),
 
 		None => (String::new(), String::new()),

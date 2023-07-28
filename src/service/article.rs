@@ -186,7 +186,8 @@ impl ArticleContent {
 
 	/// Returns the path to the article.
 	pub fn get_path(&self) -> String {
-		format!("/a/{}/{}", self.article_id, self.get_url_title())
+		let id = util::encode_id(&self.article_id);
+		format!("/a/{id}/{}", self.get_url_title())
 	}
 
 	/// Returns the URL of the article.

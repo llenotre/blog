@@ -2,7 +2,7 @@ use crate::service::article::Article;
 use crate::service::comment;
 use crate::service::comment::{Comment, CommentContent, MAX_CHARS};
 use crate::service::user::User;
-use crate::GlobalData;
+use crate::{util, GlobalData};
 use actix_session::Session;
 use actix_web::{delete, error, get, patch, post, web, HttpResponse, Responder};
 use bson::oid::ObjectId;
@@ -23,19 +23,14 @@ pub async fn get(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let id = id.into_inner();
-	let Ok(id) = ObjectId::parse_str(id) else {
-		return Ok(HttpResponse::NotFound()
-			.content_type("text/plain")
-			.body("comment not found"));
-	};
-
 	let db = data.get_database();
 
 	let user = User::current_user(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
-	let comment = Comment::from_id(&db, &id)
+	let comment_id = util::decode_id(&id).ok_or_else(|| error::ErrorNotFound(""))?;
+	let comment = Comment::from_id(&db, &comment_id)
 		.await
 		.map_err(|e| {
 			tracing::error!(error = %e, "mongodb");
@@ -91,7 +86,7 @@ pub struct PostCommentPayload {
 	/// The ID of the article.
 	article_id: String,
 	/// The ID of the comment this comment responds to. If `None`, this comment is not a response.
-	response_to: Option<ObjectId>,
+	reply_to: Option<String>,
 
 	/// The content of the comment in markdown.
 	content: String,
@@ -122,7 +117,7 @@ pub async fn post(
 	let db = data.get_database();
 
 	// Check article exists
-	let article_id = ObjectId::parse_str(info.article_id).map_err(|_| error::ErrorNotFound(""))?;
+	let article_id = util::decode_id(&info.article_id).ok_or_else(|| error::ErrorNotFound(""))?;
 	let article = Article::from_id(&db, &article_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
@@ -183,11 +178,30 @@ pub async fn post(
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
+	// unwrap cannot fail because getting the article already decodes the ID
+	let article_id = util::decode_id(&info.article_id).unwrap();
+
+	let reply_to = info
+		.reply_to
+		.as_deref()
+		.map(util::decode_id)
+		.map(|id| match id {
+			Some(id) => Ok(id),
+			None => Err(HttpResponse::NotFound()
+				.content_type("text/plain")
+				.body("comments not found")),
+		})
+		.transpose();
+	let reply_to = match reply_to {
+		Ok(id) => id,
+		Err(e) => return Ok(e),
+	};
+
 	let comment = Comment {
 		id,
 
 		article: article_id,
-		reply_to: info.response_to,
+		reply_to,
 		author: user.id,
 		post_date: date,
 
@@ -205,7 +219,7 @@ pub async fn post(
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
 	Ok(HttpResponse::Ok().json(json!({
-		"id": comment.id.to_string()
+		"id": util::encode_id(&comment.id)
 	})))
 }
 
@@ -237,7 +251,7 @@ pub async fn edit(
 	let db = data.get_database();
 
 	// Check comment exists
-	let comment_id = ObjectId::parse_str(info.comment_id).map_err(|_| error::ErrorNotFound(""))?;
+	let comment_id = util::decode_id(&info.comment_id).ok_or_else(|| error::ErrorNotFound(""))?;
 	let comment = Comment::from_id(&db, &comment_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
@@ -321,8 +335,8 @@ pub async fn delete(
 	comment_id: web::Path<String>,
 	session: Session,
 ) -> impl Responder {
-	let comment_id = comment_id.into_inner();
-	let comment_id = ObjectId::parse_str(&comment_id).map_err(|_| error::ErrorBadRequest(""))?;
+	let comment_id =
+		util::decode_id(&comment_id.into_inner()).ok_or_else(|| error::ErrorNotFound(""))?;
 
 	let Some(user_id) = session.get::<String>("user_id").unwrap() else {
 		return Err(error::ErrorForbidden("forbidden"));
