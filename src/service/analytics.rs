@@ -45,12 +45,13 @@ impl TryFrom<&str> for UserGeolocation {
 		let geolocation: maxminddb::geoip2::City = geoip_db.lookup(addr)?;
 
 		Ok(UserGeolocation {
-			// TODO check correctness
 			city: geolocation
 				.city
 				.and_then(|c| c.names)
 				.as_ref()
-				.and_then(|n| n.get("en"))
+				.and_then(|n| n.get("en").or_else(|| {
+					n.values().next()
+				}))
 				.map(|s| (*s).to_owned()),
 			continent: geolocation
 				.continent
