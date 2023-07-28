@@ -1,6 +1,6 @@
 use crate::service::newsletter::NewsletterEmail;
 use crate::{util, GlobalData};
-use actix_web::{error, post, web, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 
 /// Payload of request to register a newsletter subscriber.
@@ -17,13 +17,17 @@ pub async fn subscribe(
 ) -> actix_web::Result<impl Responder> {
 	let info = info.into_inner();
 	if !util::validate_email(&info.email) {
-		return Ok(HttpResponse::BadRequest().finish());
+		return Ok(HttpResponse::BadRequest()
+			.content_type("text/plain")
+			.body("invalid email address"));
 	}
 
 	let db = data.get_database();
-	NewsletterEmail::insert(&db, &info.email)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+	if NewsletterEmail::insert(&db, &info.email).await.is_err() {
+		return Ok(HttpResponse::InternalServerError()
+			.content_type("text/plain")
+			.body("internal server error"));
+	}
 
 	Ok(HttpResponse::Ok().finish())
 }

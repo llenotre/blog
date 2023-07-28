@@ -8,21 +8,22 @@ email.addEventListener("keypress", function(event) {
 	}
 });
 
-function newsletter_subscribe() {
+async function newsletter_subscribe() {
 	if (email.value.length == 0) {
 		return;
 	}
 
-	var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open("POST", "/newsletter/subscribe", false);
-    xmlHttp.setRequestHeader("Content-Type", "application/json");
-
+	var headers = new Headers();
+	headers.append("Content-Type", "application/json");
 	var payload = JSON.stringify({
 		"email": email.value,
 	});
-    xmlHttp.send(payload);
+	var [status, msg] = await fetch("/newsletter/subscribe", { method: "POST", headers: headers, body: payload })
+		.then(async function(response) {
+            return [response.status, await response.text()];
+		});
 
-	if (xmlHttp.status == 200) {
+	if (status == 200) {
 		email.value = "";
 
 		// Indicate success
@@ -30,10 +31,7 @@ function newsletter_subscribe() {
 		setTimeout(() => {
 			button.innerHTML = "Subscribe";
 		}, 3000);
-	} else if (xmlHttp.status == 400) {
-		alert("Invalid email address");
 	} else {
-		// TODO get error message from server
-		alert("Failed to subscribe to newsletter: HTTP error " + xmlHttp.status);
+		alert("Failed to subscribe to newsletter: " + msg);
 	}
 }
