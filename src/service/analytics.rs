@@ -1,6 +1,7 @@
 //! Insertion and aggregtion of analytics.
 //!
-//! Some data that are collected on users are sensitive and need to be removed past a certain delay to comply with the GDPR.
+//! Some data that are collected on users are sensitive and need to be removed past a certain delay
+//! to comply with the GDPR.
 
 use crate::util;
 use bson::doc;

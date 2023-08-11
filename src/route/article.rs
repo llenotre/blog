@@ -258,10 +258,10 @@ pub async fn post(
 	let date = Utc::now();
 	let post_date = public.then_some(date);
 
-	let id = match info.id {
+	let path = match info.id {
 		// Update article
-		Some(id_str) => {
-			let id = ObjectId::parse_str(&id_str).map_err(|_| error::ErrorBadRequest(""))?;
+		Some(id) => {
+			let id = util::decode_id(&id).ok_or_else(|| error::ErrorNotFound(""))?;
 
 			// Insert article content
 			let content = ArticleContent {
@@ -290,7 +290,7 @@ pub async fn post(
 					error::ErrorInternalServerError("")
 				})?;
 
-			id_str
+			content.get_path()
 		}
 
 		// Create article
@@ -322,14 +322,14 @@ pub async fn post(
 				content_id,
 				post_date,
 			};
-			let id = a.insert(&db).await.map_err(|e| {
+			a.insert(&db).await.map_err(|e| {
 				tracing::error!(error = %e, "mongodb");
 				error::ErrorInternalServerError("")
 			})?;
 
-			id.as_object_id().unwrap().to_string()
+			content.get_path()
 		}
 	};
 
-	Ok(Redirect::to(format!("/a/{}/redirect", id)).see_other())
+	Ok(Redirect::to(path).see_other())
 }
