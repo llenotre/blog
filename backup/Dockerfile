@@ -16,7 +16,7 @@ RUN pip3 install awscli awscli-plugin-endpoint
 # Setup cron task
 COPY backup.sh /usr/bin/backup.sh
 CMD chmod +x /usr/bin/backup.sh
-RUN echo '0 7 * * 0 bash /usr/bin/backup.sh' >>/etc/crontab
+RUN echo '0 7 * * 0 root bash /usr/bin/backup.sh' >>/etc/crontab
 
 # Run
 CMD ["cron", "-f"]
