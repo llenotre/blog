@@ -7,8 +7,6 @@ use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::web::Redirect;
 use actix_web::{error, get, post, web, Either, HttpResponse, Responder};
-use bson::doc;
-use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
 

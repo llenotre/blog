@@ -1,26 +1,22 @@
 //! This module handles articles.
 
+use crate::util::PgResult;
+use macros::FromRow;
 use crate::util;
-use bson::oid::ObjectId;
-use bson::Bson;
 use chrono::DateTime;
 use chrono::Utc;
 use futures_util::stream::TryStreamExt;
-use mongodb::bson::doc;
-use mongodb::options::FindOptions;
 use serde::Deserialize;
 use serde::Serialize;
 
 /// Structure representing an article.
-#[derive(Serialize, Debug, Deserialize)]
+#[derive(Debug, FromRow)]
 pub struct Article {
 	/// The article's id.
-	#[serde(rename = "_id")]
 	pub id: ObjectId,
 	/// The ID of the article's content.
 	pub content_id: ObjectId,
 	/// Timestamp since epoch at which the article has been posted.
-	#[serde(with = "util::serde_option_date_time")]
 	pub post_date: Option<DateTime<Utc>>,
 }
 
@@ -28,19 +24,8 @@ impl Article {
 	/// Returns the list of articles.
 	///
 	/// `db` is the database.
-	pub async fn list(db: &mongodb::Database) -> Result<Vec<Self>, mongodb::error::Error> {
-		let collection = db.collection::<Self>("article");
-		let find_options = FindOptions::builder()
-			.sort(Some(doc! {
-				"post_date": -1
-			}))
-			.build();
-
-		collection
-			.find(doc! {}, Some(find_options))
-			.await?
-			.try_collect()
-			.await
+	pub async fn list(db: &mongodb::Database) -> PgResult<Vec<Self>> {
+        db.query("SELECT * FROM article ORDER BY post_date DESC").await
 	}
 
 	/// Returns the article with the given ID.
@@ -52,8 +37,7 @@ impl Article {
 		db: &mongodb::Database,
 		id: &ObjectId,
 	) -> Result<Option<Self>, mongodb::error::Error> {
-		let collection = db.collection::<Self>("article");
-		collection.find_one(Some(doc! {"_id": id}), None).await
+        db.query("SELECT * FROM article WHERE id = '$1'", &[id]).await
 	}
 
 	/// Inserts the current article in the database.
@@ -61,7 +45,7 @@ impl Article {
 	/// `db` is the database.
 	///
 	/// The function returns the ID of the inserted article.
-	pub async fn insert(&self, db: &mongodb::Database) -> Result<Bson, mongodb::error::Error> {
+	pub async fn insert(&self, db: &mongodb::Database) -> PgResult<Bson> {
 		let collection = db.collection::<Self>("article");
 		collection
 			.insert_one(self, None)
@@ -80,29 +64,7 @@ impl Article {
 		content_id: ObjectId,
 		post_date: Option<DateTime<Utc>>,
 	) -> Result<(), mongodb::error::Error> {
-		let collection = db.collection::<Self>("article");
-
-		if let Some(post_date) = post_date {
-			collection
-				.update_one(
-					doc! { "_id": id, "$or": [
-						{ "post_date": { "$exists": false } },
-						{ "post_date": None::<String> },
-					]},
-					doc! { "$set": { "post_date": post_date.to_rfc3339() } },
-					None,
-				)
-				.await?;
-		}
-
-		collection
-			.update_one(
-				doc! { "_id": id },
-				doc! { "$set": { "content_id": content_id } },
-				None,
-			)
-			.await
-			.map(|_| ())
+        db.execute("UPDATE article SET content_id = '$1' post_date = COALESCE(post_date, $2) WHERE id = '$3'", &[content_id, post_date, id]).await
 	}
 
 	/// Returns the article's content.
@@ -119,7 +81,7 @@ impl Article {
 /// Content of an article.
 ///
 /// Several contents are stored for the same article to keep the history of edits.
-#[derive(Serialize, Deserialize)]
+#[derive(FromRow)]
 pub struct ArticleContent {
 	/// The ID of the article.
 	pub article_id: ObjectId,
@@ -142,24 +104,10 @@ pub struct ArticleContent {
 	pub comments_locked: bool,
 
 	/// Timestamp since epoch at which the article has been edited.
-	#[serde(with = "util::serde_date_time")]
 	pub edit_date: DateTime<Utc>,
 }
 
 impl ArticleContent {
-	/// Returns the article content with the given ID.
-	///
-	/// Arguments:
-	/// - `db` is the database.
-	/// - `id` is the ID of the content.
-	pub async fn from_id(
-		db: &mongodb::Database,
-		id: &ObjectId,
-	) -> Result<Option<Self>, mongodb::error::Error> {
-		let collection = db.collection::<Self>("article_content");
-		collection.find_one(Some(doc! {"_id": id}), None).await
-	}
-
 	/// Inserts the current content in the database.
 	///
 	/// `db` is the database.

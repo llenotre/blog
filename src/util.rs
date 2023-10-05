@@ -2,67 +2,17 @@
 
 use base64::engine::general_purpose;
 use base64::Engine;
-use bson::oid::ObjectId;
 use lazy_static::lazy_static;
 use pulldown_cmark::{html, Options, Parser};
 use regex::Regex;
 
-/// Module handling serialization/deserialization of dates.
-pub mod serde_date_time {
-	use chrono::DateTime;
-	use chrono::Utc;
-	use serde::Deserialize;
-	use serde::Deserializer;
-	use serde::Serializer;
+/// TODO doc
+pub type PgResult<T> = Result<T, tokio_postgres::Error>;
 
-	pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: Serializer,
-	{
-		serializer.serialize_str(&date.to_rfc3339())
-	}
-
-	pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-	where
-		D: Deserializer<'de>,
-	{
-		let s = String::deserialize(deserializer)?;
-		DateTime::parse_from_rfc3339(&s)
-			.map(|d| d.with_timezone(&Utc))
-			.map_err(serde::de::Error::custom)
-	}
-}
-
-/// Module handling serialization/deserialization of options of dates.
-pub mod serde_option_date_time {
-	use chrono::DateTime;
-	use chrono::Utc;
-	use serde::de::IntoDeserializer;
-	use serde::Deserialize;
-	use serde::Deserializer;
-	use serde::Serializer;
-
-	pub fn serialize<S>(date: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: Serializer,
-	{
-		match date {
-			Some(date) => serializer.serialize_some(&date.to_rfc3339()),
-			None => serializer.serialize_none(),
-		}
-	}
-
-	pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
-	where
-		D: Deserializer<'de>,
-	{
-		Option::<&str>::deserialize(deserializer)?
-			.map(|s| {
-				let deserializer = s.into_deserializer();
-				super::serde_date_time::deserialize(deserializer)
-			})
-			.transpose()
-	}
+/// TODO doc
+pub trait FromRow {
+	/// TODO doc
+	fn from_row(row: &Row) -> Self;
 }
 
 lazy_static! {

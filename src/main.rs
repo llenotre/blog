@@ -3,6 +3,7 @@ mod route;
 mod service;
 mod util;
 
+use tokio_postgres::Statement;
 use crate::middleware::analytics::Analytics;
 use crate::service::analytics::AnalyticsEntry;
 use actix_files::Files;
@@ -15,7 +16,6 @@ use actix_web::{
 	App, HttpServer,
 };
 use base64::Engine;
-use mongodb::options::ClientOptions;
 use serde::Deserialize;
 use std::env;
 use std::fs;
@@ -29,8 +29,9 @@ use tokio::time;
 struct Config {
 	/// The HTTP server's port.
 	port: u16,
-	/// The URL to the mongodb database.
-	mongo_url: String,
+
+	/// The connection string for postgres.
+	pg_conn: String,
 
 	/// The client ID of the Github application.
 	client_id: String,
@@ -44,10 +45,30 @@ struct Config {
 	discord_invite: String,
 }
 
+/// TODO doc
+pub struct Queries {
+    pub get_user_form_id: Statement,
+    pub get_user_form_github_id: Statement,
+    pub update_cooldown: Statement,
+}
+
+impl Queries {
+    /// TODO doc
+    pub fn init(db: &tokio_postgres::Client) -> Self {
+        Self {
+            get_user_from_id: db.prepare("SELECT * FROM user WHERE id = '$1'"),
+            get_user_from_github_id: db.prepare("SELECT * FROM user WHERE github_id = '$1'"),
+            update_cooldown: db.prepare("UPDATE user SET last_post = '$1' WHERE id = '$2'"),
+        }
+    }
+}
+
 /// Structure shared across the server.
 pub struct GlobalData {
-	/// The connection to the MongoDB database.
-	pub mongo: mongodb::Client,
+	/// The connection to the database.
+	pub db: tokio_postgres::Client,
+    /// TODO doc
+    pub queries: Queries,
 
 	/// The client ID of the Github application.
 	pub client_id: String,
@@ -118,19 +139,17 @@ async fn main() -> io::Result<()> {
 		});
 
 	// Open database connection
-	let client_options = ClientOptions::parse(&config.mongo_url)
-		.await
-		.unwrap_or_else(|e| {
-			tracing::error!(error = %e, "mongodb");
-			exit(1);
-		});
-	let client = mongodb::Client::with_options(client_options).unwrap_or_else(|e| {
-		tracing::error!(error = %e, "mongodb");
-		exit(1);
-	});
+    let (client, connection) =
+        tokio_postgres::connect(config.pg_conn, NoTls).await?;
+    // TODO re-open on error
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            tracing::error!(error = e, "postgres");
+        }
+    });
 
 	let data = web::Data::new(GlobalData {
-		mongo: client,
+		db: client,
 
 		client_id: config.client_id,
 		client_secret: config.client_secret,
@@ -166,7 +185,6 @@ async fn main() -> io::Result<()> {
 			.service(route::comment::delete)
 			.service(route::comment::edit)
 			.service(route::comment::post)
-			.service(route::file::delete)
 			.service(route::file::get)
 			.service(route::file::manage)
 			.service(route::file::upload)

@@ -5,7 +5,6 @@ use crate::service::user::User;
 use crate::{util, GlobalData};
 use actix_session::Session;
 use actix_web::{delete, error, get, patch, post, web, HttpResponse, Responder};
-use bson::oid::ObjectId;
 use chrono::Utc;
 use serde::Deserialize;
 use serde_json::json;
