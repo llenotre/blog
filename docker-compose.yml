@@ -2,25 +2,25 @@ services:
   web:
     build: .
     depends_on:
-      - mongo
+      - postgresql
     restart: always
     ports:
       - 127.0.0.1:8080:8080
-  mongo:
-    image: mongo:7.0.0-rc7
+  postgresql:
+    image: bitnami/postgresql:16.0.0
     restart: always
     ports:
       - 127.0.0.1:27017:27017
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      POSTGRESQL_USERNAME: blog
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
   backup:
     build: backup/
     depends_on:
-      - mongo
+      - postgresql
     restart: always
     environment:
-      MONGO_ROOT_USERNAME: root
-      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      POSTGRESQL_USERNAME: blog
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
     volumes:
       - ./backup/.aws:/root/.aws
