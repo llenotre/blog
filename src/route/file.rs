@@ -7,12 +7,9 @@ use actix_session::Session;
 use actix_web::{
 	error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
 };
-use bson::doc;
-use futures_util::AsyncWriteExt;
+use tokio::io::AsyncWriteExt;
 use futures_util::StreamExt;
 use futures_util::TryStreamExt;
-use mongodb::options::GridFsFindOptions;
-use tokio_util::compat::FuturesAsyncReadCompatExt;
 use tokio_util::io::ReaderStream;
 
 #[get("/file/{id}")]
@@ -82,8 +79,6 @@ pub async fn manage(
 
 					<p>Size: {len} bytes</p>
 					<p>Uploaded at: {date} (UTC)</p>
-
-					<p><a href="/file/{id}/delete">Delete</a></p>
 				</div>"#,
 				date = date.format("%d/%m/%Y %H:%M:%S")
 			)
@@ -136,34 +131,6 @@ pub async fn upload(
 		}
 		db_stream.close().await?;
 	}
-
-	// Redirect user
-	Ok(Redirect::to("/file").see_other())
-}
-
-#[get("/file/{id}/delete")]
-pub async fn delete(
-	data: web::Data<GlobalData>,
-	id: web::Path<String>,
-	session: Session,
-) -> actix_web::Result<impl Responder> {
-	let id = util::decode_id(&id.into_inner()).ok_or_else(|| error::ErrorBadRequest(""))?;
-	let db = data.get_database();
-
-	// Check auth
-	let admin = User::check_admin(&db, &session)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-	if !admin {
-		return Err(error::ErrorForbidden(""));
-	}
-
-	// Delete file
-	let bucket = db.gridfs_bucket(None);
-	bucket
-		.delete(id.into())
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
 
 	// Redirect user
 	Ok(Redirect::to("/file").see_other())

@@ -1,5 +1,6 @@
 port = 80
-mongo_url = "mongodb://localhost:27017"
+
+pg_conn = "host= dbname= user= password="
 
 client_id = "..."
 client_secret = "..."

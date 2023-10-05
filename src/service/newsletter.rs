@@ -1,7 +1,6 @@
 //! This module implements newsletters.
 
 use crate::util;
-use bson::doc;
 use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
@@ -13,7 +12,6 @@ pub struct NewsletterEmail<'s> {
 	/// The registered email. If `None`, the email has been anonymized.
 	pub email: Option<&'s str>,
 	/// The date at which the user subscribed.
-	#[serde(with = "util::serde_date_time")]
 	pub subscribe_date: DateTime<Utc>,
 }
 

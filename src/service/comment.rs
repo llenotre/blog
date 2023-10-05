@@ -4,12 +4,9 @@ use crate::service::user::User;
 use crate::util;
 use actix_web::error;
 use async_recursion::async_recursion;
-use bson::doc;
-use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
 use futures_util::stream::TryStreamExt;
-use mongodb::Database;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -33,7 +30,6 @@ pub struct Comment {
 	/// The ID of author of the comment.
 	pub author: ObjectId,
 	/// Timestamp since epoch at which the comment has been posted.
-	#[serde(with = "util::serde_date_time")]
 	pub post_date: DateTime<Utc>,
 
 	/// The ID of the comment's content.
@@ -53,8 +49,7 @@ impl Comment {
 		db: &Database,
 		id: &ObjectId,
 	) -> Result<Option<Self>, mongodb::error::Error> {
-		let collection = db.collection::<Self>("comment");
-		collection.find_one(Some(doc! {"_id": id}), None).await
+        db.execute("SELECT * FROM comment WHERE id = '$1'", &[id]).await
 	}
 
 	/// Returns the list of comments for the article with the given id `article_id`.
@@ -65,27 +60,12 @@ impl Comment {
 		db: &Database,
 		article_id: ObjectId,
 	) -> Result<Vec<Self>, mongodb::error::Error> {
-		let collection = db.collection::<Self>("comment");
-		collection
-			.find(Some(doc! {"article": article_id}), None)
-			.await?
-			.try_collect()
-			.await
+        db.execute("SELECT * FROM comment WHERE article = '$1'", &[article_id]).await
 	}
 
 	/// Returns replies to the current comment.
 	pub async fn get_replies(&self, db: &Database) -> Result<Vec<Self>, mongodb::error::Error> {
-		let collection = db.collection::<Self>("comment");
-		collection
-			.find(
-				Some(doc! {
-					"reply_to": self.id,
-				}),
-				None,
-			)
-			.await?
-			.try_collect()
-			.await
+        db.execute("SELECT * FROM comment WHERE reply_to = '$1'", &[self.id]).await
 	}
 
 	/// Inserts the current comment in the database.
@@ -102,21 +82,12 @@ impl Comment {
 		db: &Database,
 		content_id: ObjectId,
 	) -> Result<(), mongodb::error::Error> {
-		let collection = db.collection::<Self>("comment");
-		collection
-			.update_one(
-				doc! {"_id": self.id},
-				doc! {"$set": {"content_id": content_id}},
-				None,
-			)
-			.await
-			.map(|_| ())
+        global.db.execute("UPDATE comment SET content_id = '$1' WHERE id = '$2'", &[content_id, self.id]).await
 	}
 
 	/// Deletes the comment with the given ID.
 	///
 	/// Arguments:
-	/// - `db` is the database.
 	/// - `comment_id` is the ID of the comment to delete.
 	/// - `user_id` is the ID of the user trying to delete the comment.
 	/// - `bypass_perm` tells whether the function can bypass user's permissions.
@@ -126,21 +97,12 @@ impl Comment {
 		user_id: &ObjectId,
 		bypass_perm: bool,
 	) -> Result<(), mongodb::error::Error> {
-		let collection = db.collection::<Self>("comment");
-		let filter = if !bypass_perm {
-			doc! {
-				"_id": comment_id,
-				"author": user_id,
-			}
-		} else {
-			doc! {"_id": comment_id}
-		};
-
-		collection
-			.update_one(filter, doc! {"$set": {"removed": true}}, None)
-			.await?;
-
-		Ok(())
+        let now = Utc::now();
+        if bypass_perm {
+            global.db.execute("UPDATE comment SET remove_date = '$1' WHERE id = '$2'", &[now, comment_id]).await
+        } else {
+            global.db.execute("UPDATE comment SET remove_date = '$1' WHERE id = '$2' AND author = '$3'", &[now, comment_id, author]).await
+        }
 	}
 }
 
@@ -153,7 +115,6 @@ pub struct CommentContent {
 	pub comment_id: ObjectId,
 
 	/// Timestamp since epoch at which the comment has been edited.
-	#[serde(with = "util::serde_date_time")]
 	pub edit_date: DateTime<Utc>,
 
 	/// The content of the comment.
@@ -161,27 +122,7 @@ pub struct CommentContent {
 }
 
 impl CommentContent {
-	/// Returns the latest content of the comment with the given ID `id`.
-	///
-	/// `db` is the database.
-	pub async fn from_id(
-		db: &Database,
-		id: ObjectId,
-	) -> Result<Option<Self>, mongodb::error::Error> {
-		let collection = db.collection::<Self>("comment_content");
-		collection
-			.find_one(
-				Some(doc! {
-					"_id": id,
-				}),
-				None,
-			)
-			.await
-	}
-
 	/// Inserts the current content in the database.
-	///
-	/// `db` is the database.
 	pub async fn insert(&self, db: &Database) -> Result<ObjectId, mongodb::error::Error> {
 		let collection = db.collection::<Self>("comment_content");
 		collection

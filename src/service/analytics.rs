@@ -4,8 +4,6 @@
 //! to comply with the GDPR.
 
 use crate::util;
-use bson::doc;
-use bson::oid::ObjectId;
 use chrono::Utc;
 use chrono::{DateTime, Duration};
 use serde::Deserialize;
@@ -129,10 +127,8 @@ impl TryFrom<&str> for UserDevice {
 #[derive(Deserialize, Serialize)]
 pub struct AnalyticsEntry {
 	/// The entry's ID.
-	#[serde(rename = "_id")]
 	id: ObjectId,
 	/// The date of visit.
-	#[serde(with = "util::serde_date_time")]
 	date: DateTime<Utc>,
 
 	/// The user's IP address. If unknown or removed, the value is `None`.
@@ -198,49 +194,15 @@ impl AnalyticsEntry {
 	/// Inserts the analytics entry in the database.
 	///
 	/// `db` is the database.
-	pub async fn insert(&self, db: &mongodb::Database) -> Result<(), mongodb::error::Error> {
-		let collection = db.collection::<Self>("analytics");
-
-		// Do not count the same client twice
-		if let Some(ref peer_addr) = self.peer_addr {
-			let entry = collection
-				.find_one(
-					doc! {
-						"peer_addr": peer_addr,
-						"uri": &self.uri,
-					},
-					None,
-				)
-				.await?;
-			if entry.is_some() {
-				return Ok(());
-			}
-		}
-		collection.insert_one(self, None).await?;
-
-		Ok(())
+	pub async fn insert(&self, db: &mongodb::Database) -> Result<(), tokio_postgres::Error> {
+        db.execute("INSERT INTO analytics (peer_addr, uri) VALUES ($1, $2) WHERE NOT EXISTS peer_addr = '$1' uri = '$2'").await
 	}
 
 	/// Aggregates entries.
 	///
 	/// `db` is the database.
-	pub async fn aggregate(db: &mongodb::Database) -> Result<(), mongodb::error::Error> {
-		let oldest = Utc::now() - Duration::hours(24);
-
-		let collection = db.collection::<Self>("analytics");
-		collection
-			.update_many(
-				doc! {
-					"date": { "$lt": oldest },
-					"user_info.kind": "Sensitive"
-				},
-				doc! {
-					"peer_addr": None::<String>,
-					"user_agent": None::<String>
-				},
-				None,
-			)
-			.await
-			.map(|_| ())
+	pub async fn aggregate(db: &mongodb::Database) -> Result<(), tokio_postgres::Error> {
+        let oldest = Utc::now() - Duration::hours(24);
+        db.execute("UPDATE analytics SET peer_addr = NULL user_agent = NULL WHERE date < '$1' AND info_kind = 'Sensitive'", &[oldest]).await
 	}
 }

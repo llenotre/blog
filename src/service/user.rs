@@ -3,8 +3,6 @@
 use crate::util;
 use actix_session::Session;
 use actix_web::web::Redirect;
-use bson::doc;
-use bson::oid::ObjectId;
 use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
@@ -85,10 +83,8 @@ pub struct User {
 	pub banned: bool,
 
 	/// The date/time at which the user registered.
-	#[serde(with = "util::serde_date_time")]
 	pub register_time: DateTime<Utc>,
 	/// The date/time of the last post, used for cooldown.
-	#[serde(with = "util::serde_date_time")]
 	pub last_post: DateTime<Utc>,
 }
 
@@ -145,8 +141,7 @@ impl User {
 		db: &mongodb::Database,
 		id: ObjectId,
 	) -> Result<Option<Self>, mongodb::error::Error> {
-		let collection = db.collection::<Self>("user");
-		collection.find_one(doc! {"_id": id}, None).await
+        global.db.query(global.db.get_user_from_id, &[id]).await
 	}
 
 	/// Returns the user with the given Github ID.
@@ -155,13 +150,10 @@ impl User {
 	///
 	/// If the user doesn't exist, the function returns `None`.
 	pub async fn from_github_id(
-		db: &mongodb::Database,
+        global: &GlobalData,
 		id: u64,
 	) -> Result<Option<Self>, mongodb::error::Error> {
-		let collection = db.collection::<Self>("user");
-		collection
-			.find_one(doc! {"github_info.id": id as i64}, None)
-			.await
+        global.db.query(global.db.get_user_from_github_id, &[id]).await
 	}
 
 	/// Inserts or updates the user in the database.
@@ -179,26 +171,10 @@ impl User {
 	/// - `last_post` is the date/time of the last post from the user.
 	pub async fn update_cooldown(
 		&self,
-		db: &mongodb::Database,
+        global: &GlobalData,
 		last_post: DateTime<Utc>,
 	) -> Result<(), mongodb::error::Error> {
-		let last_post = last_post.to_rfc3339();
-
-		let collection = db.collection::<Self>("user");
-		collection
-			.update_one(
-				doc! {
-					"_id": self.id,
-				},
-				doc! {
-					"$set": doc! {
-						"last_post": last_post,
-					}
-				},
-				None,
-			)
-			.await
-			.map(|_| ())
+        global.db.execute(global.update_cooldown, &[last_post, self.id]).await
 	}
 
 	/// Returns the user of the current session.
