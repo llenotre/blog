@@ -1,13 +1,12 @@
 //! This module implements user accounts.
 
-use crate::util;
+use crate::util::{FromRow, PgResult};
 use actix_session::Session;
 use actix_web::web::Redirect;
 use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
-use crate::util::{FromRow, PgResult};
 
 /// The user agent for Github requests.
 const GITHUB_USER_AGENT: &str = "maestro";
@@ -135,11 +134,11 @@ impl User {
 	/// Returns the user with the given ID.
 	///
 	/// If the user doesn't exist, the function returns `None`.
-	pub async fn from_id(
-		db: &tokio_postgres::Client,
-		id: ObjectId,
-	) -> PgResult<Option<Self>> {
-        Ok(db.query_opt("SELECT * FROM user WHERE id = '$1'", &[id]).await?.map(FromRow::from_row))
+	pub async fn from_id(db: &tokio_postgres::Client, id: ObjectId) -> PgResult<Option<Self>> {
+		Ok(db
+			.query_opt("SELECT * FROM user WHERE id = '$1'", &[id])
+			.await?
+			.map(FromRow::from_row))
 	}
 
 	/// Returns the user with the given Github ID.
@@ -147,11 +146,9 @@ impl User {
 	/// `db` is the database.
 	///
 	/// If the user doesn't exist, the function returns `None`.
-	pub async fn from_github_id(
-        db: &tokio_postgres::Client,
-		id: u64,
-	) -> PgResult<Option<Self>> {
-        db.query("SELECT * FROM user WHERE github_id = '$1'", &[id]).await
+	pub async fn from_github_id(db: &tokio_postgres::Client, id: u64) -> PgResult<Option<Self>> {
+		db.query("SELECT * FROM user WHERE github_id = '$1'", &[id])
+			.await
 	}
 
 	/// Inserts or updates the user in the database.
@@ -165,10 +162,14 @@ impl User {
 	/// `last_post` is the date/time of the last post from the user.
 	pub async fn update_cooldown(
 		&self,
-        db: &tokio_postgres::Client,
+		db: &tokio_postgres::Client,
 		last_post: DateTime<Utc>,
 	) -> PgResult<()> {
-        db.execute("UPDATE user SET last_post = '$1' WHERE id = '$2'", &[&last_post, self.id]).await?;
+		db.execute(
+			"UPDATE user SET last_post = '$1' WHERE id = '$2'",
+			&[&last_post, self.id],
+		)
+		.await?;
 		Ok(())
 	}
 
@@ -191,10 +192,7 @@ impl User {
 	}
 
 	/// Checks the given session has admin permissions.
-	pub async fn check_admin(
-		db: &tokio_postgres::Client,
-		session: &Session,
-	) -> PgResult<bool> {
+	pub async fn check_admin(db: &tokio_postgres::Client, session: &Session) -> PgResult<bool> {
 		let user = Self::current_user(db, session).await?;
 		Ok(user.map(|u| u.admin).unwrap_or(false))
 	}

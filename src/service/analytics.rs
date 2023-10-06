@@ -3,6 +3,7 @@
 //! Some data that are collected on users are sensitive and need to be removed past a certain delay
 //! to comply with the GDPR.
 
+use crate::util::PgResult;
 use chrono::Utc;
 use chrono::{DateTime, Duration};
 use serde::Deserialize;
@@ -14,7 +15,6 @@ use std::str::FromStr;
 use std::sync::Mutex;
 use tracing::warn;
 use uaparser::{Parser, UserAgentParser};
-use crate::util::PgResult;
 
 /// Informations about a user's geolocation.
 #[derive(Deserialize, Serialize)]
@@ -192,14 +192,14 @@ impl AnalyticsEntry {
 
 	/// Inserts the analytics entry in the database.
 	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<()> {
-        db.execute("INSERT INTO analytics (peer_addr, uri) VALUES ($1, $2) WHERE NOT EXISTS peer_addr = '$1' uri = '$2'", &[&self.peer_addr, &self.uri]).await?;
+		db.execute("INSERT INTO analytics (peer_addr, uri) VALUES ($1, $2) WHERE NOT EXISTS peer_addr = '$1' uri = '$2'", &[&self.peer_addr, &self.uri]).await?;
 		Ok(())
 	}
 
 	/// Aggregates entries.
 	pub async fn aggregate(db: &tokio_postgres::Client) -> PgResult<()> {
-        let oldest = Utc::now() - Duration::hours(24);
-        db.execute("UPDATE analytics SET peer_addr = NULL user_agent = NULL WHERE date < '$1' AND info_kind = 'Sensitive'", &[&oldest]).await?;
+		let oldest = Utc::now() - Duration::hours(24);
+		db.execute("UPDATE analytics SET peer_addr = NULL user_agent = NULL WHERE date < '$1' AND info_kind = 'Sensitive'", &[&oldest]).await?;
 		Ok(())
 	}
 }

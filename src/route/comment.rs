@@ -50,10 +50,6 @@ pub async fn get(
 			error::ErrorInternalServerError("")
 		})?
 		.ok_or_else(|| error::ErrorNotFound("comment not found"))?;
-	let content = article.get_content(&db).await.map_err(|e| {
-		tracing::error!(error = %e, "mongodb");
-		error::ErrorInternalServerError("")
-	})?;
 
 	// Get replies
 	let replies = match comment.reply_to {
@@ -68,7 +64,7 @@ pub async fn get(
 	let user_login = user.as_ref().map(|u| u.github_info.login.as_str());
 	let html = comment::to_html(
 		&db,
-		&content.title,
+		&article.content.title,
 		&comment,
 		replies.as_deref(),
 		user_id,
@@ -123,10 +119,6 @@ pub async fn post(
 	let Some(article) = article else {
 		return Err(error::ErrorNotFound("article not found"));
 	};
-	let article_content = article
-		.get_content(&db)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
 
 	// Get user
 	let user = User::current_user(&db, &session)
@@ -139,12 +131,12 @@ pub async fn post(
 	};
 
 	if !user.admin {
-		if !article_content.public {
+		if !article.content.public {
 			return Ok(HttpResponse::Forbidden()
 				.content_type("text/plain")
 				.body("article not found"));
 		}
-		if article_content.comments_locked {
+		if article.content.comments_locked {
 			return Ok(HttpResponse::Forbidden()
 				.content_type("text/plain")
 				.body("comments are locked"));
@@ -264,10 +256,6 @@ pub async fn edit(
 	let Some(article) = article else {
 		return Err(error::ErrorNotFound("article not found"));
 	};
-	let article_content = article
-		.get_content(&db)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
 
 	// Get user
 	let user = User::current_user(&db, &session)
@@ -278,10 +266,10 @@ pub async fn edit(
 	};
 
 	if !user.admin {
-		if !article_content.public {
+		if !article.content.public {
 			return Err(error::ErrorNotFound("article not found"));
 		}
-		if article_content.comments_locked {
+		if article.content.comments_locked {
 			return Ok(HttpResponse::Forbidden()
 				.content_type("text/plain")
 				.body("comments are locked"));
