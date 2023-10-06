@@ -5,10 +5,7 @@ use macros::FromRow;
 use crate::util;
 use chrono::DateTime;
 use chrono::Utc;
-use futures_util::stream::TryStreamExt;
 use futures_util::StreamExt;
-use serde::Deserialize;
-use serde::Serialize;
 
 /// Structure representing an article.
 #[derive(Debug, FromRow)]
@@ -72,6 +69,8 @@ impl Article {
 pub struct ArticleContent {
 	/// The ID of the article.
 	pub article_id: ObjectId,
+	/// Timestamp since epoch at which the article has been edited.
+	pub edit_date: DateTime<Utc>,
 
 	/// The article's title.
 	pub title: String,
@@ -89,9 +88,6 @@ pub struct ArticleContent {
 	pub sponsor: bool,
 	/// Tells whether comments are locked on the article.
 	pub comments_locked: bool,
-
-	/// Timestamp since epoch at which the article has been edited.
-	pub edit_date: DateTime<Utc>,
 }
 
 impl ArticleContent {
