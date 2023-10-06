@@ -10,6 +10,7 @@ use futures_util::stream::TryStreamExt;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use crate::util::PgResult;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;
@@ -48,7 +49,7 @@ impl Comment {
 	pub async fn from_id(
 		db: &Database,
 		id: &ObjectId,
-	) -> Result<Option<Self>, mongodb::error::Error> {
+	) -> PgResult<Option<Self>> {
         db.execute("SELECT * FROM comment WHERE id = '$1'", &[id]).await
 	}
 
@@ -59,19 +60,19 @@ impl Comment {
 	pub async fn list_for_article(
 		db: &Database,
 		article_id: ObjectId,
-	) -> Result<Vec<Self>, mongodb::error::Error> {
+	) -> PgResult<Vec<Self>> {
         db.execute("SELECT * FROM comment WHERE article = '$1'", &[article_id]).await
 	}
 
 	/// Returns replies to the current comment.
-	pub async fn get_replies(&self, db: &Database) -> Result<Vec<Self>, mongodb::error::Error> {
+	pub async fn get_replies(&self, db: &Database) -> PgResult<Vec<Self>> {
         db.execute("SELECT * FROM comment WHERE reply_to = '$1'", &[self.id]).await
 	}
 
 	/// Inserts the current comment in the database.
 	///
 	/// `db` is the database.
-	pub async fn insert(&self, db: &Database) -> Result<(), mongodb::error::Error> {
+	pub async fn insert(&self, db: &Database) -> PgResult<()> {
 		let collection = db.collection::<Self>("comment");
 		collection.insert_one(self, None).await.map(|_| ())
 	}
@@ -81,8 +82,8 @@ impl Comment {
 		&self,
 		db: &Database,
 		content_id: ObjectId,
-	) -> Result<(), mongodb::error::Error> {
-        global.db.execute("UPDATE comment SET content_id = '$1' WHERE id = '$2'", &[content_id, self.id]).await
+	) -> PgResult<()> {
+        db.execute("UPDATE comment SET content_id = '$1' WHERE id = '$2'", &[content_id, self.id]).await
 	}
 
 	/// Deletes the comment with the given ID.
@@ -96,12 +97,12 @@ impl Comment {
 		comment_id: &ObjectId,
 		user_id: &ObjectId,
 		bypass_perm: bool,
-	) -> Result<(), mongodb::error::Error> {
+	) -> PgResult<()> {
         let now = Utc::now();
         if bypass_perm {
-            global.db.execute("UPDATE comment SET remove_date = '$1' WHERE id = '$2'", &[now, comment_id]).await
+            db.execute("UPDATE comment SET remove_date = '$1' WHERE id = '$2'", &[now, comment_id]).await
         } else {
-            global.db.execute("UPDATE comment SET remove_date = '$1' WHERE id = '$2' AND author = '$3'", &[now, comment_id, author]).await
+            db.execute("UPDATE comment SET remove_date = '$1' WHERE id = '$2' AND author = '$3'", &[now, comment_id, user_id]).await
         }
 	}
 }
@@ -113,17 +114,15 @@ impl Comment {
 pub struct CommentContent {
 	/// The ID of the comment.
 	pub comment_id: ObjectId,
-
 	/// Timestamp since epoch at which the comment has been edited.
 	pub edit_date: DateTime<Utc>,
-
 	/// The content of the comment.
 	pub content: String,
 }
 
 impl CommentContent {
 	/// Inserts the current content in the database.
-	pub async fn insert(&self, db: &Database) -> Result<ObjectId, mongodb::error::Error> {
+	pub async fn insert(&self, db: &Database) -> PgResult<ObjectId> {
 		let collection = db.collection::<Self>("comment_content");
 		collection
 			.insert_one(self, None)

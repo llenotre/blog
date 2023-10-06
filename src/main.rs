@@ -3,7 +3,7 @@ mod route;
 mod service;
 mod util;
 
-use tokio_postgres::Statement;
+use tokio_postgres::{Statement};
 use crate::middleware::analytics::Analytics;
 use crate::service::analytics::AnalyticsEntry;
 use actix_files::Files;
@@ -45,30 +45,10 @@ struct Config {
 	discord_invite: String,
 }
 
-/// TODO doc
-pub struct Queries {
-    pub get_user_form_id: Statement,
-    pub get_user_form_github_id: Statement,
-    pub update_cooldown: Statement,
-}
-
-impl Queries {
-    /// TODO doc
-    pub fn init(db: &tokio_postgres::Client) -> Self {
-        Self {
-            get_user_from_id: db.prepare("SELECT * FROM user WHERE id = '$1'"),
-            get_user_from_github_id: db.prepare("SELECT * FROM user WHERE github_id = '$1'"),
-            update_cooldown: db.prepare("UPDATE user SET last_post = '$1' WHERE id = '$2'"),
-        }
-    }
-}
-
 /// Structure shared across the server.
 pub struct GlobalData {
 	/// The connection to the database.
 	pub db: tokio_postgres::Client,
-    /// TODO doc
-    pub queries: Queries,
 
 	/// The client ID of the Github application.
 	pub client_id: String,
@@ -140,7 +120,7 @@ async fn main() -> io::Result<()> {
 
 	// Open database connection
     let (client, connection) =
-        tokio_postgres::connect(config.pg_conn, NoTls).await?;
+        tokio_postgres::connect(&config.pg_conn, Tls).await?;
     // TODO re-open on error
     tokio::spawn(async move {
         if let Err(e) = connection.await {

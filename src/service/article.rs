@@ -1,11 +1,12 @@
 //! This module handles articles.
 
-use crate::util::PgResult;
+use crate::util::{FromRow, PgResult};
 use macros::FromRow;
 use crate::util;
 use chrono::DateTime;
 use chrono::Utc;
 use futures_util::stream::TryStreamExt;
+use futures_util::StreamExt;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -14,38 +15,33 @@ use serde::Serialize;
 pub struct Article {
 	/// The article's id.
 	pub id: ObjectId,
-	/// The ID of the article's content.
-	pub content_id: ObjectId,
 	/// Timestamp since epoch at which the article has been posted.
 	pub post_date: Option<DateTime<Utc>>,
+
+	/// The the article's content.
+	pub content: ArticleContent,
 }
 
 impl Article {
 	/// Returns the list of articles.
-	///
-	/// `db` is the database.
-	pub async fn list(db: &mongodb::Database) -> PgResult<Vec<Self>> {
-        db.query("SELECT * FROM article ORDER BY post_date DESC").await
+	pub async fn list(db: &tokio_postgres::Client) -> PgResult<Vec<Self>> {
+        db.query_raw("SELECT * FROM article ORDER BY post_date DESC", &[]).await?.map(Self::from_row).try_collect().await
 	}
 
 	/// Returns the article with the given ID.
 	///
-	/// Arguments:
-	/// - `db` is the database.
-	/// - `id` is the ID of the article.
+	/// `id` is the ID of the article.
 	pub async fn from_id(
-		db: &mongodb::Database,
+		db: &tokio_postgres::Client,
 		id: &ObjectId,
-	) -> Result<Option<Self>, mongodb::error::Error> {
+	) -> PgResult<Option<Self>> {
         db.query("SELECT * FROM article WHERE id = '$1'", &[id]).await
 	}
 
 	/// Inserts the current article in the database.
 	///
-	/// `db` is the database.
-	///
 	/// The function returns the ID of the inserted article.
-	pub async fn insert(&self, db: &mongodb::Database) -> PgResult<Bson> {
+	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<Bson> {
 		let collection = db.collection::<Self>("article");
 		collection
 			.insert_one(self, None)
@@ -59,19 +55,19 @@ impl Article {
 	/// - `content_id` is the ID of the article's new content.
 	/// - `post_date` is the post date. It is updated if set and only at the first call.
 	pub async fn update(
-		db: &mongodb::Database,
+		db: &tokio_postgres::Client,
 		id: ObjectId,
 		content_id: ObjectId,
 		post_date: Option<DateTime<Utc>>,
-	) -> Result<(), mongodb::error::Error> {
+	) -> PgResult<()> {
         db.execute("UPDATE article SET content_id = '$1' post_date = COALESCE(post_date, $2) WHERE id = '$3'", &[content_id, post_date, id]).await
 	}
 
 	/// Returns the article's content.
 	pub async fn get_content(
 		&self,
-		db: &mongodb::Database,
-	) -> Result<ArticleContent, mongodb::error::Error> {
+		db: &tokio_postgres::Client,
+	) -> PgResult<ArticleContent> {
 		Ok(ArticleContent::from_id(db, &self.content_id)
 			.await?
 			.unwrap())
@@ -111,7 +107,7 @@ impl ArticleContent {
 	/// Inserts the current content in the database.
 	///
 	/// `db` is the database.
-	pub async fn insert(&self, db: &mongodb::Database) -> Result<ObjectId, mongodb::error::Error> {
+	pub async fn insert(&self, db: &mongodb::Database) -> PgResult<ObjectId> {
 		let collection = db.collection::<Self>("article_content");
 		collection
 			.insert_one(self, None)

@@ -7,6 +7,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
+use crate::util::PgResult;
 
 /// The user agent for Github requests.
 const GITHUB_USER_AGENT: &str = "maestro";
@@ -66,10 +67,9 @@ pub struct GithubUser {
 }
 
 /// A user, who can post comments, or if admin, administrate the website.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone)]
 pub struct User {
 	/// The user's id.
-	#[serde(rename = "_id")]
 	pub id: ObjectId,
 
 	/// The user's Github access token.
@@ -134,14 +134,16 @@ impl User {
 
 	/// Returns the user with the given ID.
 	///
-	/// `db` is the database.
-	///
 	/// If the user doesn't exist, the function returns `None`.
 	pub async fn from_id(
-		db: &mongodb::Database,
+		db: &tokio_postgres::Client,
 		id: ObjectId,
-	) -> Result<Option<Self>, mongodb::error::Error> {
-        global.db.query(global.db.get_user_from_id, &[id]).await
+	) -> PgResult<Option<Self>> {
+        let res = db.query_one("SELECT * FROM user WHERE id = '$1'", &[id]).await;
+		match res {
+			Err(e) if e.0.kind == tokio_postgres::error:: => Ok(None),
+			r => Ok(Some(r?)),
+		}
 	}
 
 	/// Returns the user with the given Github ID.
@@ -150,40 +152,37 @@ impl User {
 	///
 	/// If the user doesn't exist, the function returns `None`.
 	pub async fn from_github_id(
-        global: &GlobalData,
+        db: &tokio_postgres::Client,
 		id: u64,
-	) -> Result<Option<Self>, mongodb::error::Error> {
-        global.db.query(global.db.get_user_from_github_id, &[id]).await
+	) -> PgResult<Option<Self>> {
+        db.query("SELECT * FROM user WHERE github_id = '$1'", &[id]).await
 	}
 
 	/// Inserts or updates the user in the database.
-	///
-	/// `db` is the database.
-	pub async fn insert(&self, db: &mongodb::Database) -> Result<(), mongodb::error::Error> {
+	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<()> {
 		let collection = db.collection::<Self>("user");
 		collection.insert_one(self, None).await.map(|_| ())
 	}
 
 	/// Updates the user's cooldown.
 	///
-	/// Arguments:
-	/// - `db` is the database.
-	/// - `last_post` is the date/time of the last post from the user.
+	/// `last_post` is the date/time of the last post from the user.
 	pub async fn update_cooldown(
 		&self,
-        global: &GlobalData,
+        db: &tokio_postgres::Client,
 		last_post: DateTime<Utc>,
-	) -> Result<(), mongodb::error::Error> {
-        global.db.execute(global.update_cooldown, &[last_post, self.id]).await
+	) -> PgResult<()> {
+        db.execute("UPDATE user SET last_post = '$1' WHERE id = '$2'", &[&last_post, self.id]).await?;
+		Ok(())
 	}
 
 	/// Returns the user of the current session.
 	///
 	/// `db` is the database.
 	pub async fn current_user(
-		db: &mongodb::Database,
+		db: &tokio_postgres::Client,
 		session: &Session,
-	) -> Result<Option<Self>, mongodb::error::Error> {
+	) -> PgResult<Option<Self>> {
 		let user_id = session
 			.get::<String>("user_id")
 			.ok()
@@ -196,12 +195,10 @@ impl User {
 	}
 
 	/// Checks the given session has admin permissions.
-	///
-	/// `db` is the database.
 	pub async fn check_admin(
-		db: &mongodb::Database,
+		db: &tokio_postgres::Client,
 		session: &Session,
-	) -> Result<bool, mongodb::error::Error> {
+	) -> PgResult<bool> {
 		let user = Self::current_user(db, session).await?;
 		Ok(user.map(|u| u.admin).unwrap_or(false))
 	}

@@ -1,13 +1,10 @@
 //! This module implements newsletters.
 
-use crate::util;
 use chrono::DateTime;
 use chrono::Utc;
-use serde::Deserialize;
-use serde::Serialize;
+use crate::util::PgResult;
 
 /// An email address of a newsletter subscriber.
-#[derive(Deserialize, Serialize)]
 pub struct NewsletterEmail<'s> {
 	/// The registered email. If `None`, the email has been anonymized.
 	pub email: Option<&'s str>,
@@ -17,18 +14,10 @@ pub struct NewsletterEmail<'s> {
 
 impl<'s> NewsletterEmail<'s> {
 	/// Insert a new email in the newsletter subscribers list.
-	pub async fn insert(db: &mongodb::Database, email: &str) -> Result<(), mongodb::error::Error> {
-		let collection = db.collection("newsletter_subscriber");
-		collection
-			.insert_one(
-				NewsletterEmail {
-					email: Some(email),
-					subscribe_date: Utc::now(),
-				},
-				None,
-			)
-			.await
-			.map(|_| ())
+	pub async fn insert(db: &tokio_postgres::Client, email: &str) -> PgResult<()> {
+		let now = Utc::now();
+		db.execute("INSERT INTO newsletter_subscriber (email, subscribe_date) VALUES ($1, $2)", &[&email, &now]).await?;
+		Ok(())
 	}
 }
 
