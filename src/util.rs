@@ -5,13 +5,14 @@ use base64::Engine;
 use lazy_static::lazy_static;
 use pulldown_cmark::{html, Options, Parser};
 use regex::Regex;
+use tokio_postgres::Row;
 
-/// TODO doc
+/// Result with PostgreSQL error.
 pub type PgResult<T> = Result<T, tokio_postgres::Error>;
 
-/// TODO doc
+/// An object that can be instanciated from a SQL row.
 pub trait FromRow {
-	/// TODO doc
+	/// Creates an object from the given SQL row.
 	fn from_row(row: &Row) -> Self;
 }
 

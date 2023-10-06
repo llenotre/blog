@@ -7,7 +7,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
-use crate::util::PgResult;
+use crate::util::{FromRow, PgResult};
 
 /// The user agent for Github requests.
 const GITHUB_USER_AGENT: &str = "maestro";
@@ -139,11 +139,7 @@ impl User {
 		db: &tokio_postgres::Client,
 		id: ObjectId,
 	) -> PgResult<Option<Self>> {
-        let res = db.query_one("SELECT * FROM user WHERE id = '$1'", &[id]).await;
-		match res {
-			Err(e) if e.0.kind == tokio_postgres::error:: => Ok(None),
-			r => Ok(Some(r?)),
-		}
+        Ok(db.query_opt("SELECT * FROM user WHERE id = '$1'", &[id]).await?.map(FromRow::from_row))
 	}
 
 	/// Returns the user with the given Github ID.
