@@ -3,7 +3,6 @@ mod route;
 mod service;
 mod util;
 
-use tokio_postgres::{NoTls, Statement};
 use crate::middleware::analytics::Analytics;
 use crate::service::analytics::AnalyticsEntry;
 use actix_files::Files;
@@ -23,6 +22,7 @@ use std::io;
 use std::process::exit;
 use std::time::Duration;
 use tokio::time;
+use tokio_postgres::{NoTls};
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -93,9 +93,7 @@ fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerRe
 			.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html"));
 		response
 	} else {
-		res.map_body(|_, body| EitherBody::Left {
-			body,
-		})
+		res.map_body(|_, body| EitherBody::Left { body })
 	};
 	Ok(ErrorHandlerResponse::Response(response))
 }
@@ -120,14 +118,13 @@ async fn main() -> io::Result<()> {
 
 	// Open database connection
 	// TODO tls
-    let (client, connection) =
-        tokio_postgres::connect(&config.pg_conn, NoTls).await?;
-    // TODO re-open on error
-    tokio::spawn(async move {
-        if let Err(e) = connection.await {
-            tracing::error!(error = %e, "postgres");
-        }
-    });
+	let (client, connection) = tokio_postgres::connect(&config.pg_conn, NoTls).await?;
+	// TODO re-open on error
+	tokio::spawn(async move {
+		if let Err(e) = connection.await {
+			tracing::error!(error = %e, "postgres");
+		}
+	});
 
 	let data = web::Data::new(GlobalData {
 		db: client,

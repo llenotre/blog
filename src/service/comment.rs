@@ -2,12 +2,12 @@
 
 use crate::service::user::User;
 use crate::util;
+use crate::util::PgResult;
 use actix_web::error;
 use async_recursion::async_recursion;
 use chrono::DateTime;
 use chrono::Utc;
 use std::collections::HashMap;
-use crate::util::PgResult;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;
@@ -39,47 +39,40 @@ pub struct Comment {
 impl Comment {
 	/// Returns the comment with the given ID.
 	///
-	/// Arguments:
-	/// - `db` is the database.
-	/// - `id` is the ID of the comment.
-	pub async fn from_id(
-		db: &Database,
-		id: &ObjectId,
-	) -> PgResult<Option<Self>> {
-        db.execute("SELECT * FROM comment WHERE id = '$1'", &[id]).await
+	/// `id` is the ID of the comment.
+	pub async fn from_id(db: &tokio_postgres::Client, id: &ObjectId) -> PgResult<Option<Self>> {
+		db.execute("SELECT * FROM comment WHERE id = '$1'", &[id])
+			.await
 	}
 
 	/// Returns the list of comments for the article with the given id `article_id`.
 	/// Comments are returns ordered by decreasing post date.
-	///
-	/// `db` is the database.
-	pub async fn list_for_article(
-		db: &Database,
-		article_id: ObjectId,
-	) -> PgResult<Vec<Self>> {
-        db.execute("SELECT * FROM comment WHERE article = '$1'", &[article_id]).await
+	pub async fn list_for_article(db: &tokio_postgres::Client, article_id: ObjectId) -> PgResult<Vec<Self>> {
+		db.execute("SELECT * FROM comment WHERE article = '$1'", &[article_id])
+			.await
 	}
 
 	/// Returns replies to the current comment.
-	pub async fn get_replies(&self, db: &Database) -> PgResult<Vec<Self>> {
-        db.execute("SELECT * FROM comment WHERE reply_to = '$1'", &[self.id]).await
+	pub async fn get_replies(&self, db: &tokio_postgres::Client) -> PgResult<Vec<Self>> {
+		db.execute("SELECT * FROM comment WHERE reply_to = '$1'", &[self.id])
+			.await
 	}
 
 	/// Inserts the current comment in the database.
 	///
 	/// `db` is the database.
-	pub async fn insert(&self, db: &Database) -> PgResult<()> {
+	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<()> {
 		let collection = db.collection::<Self>("comment");
 		collection.insert_one(self, None).await.map(|_| ())
 	}
 
 	/// Updates the ID of the comment's content.
-	pub async fn update_content(
-		&self,
-		db: &Database,
-		content_id: ObjectId,
-	) -> PgResult<()> {
-        db.execute("UPDATE comment SET content_id = '$1' WHERE id = '$2'", &[content_id, self.id]).await
+	pub async fn update_content(&self, db: &tokio_postgres::Client, content_id: ObjectId) -> PgResult<()> {
+		db.execute(
+			"UPDATE comment SET content_id = '$1' WHERE id = '$2'",
+			&[content_id, self.id],
+		)
+		.await
 	}
 
 	/// Deletes the comment with the given ID.
@@ -89,17 +82,26 @@ impl Comment {
 	/// - `user_id` is the ID of the user trying to delete the comment.
 	/// - `bypass_perm` tells whether the function can bypass user's permissions.
 	pub async fn delete(
-		db: &Database,
+		db: &tokio_postgres::Client,
 		comment_id: &ObjectId,
 		user_id: &ObjectId,
 		bypass_perm: bool,
 	) -> PgResult<()> {
-        let now = Utc::now();
-        if bypass_perm {
-            db.execute("UPDATE comment SET remove_date = '$1' WHERE id = '$2'", &[now, comment_id]).await
-        } else {
-            db.execute("UPDATE comment SET remove_date = '$1' WHERE id = '$2' AND author = '$3'", &[now, comment_id, user_id]).await
-        }
+		let now = Utc::now();
+		if bypass_perm {
+			db.execute(
+				"UPDATE comment SET remove_date = '$1' WHERE id = '$2'",
+				&[&now, comment_id],
+			)
+			.await?;
+		} else {
+			db.execute(
+				"UPDATE comment SET remove_date = '$1' WHERE id = '$2' AND author = '$3'",
+				&[&now, comment_id, user_id],
+			)
+			.await?;
+		}
+		Ok(())
 	}
 }
 
@@ -117,7 +119,7 @@ pub struct CommentContent {
 
 impl CommentContent {
 	/// Inserts the current content in the database.
-	pub async fn insert(&self, db: &Database) -> PgResult<ObjectId> {
+	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<ObjectId> {
 		let collection = db.collection::<Self>("comment_content");
 		collection
 			.insert_one(self, None)
@@ -204,7 +206,7 @@ pub fn group(comments: Vec<Comment>) -> Vec<(Comment, Vec<Comment>)> {
 /// - `admin` tells whether the current user is admin.
 #[async_recursion]
 pub async fn to_html(
-	db: &Database,
+	db: &tokio_postgres::Client,
 	article_title: &str,
 	comment: &Comment,
 	replies: Option<&'async_recursion [Comment]>,

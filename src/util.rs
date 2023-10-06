@@ -13,7 +13,7 @@ pub type PgResult<T> = Result<T, tokio_postgres::Error>;
 /// An object that can be instanciated from a SQL row.
 pub trait FromRow {
 	/// Creates an object from the given SQL row.
-	fn from_row(row: &Row) -> Self;
+	fn from_row(row: &Row) -> Option<Self> where Self: Sized;
 }
 
 lazy_static! {

@@ -1,8 +1,8 @@
 //! This module implements newsletters.
 
+use crate::util::PgResult;
 use chrono::DateTime;
 use chrono::Utc;
-use crate::util::PgResult;
 
 /// An email address of a newsletter subscriber.
 pub struct NewsletterEmail<'s> {
@@ -16,7 +16,11 @@ impl<'s> NewsletterEmail<'s> {
 	/// Insert a new email in the newsletter subscribers list.
 	pub async fn insert(db: &tokio_postgres::Client, email: &str) -> PgResult<()> {
 		let now = Utc::now();
-		db.execute("INSERT INTO newsletter_subscriber (email, subscribe_date) VALUES ($1, $2)", &[&email, &now]).await?;
+		db.execute(
+			"INSERT INTO newsletter_subscriber (email, subscribe_date) VALUES ($1, $2)",
+			&[&email, &now],
+		)
+		.await?;
 		Ok(())
 	}
 }
