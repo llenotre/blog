@@ -6,9 +6,6 @@ use actix_web::error;
 use async_recursion::async_recursion;
 use chrono::DateTime;
 use chrono::Utc;
-use futures_util::stream::TryStreamExt;
-use serde::Deserialize;
-use serde::Serialize;
 use std::collections::HashMap;
 use crate::util::PgResult;
 
@@ -18,10 +15,9 @@ pub const MAX_CHARS: usize = 5000;
 // TODO support pinned comments
 
 /// Structure representing a comment on an article.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Comment {
 	/// The comment's id.
-	#[serde(rename = "_id")]
 	pub id: ObjectId,
 
 	/// The ID of the article.
@@ -110,7 +106,6 @@ impl Comment {
 /// Content of a comment.
 ///
 /// Several contents are stored for the same comment to keep the history of edits.
-#[derive(Serialize, Deserialize)]
 pub struct CommentContent {
 	/// The ID of the comment.
 	pub comment_id: ObjectId,
