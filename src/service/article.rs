@@ -60,17 +60,8 @@ impl Article {
 		content_id: ObjectId,
 		post_date: Option<DateTime<Utc>>,
 	) -> PgResult<()> {
-        db.execute("UPDATE article SET content_id = '$1' post_date = COALESCE(post_date, $2) WHERE id = '$3'", &[content_id, post_date, id]).await
-	}
-
-	/// Returns the article's content.
-	pub async fn get_content(
-		&self,
-		db: &tokio_postgres::Client,
-	) -> PgResult<ArticleContent> {
-		Ok(ArticleContent::from_id(db, &self.content_id)
-			.await?
-			.unwrap())
+        db.execute("UPDATE article SET content_id = '$1' post_date = COALESCE(post_date, $2) WHERE id = '$3'", &[content_id, post_date, id]).await?;
+		Ok(())
 	}
 }
 

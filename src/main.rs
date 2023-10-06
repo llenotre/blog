@@ -3,7 +3,7 @@ mod route;
 mod service;
 mod util;
 
-use tokio_postgres::{Statement};
+use tokio_postgres::{NoTls, Statement};
 use crate::middleware::analytics::Analytics;
 use crate::service::analytics::AnalyticsEntry;
 use actix_files::Files;
@@ -62,7 +62,7 @@ pub struct GlobalData {
 impl GlobalData {
 	/// Returns a reference to the database.
 	pub fn get_database(&self) -> mongodb::Database {
-		self.mongo.database("blog")
+		self.db.database("blog")
 	}
 }
 
@@ -119,12 +119,13 @@ async fn main() -> io::Result<()> {
 		});
 
 	// Open database connection
+	// TODO tls
     let (client, connection) =
-        tokio_postgres::connect(&config.pg_conn, Tls).await?;
+        tokio_postgres::connect(&config.pg_conn, NoTls).await?;
     // TODO re-open on error
     tokio::spawn(async move {
         if let Err(e) = connection.await {
-            tracing::error!(error = e, "postgres");
+            tracing::error!(error = %e, "postgres");
         }
     });
 
