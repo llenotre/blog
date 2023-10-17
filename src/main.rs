@@ -22,7 +22,7 @@ use std::io;
 use std::process::exit;
 use std::time::Duration;
 use tokio::time;
-use tokio_postgres::{NoTls};
+use tokio_postgres::NoTls;
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -57,13 +57,6 @@ pub struct GlobalData {
 
 	/// The URL to the Discord server's invitation.
 	pub discord_invite: String,
-}
-
-impl GlobalData {
-	/// Returns a reference to the database.
-	pub fn get_database(&self) -> mongodb::Database {
-		self.db.database("blog")
-	}
 }
 
 fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
@@ -108,7 +101,7 @@ async fn main() -> io::Result<()> {
 	let config = fs::read_to_string("config.toml")
 		.map(|s| toml::from_str::<Config>(&s))
 		.unwrap_or_else(|e| {
-			tracing::error!(error = %e, "Cannot open configuration file");
+			tracing::error!(error = %e, "cannot read configuration file");
 			exit(1);
 		})
 		.unwrap_or_else(|e| {
@@ -118,7 +111,12 @@ async fn main() -> io::Result<()> {
 
 	// Open database connection
 	// TODO tls
-	let (client, connection) = tokio_postgres::connect(&config.pg_conn, NoTls).await?;
+	let (client, connection) = tokio_postgres::connect(&config.pg_conn, NoTls)
+		.await
+		.unwrap_or_else(|e| {
+			tracing::error!(error = %e, "database connection error");
+			exit(1);
+		});
 	// TODO re-open on error
 	tokio::spawn(async move {
 		if let Err(e) = connection.await {
@@ -143,11 +141,9 @@ async fn main() -> io::Result<()> {
 	let data_clone = data.clone();
 	tokio::spawn(async move {
 		let data = data_clone.into_inner();
-		let db = data.get_database();
 		let mut interval = time::interval(Duration::from_secs(10));
-
 		loop {
-			let _ = AnalyticsEntry::aggregate(&db).await;
+			let _ = AnalyticsEntry::aggregate(&data.db).await;
 			interval.tick().await;
 		}
 	});

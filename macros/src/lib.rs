@@ -34,7 +34,7 @@ pub fn from_row(input: TokenStream) -> TokenStream {
 	quote! {
 		impl crate::util::FromRow for #ident {
 			fn from_row(row: &tokio_postgres::Row) -> Option<Self> {
-				Ok(Self {
+				Some(Self {
 					#(#fields),*
 				})
 			}

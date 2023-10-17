@@ -72,7 +72,7 @@ where
 
 		if !uri.starts_with("/assets") {
 			let entry = AnalyticsEntry::new(peer_addr, user_agent, method, uri);
-			let db = self.global.get_database();
+			let db = self.global.db;
 			tokio::spawn(async move {
 				if let Err(e) = entry.insert(&db).await {
 					tracing::error!(error = %e, "cannot log analytics");

@@ -18,19 +18,19 @@ pub const MAX_CHARS: usize = 5000;
 #[derive(Debug)]
 pub struct Comment {
 	/// The comment's id.
-	pub id: ObjectId,
+	pub id: u64,
 
 	/// The ID of the article.
-	pub article: ObjectId,
+	pub article_id: u64,
 	/// The ID of the comment this comment replies to. If `None`, this comment is not a reply.
-	pub reply_to: Option<ObjectId>,
+	pub reply_to: Option<u64>,
 	/// The ID of author of the comment.
-	pub author: ObjectId,
+	pub author: u64,
 	/// Timestamp since epoch at which the comment has been posted.
 	pub post_date: DateTime<Utc>,
 
-	/// The ID of the comment's content.
-	pub content_id: ObjectId,
+	/// The comment's content.
+	pub content: CommentContent,
 
 	/// Tells whether the comment has been removed.
 	pub removed: bool,
@@ -40,14 +40,17 @@ impl Comment {
 	/// Returns the comment with the given ID.
 	///
 	/// `id` is the ID of the comment.
-	pub async fn from_id(db: &tokio_postgres::Client, id: &ObjectId) -> PgResult<Option<Self>> {
+	pub async fn from_id(db: &tokio_postgres::Client, id: &u64) -> PgResult<Option<Self>> {
 		db.execute("SELECT * FROM comment WHERE id = '$1'", &[id])
 			.await
 	}
 
 	/// Returns the list of comments for the article with the given id `article_id`.
 	/// Comments are returns ordered by decreasing post date.
-	pub async fn list_for_article(db: &tokio_postgres::Client, article_id: ObjectId) -> PgResult<Vec<Self>> {
+	pub async fn list_for_article(
+		db: &tokio_postgres::Client,
+		article_id: u64,
+	) -> PgResult<Vec<Self>> {
 		db.execute("SELECT * FROM comment WHERE article = '$1'", &[article_id])
 			.await
 	}
@@ -67,7 +70,11 @@ impl Comment {
 	}
 
 	/// Updates the ID of the comment's content.
-	pub async fn update_content(&self, db: &tokio_postgres::Client, content_id: ObjectId) -> PgResult<()> {
+	pub async fn update_content(
+		&self,
+		db: &tokio_postgres::Client,
+		content_id: u64,
+	) -> PgResult<()> {
 		db.execute(
 			"UPDATE comment SET content_id = '$1' WHERE id = '$2'",
 			&[content_id, self.id],
@@ -83,8 +90,8 @@ impl Comment {
 	/// - `bypass_perm` tells whether the function can bypass user's permissions.
 	pub async fn delete(
 		db: &tokio_postgres::Client,
-		comment_id: &ObjectId,
-		user_id: &ObjectId,
+		comment_id: &u64,
+		user_id: &u64,
 		bypass_perm: bool,
 	) -> PgResult<()> {
 		let now = Utc::now();
@@ -110,7 +117,7 @@ impl Comment {
 /// Several contents are stored for the same comment to keep the history of edits.
 pub struct CommentContent {
 	/// The ID of the comment.
-	pub comment_id: ObjectId,
+	pub comment_id: u64,
 	/// Timestamp since epoch at which the comment has been edited.
 	pub edit_date: DateTime<Utc>,
 	/// The content of the comment.
@@ -119,7 +126,7 @@ pub struct CommentContent {
 
 impl CommentContent {
 	/// Inserts the current content in the database.
-	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<ObjectId> {
+	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<u64> {
 		let collection = db.collection::<Self>("comment_content");
 		collection
 			.insert_one(self, None)
@@ -210,12 +217,12 @@ pub async fn to_html(
 	article_title: &str,
 	comment: &Comment,
 	replies: Option<&'async_recursion [Comment]>,
-	user_id: Option<&'async_recursion ObjectId>,
+	user_id: Option<&'async_recursion u64>,
 	user_login: Option<&'async_recursion str>,
 	admin: bool,
 ) -> actix_web::Result<String> {
 	let com_id = util::encode_id(&comment.id);
-	let article_id = util::encode_id(&comment.article);
+	let article_id = util::encode_id(&comment.article_id);
 
 	// HTML for comment's replies
 	let replies_html = match replies {
@@ -291,20 +298,14 @@ pub async fn to_html(
 	let html_url = ammonia::clean(&author.github_info.html_url);
 	let login = ammonia::clean(&author.github_info.login);
 
-	// Get content of comment
-	let content = CommentContent::from_id(db, comment.content_id)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-	let Some(content) = content else {
-		return Ok(String::new());
-	};
-	let markdown = util::markdown_to_html(&content.content, true);
+	// Translate markdown
+	let markdown = util::markdown_to_html(&comment.content.content, true);
 
-	let mut date_text = if content.edit_date > comment.post_date {
+	let mut date_text = if comment.content.edit_date > comment.post_date {
 		format!(
 			r#"<span id="date-long">{}</span> (edit: <span id="date-long">{}</span>)"#,
 			comment.post_date.to_rfc3339(),
-			content.edit_date.to_rfc3339()
+			comment.content.edit_date.to_rfc3339()
 		)
 	} else {
 		format!(
@@ -318,7 +319,12 @@ pub async fn to_html(
 
 	let (edit_editor, reply_editor) = match user_login {
 		Some(user_login) => (
-			get_editor(user_login, "edit", Some(&com_id), Some(&content.content)),
+			get_editor(
+				user_login,
+				"edit",
+				Some(&com_id),
+				Some(&comment.content.content),
+			),
 			get_editor(user_login, "post", Some(&com_id), None),
 		),
 
