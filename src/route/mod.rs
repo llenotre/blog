@@ -1,6 +1,7 @@
 use crate::service::article::Article;
 use crate::service::user::User;
 use crate::GlobalData;
+use futures_util::StreamExt;
 use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::{error, get, web, HttpResponse, Responder};
@@ -22,14 +23,14 @@ pub async fn root(
 	})?;
 
 	// Get articles
-	let articles = Article::list(&data.db).await.map_err(|e| {
+	let mut articles = Article::list(&data.db).await.map_err(|e| {
 		tracing::error!(error = %e, "database: articles");
 		error::ErrorInternalServerError("")
 	})?;
 
 	// Produce articles HTML
 	let mut articles_html = String::new();
-	for article in articles {
+	while let Some(article) = articles.next().await {
 		if !admin && !article.content.public {
 			continue;
 		}
@@ -41,7 +42,6 @@ pub async fn root(
 		};
 
 		let mut tags = vec![];
-
 		if admin {
 			let pub_tag = if article.content.public {
 				"Public"
@@ -50,14 +50,12 @@ pub async fn root(
 			};
 			tags.push(pub_tag);
 		}
-
 		if article.content.sponsor {
 			tags.push("<i>Sponsors early access</i>&nbsp;❤️");
 		}
 		if !article.content.tags.is_empty() {
 			tags.extend(article.content.tags.split(','));
 		}
-
 		let tags_html: String = tags
 			.into_iter()
 			.map(|s| format!(r#"<li class="tag">{s}</li>"#))
@@ -91,7 +89,6 @@ pub async fn root(
 	let html = include_str!("../../pages/index.html");
 	let html = html.replace("{discord.invite}", &data.discord_invite);
 	let html = html.replace("{articles}", &articles_html);
-
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::html())
 		.body(html))
@@ -123,7 +120,6 @@ Sitemap: https://blog.lenot.re/sitemap.xml"#
 #[get("/sitemap.xml")]
 pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 	let mut urls = vec![];
-
 	urls.push(("/".to_owned(), None));
 	urls.push(("/bio".to_owned(), None));
 	urls.push(("/legal".to_owned(), None));
@@ -131,7 +127,7 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 	let articles = Article::list(&data.db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
-	for a in articles {
+	while let Some(a) = articles.next().await {
 		urls.push((a.content.get_url(), Some(a.content.edit_date)));
 	}
 
@@ -166,7 +162,7 @@ pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
 	let mut items_str = String::new();
-	for a in articles {
+	while let Some(a) = articles.next().await {
 		let Some(ref post_date) = a.post_date else {
 			continue;
 		};

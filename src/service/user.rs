@@ -25,7 +25,7 @@ pub fn get_auth_url(client_id: &str) -> String {
 /// Creates a session for the given user.
 pub fn create_session(session: &Session, user: &User) -> actix_web::Result<()> {
 	let insert_fields = || {
-		session.insert("user_id", user.id.to_hex())?;
+		session.insert("user_id", user.id)?;
 		session.insert("user_login", &user.github_info.login)?;
 		Ok(())
 	};
@@ -84,7 +84,7 @@ pub struct User {
 	pub banned: bool,
 
 	/// The date/time at which the user registered.
-	pub register_time: DateTime<Utc>,
+	pub register_date: DateTime<Utc>,
 	/// The date/time of the last post, used for cooldown.
 	pub last_post: DateTime<Utc>,
 }
@@ -136,11 +136,11 @@ impl User {
 	/// Returns the user with the given ID.
 	///
 	/// If the user doesn't exist, the function returns `None`.
-	pub async fn from_id(db: &tokio_postgres::Client, id: Oid) -> PgResult<Option<Self>> {
+	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		Ok(db
 			.query_opt("SELECT * FROM user WHERE id = '$1'", &[id])
 			.await?
-			.map(|r| r.map(|r| FromRow::from_row(&r)).flatten()))
+			.map(|r| FromRow::from_row(&r)).flatten())
 	}
 
 	/// Returns the user with the given Github ID.
@@ -148,16 +148,38 @@ impl User {
 	/// `db` is the database.
 	///
 	/// If the user doesn't exist, the function returns `None`.
-	pub async fn from_github_id(db: &tokio_postgres::Client, id: Oid) -> PgResult<Option<Self>> {
+	pub async fn from_github_id(db: &tokio_postgres::Client, id: &i64) -> PgResult<Option<Self>> {
 		db.query_opt("SELECT * FROM user WHERE github_id = '$1'", &[id])
 			.await
 			.map(|r| r.map(|r| FromRow::from_row(&r)).flatten())
 	}
 
-	/// Inserts or updates the user in the database.
+	/// Inserts the user in the database.
 	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<()> {
-		let collection = db.collection::<Self>("user");
-		collection.insert_one(self, None).await.map(|_| ())
+		db.execute(
+			r#"INSERT INTO user (
+			access_token,
+			github_login,
+			github_id,
+			github_html_url,
+			admin,
+			banned,
+			register_date,
+			last_post,
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
+			&[
+				&self.access_token,
+				&self.github_info.login,
+				&self.github_info.id,
+				&self.github_info.html_url,
+				&self.admin,
+				&self.banned,
+				&self.register_date,
+				&self.last_post,
+			],
+		)
+		.await?;
+		Ok(())
 	}
 
 	/// Updates the user's cooldown.
@@ -166,11 +188,11 @@ impl User {
 	pub async fn update_cooldown(
 		&self,
 		db: &tokio_postgres::Client,
-		last_post: DateTime<Utc>,
+		last_post: &DateTime<Utc>,
 	) -> PgResult<()> {
 		db.execute(
 			"UPDATE user SET last_post = '$1' WHERE id = '$2'",
-			&[&last_post, self.id],
+			&[last_post, &self.id],
 		)
 		.await?;
 		Ok(())
@@ -183,12 +205,9 @@ impl User {
 		db: &tokio_postgres::Client,
 		session: &Session,
 	) -> PgResult<Option<Self>> {
-		let user_id = session
-			.get::<Oid>("user_id")
-			.ok()
-			.flatten();
+		let user_id = session.get::<Oid>("user_id").ok().flatten();
 		match user_id {
-			Some(user_id) => Self::from_id(db, user_id).await,
+			Some(user_id) => Self::from_id(db, &user_id).await,
 			None => Ok(None),
 		}
 	}

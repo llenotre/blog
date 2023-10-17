@@ -1,11 +1,11 @@
 //! This module handles articles.
 
+use std::iter;
 use crate::util::Oid;
-use crate::util;
 use crate::util::{FromRow, PgResult};
 use chrono::DateTime;
 use chrono::Utc;
-use futures_util::{StreamExt, TryStreamExt};
+use futures_util::{Stream, StreamExt};
 use macros::FromRow;
 
 /// Structure representing an article.
@@ -22,12 +22,10 @@ pub struct Article {
 
 impl Article {
 	/// Returns the list of articles.
-	pub async fn list(db: &tokio_postgres::Client) -> PgResult<Vec<Self>> {
-		db.query_raw("SELECT * FROM article ORDER BY post_date DESC", &[])
+	pub async fn list(db: &tokio_postgres::Client) -> PgResult<impl Stream<Item = Self>> {
+		Ok(db.query_raw("SELECT * FROM article ORDER BY post_date DESC", iter::empty::<u32>())
 			.await?
-			.map(|r| Self::from_row(&r.unwrap()))
-			.try_collect()
-			.await
+			.map(|r| Self::from_row(&r.unwrap()).unwrap()))
 	}
 
 	/// Returns the article with the given ID.
@@ -40,17 +38,6 @@ impl Article {
 			.map(|r| r.map(|r| FromRow::from_row(&r).unwrap()))?)
 	}
 
-	/// Inserts the current article in the database.
-	///
-	/// The function returns the ID of the inserted article.
-	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<Oid> {
-		let collection = db.collection::<Self>("article");
-		collection
-			.insert_one(self, None)
-			.await
-			.map(|r| r.inserted_id)
-	}
-
 	/// Updates the articles with the given ID.
 	///
 	/// Arguments:
@@ -58,9 +45,9 @@ impl Article {
 	/// - `post_date` is the post date. It is updated if set and only at the first call.
 	pub async fn update(
 		db: &tokio_postgres::Client,
-		id: Oid,
-		content_id: Oid,
-		post_date: Option<DateTime<Utc>>,
+		id: &Oid,
+		content_id: &Oid,
+		post_date: &Option<DateTime<Utc>>,
 	) -> PgResult<()> {
 		db.execute("UPDATE article SET content_id = '$1' post_date = COALESCE(post_date, $2) WHERE id = '$3'", &[content_id, post_date, id]).await?;
 		Ok(())
@@ -95,17 +82,6 @@ pub struct ArticleContent {
 }
 
 impl ArticleContent {
-	/// Inserts the current content in the database.
-	///
-	/// `db` is the database.
-	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<Oid> {
-		let collection = db.collection::<Self>("article_content");
-		collection
-			.insert_one(self, None)
-			.await
-			.map(|r| r.inserted_id.as_object_id().unwrap())
-	}
-
 	/// Returns the URL title of the article.
 	pub fn get_url_title(&self) -> String {
 		self.title
@@ -121,8 +97,7 @@ impl ArticleContent {
 
 	/// Returns the path to the article.
 	pub fn get_path(&self) -> String {
-		let id = util::encode_id(&self.article_id);
-		format!("/a/{id}/{}", self.get_url_title())
+		format!("/a/{}/{}", self.article_id, self.get_url_title())
 	}
 
 	/// Returns the URL of the article.
