@@ -1,5 +1,6 @@
 //! This module implements user accounts.
 
+use crate::util::Oid;
 use crate::util::{FromRow, PgResult};
 use actix_session::Session;
 use actix_web::web::Redirect;
@@ -70,7 +71,7 @@ pub struct GithubUser {
 #[derive(Clone, FromRow)]
 pub struct User {
 	/// The user's id.
-	pub id: u64,
+	pub id: Oid,
 
 	/// The user's Github access token.
 	pub access_token: String,
@@ -135,7 +136,7 @@ impl User {
 	/// Returns the user with the given ID.
 	///
 	/// If the user doesn't exist, the function returns `None`.
-	pub async fn from_id(db: &tokio_postgres::Client, id: u64) -> PgResult<Option<Self>> {
+	pub async fn from_id(db: &tokio_postgres::Client, id: Oid) -> PgResult<Option<Self>> {
 		Ok(db
 			.query_opt("SELECT * FROM user WHERE id = '$1'", &[id])
 			.await?
@@ -147,7 +148,7 @@ impl User {
 	/// `db` is the database.
 	///
 	/// If the user doesn't exist, the function returns `None`.
-	pub async fn from_github_id(db: &tokio_postgres::Client, id: u64) -> PgResult<Option<Self>> {
+	pub async fn from_github_id(db: &tokio_postgres::Client, id: Oid) -> PgResult<Option<Self>> {
 		db.query_opt("SELECT * FROM user WHERE github_id = '$1'", &[id])
 			.await
 			.map(|r| r.map(|r| FromRow::from_row(&r)).flatten())
@@ -183,10 +184,9 @@ impl User {
 		session: &Session,
 	) -> PgResult<Option<Self>> {
 		let user_id = session
-			.get::<String>("user_id")
+			.get::<Oid>("user_id")
 			.ok()
-			.flatten()
-			.and_then(|user_id| ObjectId::parse_str(user_id).ok());
+			.flatten();
 		match user_id {
 			Some(user_id) => Self::from_id(db, user_id).await,
 			None => Ok(None),

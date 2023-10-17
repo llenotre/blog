@@ -1,12 +1,13 @@
+use crate::util::Oid;
 use crate::service::article::{Article, ArticleContent};
+use crate::service::comment;
 use crate::service::comment::Comment;
 use crate::service::user::User;
-use crate::service::{comment, user};
 use crate::{util, GlobalData};
 use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::web::Redirect;
-use actix_web::{error, get, post, web, Either, HttpResponse, Responder};
+use actix_web::{error, get, post, web, HttpResponse, Responder};
 use chrono::Utc;
 use serde::Deserialize;
 
@@ -59,10 +60,7 @@ pub async fn get(
 	let markdown = util::markdown_to_html(&article.content.content, false);
 	let html = html.replace("{article.content}", &markdown);
 
-	let user_id = session
-		.get::<String>("user_id")?
-		.map(|id| ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("")))
-		.transpose()?;
+	let user_id = session.get::<Oid>("user_id")?;
 	let user_login = session.get::<String>("user_login")?;
 
 	// Get article comments
