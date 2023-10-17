@@ -1,5 +1,6 @@
 //! This module handles comments on articles.
 
+use crate::util::Oid;
 use crate::service::user::User;
 use crate::util;
 use crate::util::PgResult;
@@ -18,14 +19,14 @@ pub const MAX_CHARS: usize = 5000;
 #[derive(Debug)]
 pub struct Comment {
 	/// The comment's id.
-	pub id: u64,
+	pub id: Oid,
 
 	/// The ID of the article.
-	pub article_id: u64,
+	pub article_id: Oid,
 	/// The ID of the comment this comment replies to. If `None`, this comment is not a reply.
-	pub reply_to: Option<u64>,
+	pub reply_to: Option<Oid>,
 	/// The ID of author of the comment.
-	pub author: u64,
+	pub author: Oid,
 	/// Timestamp since epoch at which the comment has been posted.
 	pub post_date: DateTime<Utc>,
 
@@ -40,8 +41,8 @@ impl Comment {
 	/// Returns the comment with the given ID.
 	///
 	/// `id` is the ID of the comment.
-	pub async fn from_id(db: &tokio_postgres::Client, id: &u64) -> PgResult<Option<Self>> {
-		db.execute("SELECT * FROM comment WHERE id = '$1'", &[id])
+	pub async fn from_id(db: &tokio_postgres::Client, id: &u32) -> PgResult<Option<Self>> {
+		db.query_opt("SELECT * FROM comment WHERE id = '$1'", &[id])
 			.await
 	}
 
@@ -49,15 +50,15 @@ impl Comment {
 	/// Comments are returns ordered by decreasing post date.
 	pub async fn list_for_article(
 		db: &tokio_postgres::Client,
-		article_id: u64,
+		article_id: &Oid,
 	) -> PgResult<Vec<Self>> {
-		db.execute("SELECT * FROM comment WHERE article = '$1'", &[article_id])
+		db.query("SELECT * FROM comment WHERE article = '$1'", &[article_id])
 			.await
 	}
 
 	/// Returns replies to the current comment.
 	pub async fn get_replies(&self, db: &tokio_postgres::Client) -> PgResult<Vec<Self>> {
-		db.execute("SELECT * FROM comment WHERE reply_to = '$1'", &[self.id])
+		db.query("SELECT * FROM comment WHERE reply_to = '$1'", &[&self.id])
 			.await
 	}
 
@@ -73,7 +74,7 @@ impl Comment {
 	pub async fn update_content(
 		&self,
 		db: &tokio_postgres::Client,
-		content_id: u64,
+		content_id: Oid,
 	) -> PgResult<()> {
 		db.execute(
 			"UPDATE comment SET content_id = '$1' WHERE id = '$2'",
@@ -90,8 +91,8 @@ impl Comment {
 	/// - `bypass_perm` tells whether the function can bypass user's permissions.
 	pub async fn delete(
 		db: &tokio_postgres::Client,
-		comment_id: &u64,
-		user_id: &u64,
+		comment_id: &Oid,
+		user_id: &Oid,
 		bypass_perm: bool,
 	) -> PgResult<()> {
 		let now = Utc::now();
@@ -117,7 +118,7 @@ impl Comment {
 /// Several contents are stored for the same comment to keep the history of edits.
 pub struct CommentContent {
 	/// The ID of the comment.
-	pub comment_id: u64,
+	pub comment_id: Oid,
 	/// Timestamp since epoch at which the comment has been edited.
 	pub edit_date: DateTime<Utc>,
 	/// The content of the comment.
@@ -126,7 +127,7 @@ pub struct CommentContent {
 
 impl CommentContent {
 	/// Inserts the current content in the database.
-	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<u64> {
+	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<Oid> {
 		let collection = db.collection::<Self>("comment_content");
 		collection
 			.insert_one(self, None)
@@ -217,7 +218,7 @@ pub async fn to_html(
 	article_title: &str,
 	comment: &Comment,
 	replies: Option<&'async_recursion [Comment]>,
-	user_id: Option<&'async_recursion u64>,
+	user_id: Option<&'async_recursion Oid>,
 	user_login: Option<&'async_recursion str>,
 	admin: bool,
 ) -> actix_web::Result<String> {

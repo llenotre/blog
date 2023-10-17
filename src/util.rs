@@ -9,6 +9,8 @@ use tokio_postgres::Row;
 
 /// Result with PostgreSQL error.
 pub type PgResult<T> = Result<T, tokio_postgres::Error>;
+/// Database primary key.
+pub type Oid = u32;
 
 /// An object that can be instanciated from a SQL row.
 pub trait FromRow {
