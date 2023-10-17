@@ -13,7 +13,9 @@ pub type PgResult<T> = Result<T, tokio_postgres::Error>;
 /// An object that can be instanciated from a SQL row.
 pub trait FromRow {
 	/// Creates an object from the given SQL row.
-	fn from_row(row: &Row) -> Option<Self> where Self: Sized;
+	fn from_row(row: &Row) -> Option<Self>
+	where
+		Self: Sized;
 }
 
 lazy_static! {
@@ -27,14 +29,14 @@ pub fn validate_email(email: &str) -> bool {
 }
 
 /// Encodes an ID.
-pub fn encode_id(id: &ObjectId) -> String {
-	general_purpose::URL_SAFE_NO_PAD.encode(id.bytes())
+pub fn encode_id(id: &[u8]) -> String {
+	general_purpose::URL_SAFE_NO_PAD.encode(id)
 }
 
 /// Decodes an ID.
 ///
 /// If the given ID is invalid, the function returns None.
-pub fn decode_id(id: &str) -> Option<ObjectId> {
+pub fn decode_id(id: &str) -> Option<[u8; 12]> {
 	general_purpose::URL_SAFE_NO_PAD
 		.decode(id)
 		.ok()
@@ -42,7 +44,6 @@ pub fn decode_id(id: &str) -> Option<ObjectId> {
 			let id: [u8; 12] = id.as_slice().try_into().ok()?;
 			Some(id)
 		})
-		.map(|id| ObjectId::from(id))
 }
 
 /// Converts the given Markdown to HTML.

@@ -5,6 +5,7 @@ use actix_session::Session;
 use actix_web::web::Redirect;
 use chrono::DateTime;
 use chrono::Utc;
+use macros::FromRow;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -66,10 +67,10 @@ pub struct GithubUser {
 }
 
 /// A user, who can post comments, or if admin, administrate the website.
-#[derive(Clone)]
+#[derive(Clone, FromRow)]
 pub struct User {
 	/// The user's id.
-	pub id: ObjectId,
+	pub id: u64,
 
 	/// The user's Github access token.
 	pub access_token: String,
@@ -134,11 +135,11 @@ impl User {
 	/// Returns the user with the given ID.
 	///
 	/// If the user doesn't exist, the function returns `None`.
-	pub async fn from_id(db: &tokio_postgres::Client, id: ObjectId) -> PgResult<Option<Self>> {
+	pub async fn from_id(db: &tokio_postgres::Client, id: u64) -> PgResult<Option<Self>> {
 		Ok(db
 			.query_opt("SELECT * FROM user WHERE id = '$1'", &[id])
 			.await?
-			.map(FromRow::from_row))
+			.map(|r| r.map(|r| FromRow::from_row(&r)).flatten()))
 	}
 
 	/// Returns the user with the given Github ID.
@@ -147,8 +148,9 @@ impl User {
 	///
 	/// If the user doesn't exist, the function returns `None`.
 	pub async fn from_github_id(db: &tokio_postgres::Client, id: u64) -> PgResult<Option<Self>> {
-		db.query("SELECT * FROM user WHERE github_id = '$1'", &[id])
+		db.query_opt("SELECT * FROM user WHERE github_id = '$1'", &[id])
 			.await
+			.map(|r| r.map(|r| FromRow::from_row(&r)).flatten())
 	}
 
 	/// Inserts or updates the user in the database.

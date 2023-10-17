@@ -4,14 +4,14 @@ use crate::util;
 use crate::util::{FromRow, PgResult};
 use chrono::DateTime;
 use chrono::Utc;
-use futures_util::{StreamExt};
+use futures_util::StreamExt;
 use macros::FromRow;
 
 /// Structure representing an article.
-#[derive(Debug, FromRow)]
+#[derive(FromRow)]
 pub struct Article {
 	/// The article's id.
-	pub id: ObjectId,
+	pub id: u64,
 	/// Timestamp since epoch at which the article has been posted.
 	pub post_date: Option<DateTime<Utc>>,
 
@@ -24,19 +24,18 @@ impl Article {
 	pub async fn list(db: &tokio_postgres::Client) -> PgResult<Vec<Self>> {
 		db.query_raw("SELECT * FROM article ORDER BY post_date DESC", &[])
 			.await?
-			.map(Self::from_row)
+			.filter_map(|r| Self::from_row(&r.unwrap()))
 			.try_collect()
-			.await
 	}
 
 	/// Returns the article with the given ID.
 	///
 	/// `id` is the ID of the article.
-	pub async fn from_id(db: &tokio_postgres::Client, id: &ObjectId) -> PgResult<Option<Self>> {
+	pub async fn from_id(db: &tokio_postgres::Client, id: &u64) -> PgResult<Option<Self>> {
 		Ok(db
 			.query_opt("SELECT * FROM article WHERE id = '$1'", &[id])
 			.await
-			.map(FromRow::from_row)?)
+			.map(|r| r.map(|r| FromRow::from_row(&r).unwrap()))?)
 	}
 
 	/// Inserts the current article in the database.
@@ -57,8 +56,8 @@ impl Article {
 	/// - `post_date` is the post date. It is updated if set and only at the first call.
 	pub async fn update(
 		db: &tokio_postgres::Client,
-		id: ObjectId,
-		content_id: ObjectId,
+		id: u64,
+		content_id: u64,
 		post_date: Option<DateTime<Utc>>,
 	) -> PgResult<()> {
 		db.execute("UPDATE article SET content_id = '$1' post_date = COALESCE(post_date, $2) WHERE id = '$3'", &[content_id, post_date, id]).await?;
@@ -72,7 +71,7 @@ impl Article {
 #[derive(FromRow)]
 pub struct ArticleContent {
 	/// The ID of the article.
-	pub article_id: ObjectId,
+	pub article_id: u64,
 	/// Timestamp since epoch at which the article has been edited.
 	pub edit_date: DateTime<Utc>,
 	/// The article's title.
@@ -97,7 +96,7 @@ impl ArticleContent {
 	/// Inserts the current content in the database.
 	///
 	/// `db` is the database.
-	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<ObjectId> {
+	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<u64> {
 		let collection = db.collection::<Self>("article_content");
 		collection
 			.insert_one(self, None)

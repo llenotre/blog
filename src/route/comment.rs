@@ -22,28 +22,27 @@ pub async fn get(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let id = id.into_inner();
-	let db = data.get_database();
 
-	let user = User::current_user(&db, &session)
+	let user = User::current_user(&data.db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let admin = user.as_ref().map(|u| u.admin).unwrap_or(false);
 
 	let comment_id = util::decode_id(&id).ok_or_else(|| error::ErrorNotFound(""))?;
-	let comment = Comment::from_id(&db, &comment_id)
+	let comment = Comment::from_id(&data.db, &comment_id)
 		.await
 		.map_err(|e| {
 			tracing::error!(error = %e, "mongodb");
 			error::ErrorInternalServerError("")
 		})?
 		.ok_or_else(|| error::ErrorNotFound("comment not found"))?;
-	let admin = user.as_ref().map(|u| u.admin).unwrap_or(false);
 	if comment.removed && !admin {
 		return Ok(HttpResponse::NotFound()
 			.content_type("text/plain")
 			.body("comment not found"));
 	}
 
-	let article = Article::from_id(&db, &comment.article)
+	let article = Article::from_id(&data.db, &comment.article)
 		.await
 		.map_err(|e| {
 			tracing::error!(error = %e, "mongodb");
@@ -53,7 +52,7 @@ pub async fn get(
 
 	// Get replies
 	let replies = match comment.reply_to {
-		None => Some(comment.get_replies(&db).await.map_err(|e| {
+		None => Some(comment.get_replies(&data.db).await.map_err(|e| {
 			tracing::error!(error = %e, "mongodb");
 			error::ErrorInternalServerError("")
 		})?),
@@ -63,7 +62,7 @@ pub async fn get(
 	let user_id = user.as_ref().map(|u| &u.id);
 	let user_login = user.as_ref().map(|u| u.github_info.login.as_str());
 	let html = comment::to_html(
-		&db,
+		&data.db,
 		&article.content.title,
 		&comment,
 		replies.as_deref(),
@@ -109,11 +108,9 @@ pub async fn post(
 			)));
 	}
 
-	let db = data.get_database();
-
 	// Check article exists
 	let article_id = util::decode_id(&info.article_id).ok_or_else(|| error::ErrorNotFound(""))?;
-	let article = Article::from_id(&db, &article_id)
+	let article = Article::from_id(&data.db, &article_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(article) = article else {
@@ -121,7 +118,7 @@ pub async fn post(
 	};
 
 	// Get user
-	let user = User::current_user(&db, &session)
+	let user = User::current_user(&data.db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(user) = user else {
@@ -159,13 +156,11 @@ pub async fn post(
 	// Insert comment content
 	let comment_content = CommentContent {
 		comment_id: id,
-
 		edit_date: date,
-
 		content: info.content,
 	};
 	let content_id = comment_content
-		.insert(&db)
+		.insert(&data.db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -201,11 +196,11 @@ pub async fn post(
 		removed: false,
 	};
 	comment
-		.insert(&db)
+		.insert(&data.db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
-	user.update_cooldown(&db, Utc::now())
+	user.update_cooldown(&data.db, Utc::now())
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -239,18 +234,16 @@ pub async fn edit(
 		return Err(error::ErrorPayloadTooLarge("content is too long"));
 	}
 
-	let db = data.get_database();
-
 	// Check comment exists
 	let comment_id = util::decode_id(&info.comment_id).ok_or_else(|| error::ErrorNotFound(""))?;
-	let comment = Comment::from_id(&db, &comment_id)
+	let comment = Comment::from_id(&data.db, &comment_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(comment) = comment else {
 		return Err(error::ErrorNotFound("comment not found"));
 	};
 
-	let article = Article::from_id(&db, &comment.article)
+	let article = Article::from_id(&data.db, &comment.article)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(article) = article else {
@@ -258,7 +251,7 @@ pub async fn edit(
 	};
 
 	// Get user
-	let user = User::current_user(&db, &session)
+	let user = User::current_user(&data.db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(user) = user else {
@@ -293,23 +286,21 @@ pub async fn edit(
 	let date = Utc::now();
 	let comment_content = CommentContent {
 		comment_id,
-
 		edit_date: date,
-
 		content: info.content,
 	};
 	let content_id = comment_content
-		.insert(&db)
+		.insert(&data.db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
 	// Update comment's content
 	comment
-		.update_content(&db, content_id)
+		.update_content(&data.db, content_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
-	user.update_cooldown(&db, Utc::now())
+	user.update_cooldown(&data.db, Utc::now())
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -330,13 +321,11 @@ pub async fn delete(
 	};
 	let user_id = ObjectId::parse_str(&user_id).map_err(|_| error::ErrorBadRequest(""))?;
 
-	let db = data.get_database();
-
 	// Delete if the user has permission
-	let admin = User::check_admin(&db, &session)
+	let admin = User::check_admin(&data.db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
-	Comment::delete(&db, &comment_id, &user_id, admin)
+	Comment::delete(&data.db, &comment_id, &user_id, admin)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 

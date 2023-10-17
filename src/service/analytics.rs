@@ -125,8 +125,6 @@ impl TryFrom<&str> for UserDevice {
 
 /// Each time a page is visited, an instance of this structure is saved.
 pub struct AnalyticsEntry {
-	/// The entry's ID.
-	id: ObjectId,
 	/// The date of visit.
 	date: DateTime<Utc>,
 
@@ -176,7 +174,6 @@ impl AnalyticsEntry {
 		});
 
 		Self {
-			id: ObjectId::new(),
 			date: Utc::now(),
 
 			peer_addr,

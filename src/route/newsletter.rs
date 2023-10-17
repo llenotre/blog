@@ -16,18 +16,20 @@ pub async fn subscribe(
 	info: web::Json<SubscribePayload>,
 ) -> actix_web::Result<impl Responder> {
 	let info = info.into_inner();
+	// Validate payload
 	if !util::validate_email(&info.email) {
 		return Ok(HttpResponse::BadRequest()
 			.content_type("text/plain")
 			.body("invalid email address"));
 	}
-
-	let db = data.get_database();
-	if NewsletterEmail::insert(&db, &info.email).await.is_err() {
+	// Insert in DB
+	if NewsletterEmail::insert(&data.db, &info.email)
+		.await
+		.is_err()
+	{
 		return Ok(HttpResponse::InternalServerError()
 			.content_type("text/plain")
 			.body("internal server error"));
 	}
-
 	Ok(HttpResponse::Ok().finish())
 }

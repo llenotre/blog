@@ -16,13 +16,11 @@ pub async fn get(
 	path: web::Path<(String, String)>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let db = data.get_database();
-
 	let (id_str, title) = path.into_inner();
 	let id = util::decode_id(&id_str).ok_or_else(|| error::ErrorNotFound(""))?;
 
 	// Get article
-	let article = Article::from_id(&db, &id)
+	let article = Article::from_id(&data.db, &id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(article) = article else {
@@ -32,11 +30,13 @@ pub async fn get(
 	// If URL title does not match, redirect
 	let expected_title = article.content.get_url_title();
 	if title != expected_title {
-		return Ok(Either::Left(Redirect::to(article.content.get_path()).see_other()));
+		return Ok(Either::Left(
+			Redirect::to(article.content.get_path()).see_other(),
+		));
 	}
 
 	// If article is not public, the user must be admin to see it
-	let admin = User::check_admin(&db, &session)
+	let admin = User::check_admin(&data.db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if (!article.content.public || article.post_date.is_none()) && !admin {
@@ -66,7 +66,7 @@ pub async fn get(
 	let user_login = session.get::<String>("user_login")?;
 
 	// Get article comments
-	let comments = Comment::list_for_article(&db, article.id)
+	let comments = Comment::list_for_article(&data.db, article.id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let comments_count = comments.len();
@@ -81,7 +81,7 @@ pub async fn get(
 
 		comments_html.push_str(
 			&comment::to_html(
-				&db,
+				&data.db,
 				&expected_title,
 				&com,
 				Some(&replies),
@@ -129,10 +129,8 @@ pub async fn editor(
 	query: web::Query<EditorQuery>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let db = data.get_database();
-
 	// Check auth
-	let admin = User::check_admin(&db, &session)
+	let admin = User::check_admin(&data.db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if !admin {
@@ -146,7 +144,7 @@ pub async fn editor(
 		.map(|id| util::decode_id(&id).ok_or_else(|| error::ErrorBadRequest("")))
 		.transpose()?;
 	let article = match article_id {
-		Some(article_id) => Article::from_id(&db, &article_id)
+		Some(article_id) => Article::from_id(&data.db, &article_id)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?,
 		None => None,
@@ -161,14 +159,32 @@ pub async fn editor(
 			)
 		})
 		.unwrap_or_default();
-	let article_title = article.as_ref().map(|a| a.content.title.as_str()).unwrap_or("");
-	let article_desc = article.as_ref().map(|a| a.content.desc.as_str()).unwrap_or("");
-	let article_cover_url = article.as_ref().map(|a| a.content.cover_url.as_str()).unwrap_or("");
-	let article_content = article.as_ref().map(|a| a.content.content.as_str()).unwrap_or("");
+	let article_title = article
+		.as_ref()
+		.map(|a| a.content.title.as_str())
+		.unwrap_or("");
+	let article_desc = article
+		.as_ref()
+		.map(|a| a.content.desc.as_str())
+		.unwrap_or("");
+	let article_cover_url = article
+		.as_ref()
+		.map(|a| a.content.cover_url.as_str())
+		.unwrap_or("");
+	let article_content = article
+		.as_ref()
+		.map(|a| a.content.content.as_str())
+		.unwrap_or("");
 	let article_public = article.as_ref().map(|a| a.content.public).unwrap_or(false);
 	let article_sponsor = article.as_ref().map(|a| a.content.sponsor).unwrap_or(false);
-	let comments_locked = article.as_ref().map(|a| a.content.comments_locked).unwrap_or(false);
-	let article_tags = article.as_ref().map(|a| a.content.tags.as_str()).unwrap_or("");
+	let comments_locked = article
+		.as_ref()
+		.map(|a| a.content.comments_locked)
+		.unwrap_or(false);
+	let article_tags = article
+		.as_ref()
+		.map(|a| a.content.tags.as_str())
+		.unwrap_or("");
 
 	let html = include_str!("../../pages/editor.html");
 	let html = html.replace("{article.id}", &article_id_html);
@@ -226,7 +242,7 @@ pub async fn post(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	// Check auth
-	let admin = User::check_admin(&db, &session)
+	let admin = User::check_admin(&data.db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if !admin {
@@ -261,12 +277,12 @@ pub async fn post(
 
 				edit_date: date,
 			};
-			let content_id = content.insert(&db).await.map_err(|e| {
+			let content_id = content.insert(&data.db).await.map_err(|e| {
 				tracing::error!(error = %e, "mongodb");
 				error::ErrorInternalServerError("")
 			})?;
 
-			Article::update(&db, id, content_id, post_date)
+			Article::update(&data.db, id, content_id, post_date)
 				.await
 				.map_err(|e| {
 					tracing::error!(error = %e, "mongodb");
@@ -280,7 +296,7 @@ pub async fn post(
 		None => {
 			// Insert article content
 			let content = ArticleContent {
-				article_id,
+				article_id: 0,
 				edit_date: date,
 				title: info.title,
 				desc: info.desc,
@@ -291,7 +307,9 @@ pub async fn post(
 				sponsor,
 				comments_locked,
 			};
-			data.db.execute(r#"BEGIN TRANSACTION
+			data.db
+				.execute(
+					r#"BEGIN TRANSACTION
 				INSERT INTO article (post_date, content_id) VALUES ($1, $2);
 				INSERT INTO article_content (
 					article_id,
@@ -305,17 +323,20 @@ pub async fn post(
 					sponsor,
 					comments_locked,
 				) VALUES (0, $1, $2, $3, $4, $5, $6, $7, $8, $9); -- TODO article_id
-			COMMIT"#, &[
-				&content.edit_date,
-				&content.title,
-				&content.desc,
-				&content.cover_url,
-				&content.content,
-				&content.tags,
-				&content.public,
-				&content.sponsor,
-				&content.comments_locked,
-			]).await?;
+			COMMIT"#,
+					&[
+						&content.edit_date,
+						&content.title,
+						&content.desc,
+						&content.cover_url,
+						&content.content,
+						&content.tags,
+						&content.public,
+						&content.sponsor,
+						&content.comments_locked,
+					],
+				)
+				.await?;
 
 			content.get_path()
 		}

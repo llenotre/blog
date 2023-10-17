@@ -16,14 +16,13 @@ pub async fn root(
 	data: web::Data<GlobalData>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let db = data.get_database();
-	let admin = User::check_admin(&db, &session).await.map_err(|e| {
+	let admin = User::check_admin(&data.db, &session).await.map_err(|e| {
 		tracing::error!(error = %e, "database: user");
 		error::ErrorInternalServerError("")
 	})?;
 
 	// Get articles
-	let articles = Article::list(&db).await.map_err(|e| {
+	let articles = Article::list(&data.db).await.map_err(|e| {
 		tracing::error!(error = %e, "database: articles");
 		error::ErrorInternalServerError("")
 	})?;
@@ -31,11 +30,7 @@ pub async fn root(
 	// Produce articles HTML
 	let mut articles_html = String::new();
 	for article in articles {
-		let content = article.get_content(&db).await.map_err(|e| {
-			tracing::error!(error = %e, "database: article content");
-			error::ErrorInternalServerError("")
-		})?;
-		if !admin && !content.public {
+		if !admin && !article.content.public {
 			continue;
 		}
 
@@ -48,15 +43,19 @@ pub async fn root(
 		let mut tags = vec![];
 
 		if admin {
-			let pub_tag = if content.public { "Public" } else { "Private" };
+			let pub_tag = if article.content.public {
+				"Public"
+			} else {
+				"Private"
+			};
 			tags.push(pub_tag);
 		}
 
-		if content.sponsor {
+		if article.content.sponsor {
 			tags.push("<i>Sponsors early access</i>&nbsp;❤️");
 		}
-		if !content.tags.is_empty() {
-			tags.extend(content.tags.split(','));
+		if !article.content.tags.is_empty() {
+			tags.extend(article.content.tags.split(','));
 		}
 
 		let tags_html: String = tags
@@ -82,10 +81,10 @@ pub async fn root(
 					</div>
 				</div>
 			</a>"#,
-			article_cover_url = content.cover_url,
-			article_path = content.get_path(),
-			article_title = content.title,
-			article_desc = content.desc,
+			article_cover_url = article.content.cover_url,
+			article_path = article.content.get_path(),
+			article_title = article.content.title,
+			article_desc = article.content.desc,
 		));
 	}
 
@@ -129,17 +128,11 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 	urls.push(("/bio".to_owned(), None));
 	urls.push(("/legal".to_owned(), None));
 
-	let db = data.get_database();
-	let articles = Article::list(&db)
+	let articles = Article::list(&data.db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	for a in articles {
-		let content = a
-			.get_content(&db)
-			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?;
-
-		urls.push((content.get_url(), Some(content.edit_date)));
+		urls.push((a.content.get_url(), Some(a.content.edit_date)));
 	}
 
 	let urls: String = urls
@@ -168,8 +161,7 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 
 #[get("/rss")]
 pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
-	let db = data.get_database();
-	let articles = Article::list(&db)
+	let articles = Article::list(&data.db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -179,17 +171,12 @@ pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 			continue;
 		};
 		let post_date = post_date.to_rfc2822();
-
-		let content = a
-			.get_content(&db)
-			.await
-			.map_err(|_| error::ErrorInternalServerError(""))?;
-		let url = content.get_url();
+		let url = a.content.get_url();
 
 		items_str.push_str(&format!(
 			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{post_date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
-			title = content.title,
-			desc = content.desc
+			title = a.content.title,
+			desc = a.content.desc
 		));
 	}
 

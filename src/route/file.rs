@@ -17,9 +17,8 @@ pub async fn get(
 	id: web::Path<String>,
 ) -> actix_web::Result<impl Responder> {
 	let id = util::decode_id(&id.into_inner()).ok_or_else(|| error::ErrorBadRequest(""))?;
-	let db = data.get_database();
 
-	let bucket = db.gridfs_bucket(None);
+	let bucket = data.db.gridfs_bucket(None);
 	// TODO handle case when file doesn't exist
 	let stream = bucket
 		.open_download_stream(id.into())
@@ -37,10 +36,8 @@ pub async fn manage(
 	data: web::Data<GlobalData>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let db = data.get_database();
-
 	// Check auth
-	let admin = User::check_admin(&db, &session)
+	let admin = User::check_admin(&data.db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if !admin {
@@ -49,7 +46,7 @@ pub async fn manage(
 
 	let html = include_str!("../../pages/file_manage.html");
 
-	let bucket = db.gridfs_bucket(None);
+	let bucket = data.db.gridfs_bucket(None);
 
 	let files = bucket
 		.find(
@@ -97,17 +94,15 @@ pub async fn upload(
 	mut multipart: Multipart,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let db = data.get_database();
-
 	// Check auth
-	let admin = User::check_admin(&db, &session)
+	let admin = User::check_admin(&data.db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if !admin {
 		return Err(error::ErrorForbidden(""));
 	}
 
-	let bucket = db.gridfs_bucket(None);
+	let bucket = data.db.gridfs_bucket(None);
 
 	loop {
 		let res = multipart

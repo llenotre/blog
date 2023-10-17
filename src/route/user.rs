@@ -48,8 +48,7 @@ pub async fn oauth(
 		error::ErrorInternalServerError("")
 	})?;
 
-	let db = data.get_database();
-	let user = User::from_github_id(&db, github_info.id as _)
+	let user = User::from_github_id(&data.db, github_info.id as _)
 		.await
 		.map_err(|error| {
 			tracing::error!(error = %error, "could not reach database");
@@ -61,7 +60,7 @@ pub async fn oauth(
 		None => {
 			// Insert new user
 			let user = User {
-				id: ObjectId::new(),
+				id: 0,
 
 				access_token,
 				github_info,
@@ -72,11 +71,10 @@ pub async fn oauth(
 				register_time: Utc::now(),
 				last_post: Default::default(),
 			};
-			user.insert(&db).await.map_err(|error| {
+			user.insert(&data.db).await.map_err(|error| {
 				tracing::error!(error = %error, "could not reach database");
 				error::ErrorInternalServerError("")
 			})?;
-
 			user
 		}
 	};
