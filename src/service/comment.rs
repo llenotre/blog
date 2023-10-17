@@ -1,14 +1,15 @@
 //! This module handles comments on articles.
 
-use crate::util::Oid;
 use crate::service::user::User;
 use crate::util;
+use crate::util::{FromRow, Oid};
 use crate::util::PgResult;
 use actix_web::error;
 use async_recursion::async_recursion;
 use chrono::DateTime;
 use chrono::Utc;
 use std::collections::HashMap;
+use futures_util::{FutureExt, Stream, StreamExt};
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;
@@ -16,7 +17,6 @@ pub const MAX_CHARS: usize = 5000;
 // TODO support pinned comments
 
 /// Structure representing a comment on an article.
-#[derive(Debug)]
 pub struct Comment {
 	/// The comment's id.
 	pub id: Oid,
@@ -41,46 +41,45 @@ impl Comment {
 	/// Returns the comment with the given ID.
 	///
 	/// `id` is the ID of the comment.
-	pub async fn from_id(db: &tokio_postgres::Client, id: &u32) -> PgResult<Option<Self>> {
-		db.query_opt("SELECT * FROM comment WHERE id = '$1'", &[id])
-			.await
+	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
+		Ok(db.query_opt("SELECT * FROM comment WHERE id = '$1'", &[id])
+			.await?
+			.as_ref()
+			.map(FromRow::from_row)
+			.flatten())
 	}
 
 	/// Returns the list of comments for the article with the given id `article_id`.
+	///
 	/// Comments are returns ordered by decreasing post date.
 	pub async fn list_for_article(
 		db: &tokio_postgres::Client,
 		article_id: &Oid,
-	) -> PgResult<Vec<Self>> {
-		db.query("SELECT * FROM comment WHERE article = '$1'", &[article_id])
-			.await
+	) -> PgResult<impl Stream> {
+		Ok(db.query_raw("SELECT * FROM comment WHERE article = '$1'", &[article_id])
+			.await?
+			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
 
 	/// Returns replies to the current comment.
-	pub async fn get_replies(&self, db: &tokio_postgres::Client) -> PgResult<Vec<Self>> {
-		db.query("SELECT * FROM comment WHERE reply_to = '$1'", &[&self.id])
-			.await
-	}
-
-	/// Inserts the current comment in the database.
-	///
-	/// `db` is the database.
-	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<()> {
-		let collection = db.collection::<Self>("comment");
-		collection.insert_one(self, None).await.map(|_| ())
+	pub async fn get_replies(&self, db: &tokio_postgres::Client) -> PgResult<impl Stream> {
+		Ok(db.query_raw("SELECT * FROM comment WHERE reply_to = '$1'", &[&self.id])
+			.await?
+			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
 
 	/// Updates the ID of the comment's content.
 	pub async fn update_content(
 		&self,
 		db: &tokio_postgres::Client,
-		content_id: Oid,
+		content_id: &Oid,
 	) -> PgResult<()> {
 		db.execute(
 			"UPDATE comment SET content_id = '$1' WHERE id = '$2'",
-			&[content_id, self.id],
+			&[content_id, &self.id],
 		)
-		.await
+		.await?;
+		Ok(())
 	}
 
 	/// Deletes the comment with the given ID.
@@ -125,17 +124,6 @@ pub struct CommentContent {
 	pub content: String,
 }
 
-impl CommentContent {
-	/// Inserts the current content in the database.
-	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<Oid> {
-		let collection = db.collection::<Self>("comment_content");
-		collection
-			.insert_one(self, None)
-			.await
-			.map(|r| r.inserted_id.as_object_id().unwrap())
-	}
-}
-
 /// Returns the HTML code for a comment editor.
 ///
 /// Arguments:
@@ -146,7 +134,7 @@ impl CommentContent {
 pub fn get_editor(
 	user_login: &str,
 	action: &str,
-	comment_id: Option<&str>,
+	comment_id: Option<Oid>,
 	content: Option<&str>,
 ) -> String {
 	let id = comment_id
@@ -222,8 +210,8 @@ pub async fn to_html(
 	user_login: Option<&'async_recursion str>,
 	admin: bool,
 ) -> actix_web::Result<String> {
-	let com_id = util::encode_id(&comment.id);
-	let article_id = util::encode_id(&comment.article_id);
+	let com_id = comment.id;
+	let article_id = comment.article_id;
 
 	// HTML for comment's replies
 	let replies_html = match replies {
@@ -290,7 +278,7 @@ pub async fn to_html(
 	}
 
 	// Get author
-	let author = User::from_id(db, comment.author)
+	let author = User::from_id(db, &comment.author)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(author) = author else {
@@ -323,10 +311,10 @@ pub async fn to_html(
 			get_editor(
 				user_login,
 				"edit",
-				Some(&com_id),
+				Some(com_id),
 				Some(&comment.content.content),
 			),
-			get_editor(user_login, "post", Some(&com_id), None),
+			get_editor(user_login, "post", Some(com_id), None),
 		),
 
 		None => (String::new(), String::new()),

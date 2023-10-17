@@ -17,15 +17,30 @@ CREATE TABLE IF NOT EXISTS article_content (
     comments_locked NOT NULL,
 );
 
+CREATE TABLE IF NOT EXISTS file (
+    id INT PRIMARY KEY NOT NULL,
+    name TEXT,
+    mime_type TEXT NOT NULL,
+    upload_date TIMESTAMP NOT NULL,
+    data BYTEA NOT NULL,
+);
+
 CREATE TABLE IF NOT EXISTS analytics (
     id INT PRIMARY KEY NOT NULL,
     date TIMESTAMP NOT NULL,
-    peer_addr INET,
-    user_agent TEXT,
+    peer_addr INET NOT NULL,
+    user_agent TEXT NOT NULL,
+    method VARCHAR(16) NOT NULL,
+    uri VARCHAR(255) NOT NULL,
+);
+
+CREATE TABLE IF NOT EXISTS aggregated_analytics (
+    id INT PRIMARY KEY NOT NULL,
+    date TIMESTAMP NOT NULL,
     -- TODO geolocation
     -- TODO device
-    method: VARCHAR(16),
-    uri: VARCHAR(255),
+    method VARCHAR(16) NOT NULL,
+    uri VARCHAR(255) NOT NULL,
 );
 
 CREATE TABLE IF NOT EXISTS newsletter_subscriber (
@@ -36,10 +51,10 @@ CREATE TABLE IF NOT EXISTS newsletter_subscriber (
 
 CREATE TABLE IF NOT EXISTS user (
     id INT PRIMARY KEY NOT NULL,
-    access_token VARCHAR(255) NOT NULL, -- TODO (length)
-    github_login: VARCHAR(255), -- TODO
-    github_id INT, -- TODO
-    github_html_url TEXT, -- TODO
+    access_token TEXT NOT NULL,
+    github_login TEXT NOT NULL,
+    github_id INT NOT NULL,
+    github_html_url TEXT NOT NULL,
     admin BOOLEAN NOT NULL,
     banned BOOLEAN NOT NULL,
     register_date TIMESTAMP NOT NULL,

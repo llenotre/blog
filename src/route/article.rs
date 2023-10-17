@@ -1,24 +1,23 @@
-use crate::util::Oid;
 use crate::service::article::{Article, ArticleContent};
-use crate::service::comment;
 use crate::service::comment::Comment;
 use crate::service::user::User;
+use crate::service::{comment, user};
+use crate::util::Oid;
 use crate::{util, GlobalData};
 use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::web::Redirect;
-use actix_web::{error, get, post, web, HttpResponse, Responder};
+use actix_web::{error, get, post, web, Either, HttpResponse, Responder};
 use chrono::Utc;
 use serde::Deserialize;
 
 #[get("/a/{id}/{title}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
-	path: web::Path<(String, String)>,
+	path: web::Path<(Oid, String)>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let (id_str, title) = path.into_inner();
-	let id = util::decode_id(&id_str).ok_or_else(|| error::ErrorNotFound(""))?;
+	let (id, title) = path.into_inner();
 
 	// Get article
 	let article = Article::from_id(&data.db, &id)
@@ -51,7 +50,7 @@ pub async fn get(
 
 	let html = include_str!("../../pages/article.html");
 	let html = html.replace("{article.tags}", &article.content.tags);
-	let html = html.replace("{article.id}", &id_str);
+	let html = html.replace("{article.id}", &id.to_string());
 	let html = html.replace("{article.url}", &article.content.get_url());
 	let html = html.replace("{article.title}", &article.content.title);
 	let html = html.replace("{article.date}", &post_date);
@@ -106,7 +105,7 @@ pub async fn get(
 	};
 	let html = html.replace("{comment.editor}", &comment_editor_html);
 
-	session.insert("last_article", id_str)?;
+	session.insert("last_article", id)?;
 	Ok(Either::Right(
 		HttpResponse::Ok()
 			.content_type(ContentType::html())
@@ -117,8 +116,10 @@ pub async fn get(
 /// Editor page query.
 #[derive(Deserialize)]
 pub struct EditorQuery {
-	/// The ID of the article to edit. If `None`, a new article is being created.
-	id: Option<String>,
+	/// The ID of the article to edit.
+	///
+	/// If `None`, a new article is being created.
+	id: Option<Oid>,
 }
 
 #[get("/editor")]
@@ -138,9 +139,7 @@ pub async fn editor(
 	// Get article
 	let article_id = query
 		.into_inner()
-		.id
-		.map(|id| util::decode_id(&id).ok_or_else(|| error::ErrorBadRequest("")))
-		.transpose()?;
+		.id;
 	let article = match article_id {
 		Some(article_id) => Article::from_id(&data.db, &article_id)
 			.await
@@ -153,7 +152,7 @@ pub async fn editor(
 		.map(|a| {
 			format!(
 				"<input name=\"id\" type=\"hidden\" value=\"{article_id}\" />",
-				article_id = util::encode_id(&a.id)
+				article_id = a.id
 			)
 		})
 		.unwrap_or_default();
@@ -213,7 +212,7 @@ pub async fn editor(
 #[derive(Deserialize)]
 pub struct ArticleEdit {
 	/// The ID of the article. If `None`, a new article is being created.
-	id: Option<String>,
+	id: Option<Oid>,
 
 	/// The title of the article.
 	title: String,
@@ -258,8 +257,6 @@ pub async fn post(
 	let path = match info.id {
 		// Update article
 		Some(id) => {
-			let id = util::decode_id(&id).ok_or_else(|| error::ErrorNotFound(""))?;
-
 			// Insert article content
 			let content = ArticleContent {
 				article_id: id,
