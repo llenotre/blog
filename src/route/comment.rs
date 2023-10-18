@@ -2,14 +2,14 @@ use crate::service::article::Article;
 use crate::service::comment;
 use crate::service::comment::{Comment, CommentContent, MAX_CHARS};
 use crate::service::user::User;
-use crate::{GlobalData};
+use crate::util::Oid;
+use crate::GlobalData;
 use actix_session::Session;
 use actix_web::{delete, error, get, patch, post, web, HttpResponse, Responder};
 use chrono::Utc;
 use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
-use crate::util::Oid;
 
 /// Minimum post cooldown.
 const INTERVAL: Duration = Duration::from_secs(10);
@@ -36,7 +36,7 @@ pub async fn get(
 			error::ErrorInternalServerError("")
 		})?
 		.ok_or_else(|| error::ErrorNotFound("comment not found"))?;
-	if comment.removed && !admin {
+	if comment.remove_date.is_some() && !admin {
 		return Ok(HttpResponse::NotFound()
 			.content_type("text/plain")
 			.body("comment not found"));
@@ -60,7 +60,7 @@ pub async fn get(
 	};
 
 	let user_id = user.as_ref().map(|u| &u.id);
-	let user_login = user.as_ref().map(|u| u.github_info.login.as_str());
+	let user_login = user.as_ref().map(|u| u.github_login.as_str());
 	let html = comment::to_html(
 		&data.db,
 		&article.content.title,
@@ -160,21 +160,17 @@ pub async fn post(
 		edit_date: date,
 		content: info.content,
 	};
-	let content_id = comment_content
-		.insert(&data.db)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let comment = Comment {
 		id: 0,
 
 		article_id: info.article_id,
 		reply_to: info.reply_to,
-		author: user.id,
+		author_id: user.id,
 		post_date: date,
 
-		content_id,
+		content: comment_content,
 
-		removed: false,
+		remove_date: None,
 	};
 	comment
 		.insert(&data.db)
@@ -213,7 +209,7 @@ pub async fn edit(
 		return Err(error::ErrorPayloadTooLarge("content is too long"));
 	}
 
-	// Check comment exists
+	// Get comment
 	let comment = Comment::from_id(&data.db, &info.comment_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
@@ -221,7 +217,7 @@ pub async fn edit(
 		return Err(error::ErrorNotFound("comment not found"));
 	};
 
-	let article = Article::from_id(&data.db, &comment.article)
+	let article = Article::from_id(&data.db, &comment.article_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(article) = article else {
@@ -236,6 +232,8 @@ pub async fn edit(
 		return Err(error::ErrorForbidden("forbidden"));
 	};
 
+	let now = Utc::now();
+
 	if !user.admin {
 		if !article.content.public {
 			return Err(error::ErrorNotFound("article not found"));
@@ -245,12 +243,11 @@ pub async fn edit(
 				.content_type("text/plain")
 				.body("comments are locked"));
 		}
-		if comment.author != user.id {
+		if comment.author_id != user.id {
 			return Err(error::ErrorForbidden("forbidden"));
 		}
 
 		// Check user's cooldown
-		let now = Utc::now();
 		let cooldown_end = user.last_post + chrono::Duration::from_std(INTERVAL).unwrap();
 		if now < cooldown_end {
 			let remaining = (cooldown_end - now).num_seconds();
@@ -261,24 +258,23 @@ pub async fn edit(
 	}
 
 	// Insert comment content
-	let date = Utc::now();
+	// TODO SQL transaction
 	let comment_content = CommentContent {
 		comment_id: info.comment_id,
-		edit_date: date,
+		edit_date: now,
 		content: info.content,
 	};
 	let content_id = comment_content
 		.insert(&data.db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
-
 	// Update comment's content
 	comment
 		.update_content(&data.db, content_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
-	user.update_cooldown(&data.db, Utc::now())
+	user.update_cooldown(&data.db, &now)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
@@ -293,10 +289,9 @@ pub async fn delete(
 ) -> impl Responder {
 	let comment_id = comment_id.into_inner();
 
-	let Some(user_id) = session.get::<String>("user_id").unwrap() else {
+	let Some(user_id) = session.get::<Oid>("user_id").ok().flatten() else {
 		return Err(error::ErrorForbidden("forbidden"));
 	};
-	let user_id = ObjectId::parse_str(&user_id).map_err(|_| error::ErrorBadRequest(""))?;
 
 	// Delete if the user has permission
 	let admin = User::check_admin(&data.db, &session)

@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS article (
     id INT PRIMARY KEY NOT NULL,
-    post_date TIMESTAMP NOT NULL,
+    post_date TIMESTAMP,
     content_id INT NOT NULL,
 );
 
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS comment (
     author INT NOT NULL,
     post_date TIMESTAMP NOT NULL,
     content_id INT NOT NULL,
-    removed BOOLEAN NOT NULL,
+    removed TIMESTAMP,
 );
 
 CREATE TABLE IF NOT EXISTS comment_content (

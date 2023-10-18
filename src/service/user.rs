@@ -26,7 +26,7 @@ pub fn get_auth_url(client_id: &str) -> String {
 pub fn create_session(session: &Session, user: &User) -> actix_web::Result<()> {
 	let insert_fields = || {
 		session.insert("user_id", user.id)?;
-		session.insert("user_login", &user.github_info.login)?;
+		session.insert("user_login", &user.github_login)?;
 		Ok(())
 	};
 	if insert_fields().is_err() {
@@ -75,8 +75,12 @@ pub struct User {
 
 	/// The user's Github access token.
 	pub access_token: String,
-	/// User informations.
-	pub github_info: GithubUser,
+	/// The user's login.
+	pub github_login: String,
+	/// The user's ID.
+	pub github_id: i64,
+	/// The URL to the user's profile.
+	pub github_html_url: String,
 
 	/// Tells whether the user is admin.
 	pub admin: bool,
@@ -140,7 +144,7 @@ impl User {
 		Ok(db
 			.query_opt("SELECT * FROM user WHERE id = '$1'", &[id])
 			.await?
-			.map(|r| FromRow::from_row(&r)).flatten())
+			.map(|r| FromRow::from_row(&r)))
 	}
 
 	/// Returns the user with the given Github ID.
@@ -151,7 +155,7 @@ impl User {
 	pub async fn from_github_id(db: &tokio_postgres::Client, id: &i64) -> PgResult<Option<Self>> {
 		db.query_opt("SELECT * FROM user WHERE github_id = '$1'", &[id])
 			.await
-			.map(|r| r.map(|r| FromRow::from_row(&r)).flatten())
+			.map(|r| r.map(|r| FromRow::from_row(&r)))
 	}
 
 	/// Inserts the user in the database.
@@ -169,9 +173,9 @@ impl User {
 		) VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
 			&[
 				&self.access_token,
-				&self.github_info.login,
-				&self.github_info.id,
-				&self.github_info.html_url,
+				&self.github_login,
+				&self.github_id,
+				&self.github_html_url,
 				&self.admin,
 				&self.banned,
 				&self.register_date,

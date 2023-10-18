@@ -1,10 +1,11 @@
 use crate::service::article::Article;
 use crate::service::user::User;
 use crate::GlobalData;
-use futures_util::StreamExt;
 use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::{error, get, web, HttpResponse, Responder};
+use futures_util::StreamExt;
+use std::pin::pin;
 
 pub mod article;
 pub mod comment;
@@ -23,10 +24,11 @@ pub async fn root(
 	})?;
 
 	// Get articles
-	let mut articles = Article::list(&data.db).await.map_err(|e| {
+	let articles = Article::list(&data.db).await.map_err(|e| {
 		tracing::error!(error = %e, "database: articles");
 		error::ErrorInternalServerError("")
 	})?;
+	let mut articles = pin!(articles);
 
 	// Produce articles HTML
 	let mut articles_html = String::new();
@@ -127,6 +129,7 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 	let articles = Article::list(&data.db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let mut articles = pin!(articles);
 	while let Some(a) = articles.next().await {
 		urls.push((a.content.get_url(), Some(a.content.edit_date)));
 	}
@@ -160,6 +163,7 @@ pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 	let articles = Article::list(&data.db)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let mut articles = pin!(articles);
 
 	let mut items_str = String::new();
 	while let Some(a) = articles.next().await {

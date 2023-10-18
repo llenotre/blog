@@ -2,14 +2,16 @@
 
 use crate::service::user::User;
 use crate::util;
-use crate::util::{FromRow, Oid};
 use crate::util::PgResult;
+use crate::util::{FromRow, Oid};
 use actix_web::error;
 use async_recursion::async_recursion;
 use chrono::DateTime;
 use chrono::Utc;
+use futures_util::{Stream, StreamExt};
 use std::collections::HashMap;
-use futures_util::{FutureExt, Stream, StreamExt};
+use std::pin::pin;
+use tokio_postgres::Row;
 
 /// The maximum length of a comment in characters.
 pub const MAX_CHARS: usize = 5000;
@@ -26,7 +28,7 @@ pub struct Comment {
 	/// The ID of the comment this comment replies to. If `None`, this comment is not a reply.
 	pub reply_to: Option<Oid>,
 	/// The ID of author of the comment.
-	pub author: Oid,
+	pub author_id: Oid,
 	/// Timestamp since epoch at which the comment has been posted.
 	pub post_date: DateTime<Utc>,
 
@@ -34,7 +36,28 @@ pub struct Comment {
 	pub content: CommentContent,
 
 	/// Tells whether the comment has been removed.
-	pub removed: bool,
+	pub remove_date: Option<DateTime<Utc>>,
+}
+
+impl FromRow for Comment {
+	fn from_row(row: &Row) -> Self {
+		Self {
+			id: row.get("id"),
+
+			article_id: row.get("article_id"),
+			reply_to: row.get("reply_to"),
+			author_id: row.get("author_id"),
+			post_date: row.get("post_date"),
+
+			content: CommentContent {
+				comment_id: row.get("comment_content.comment_id"),
+				edit_date: row.get("comment_content.edit_date"),
+				content: row.get("comment_content.content"),
+			},
+
+			remove_date: row.get("removed"),
+		}
+	}
 }
 
 impl Comment {
@@ -42,11 +65,11 @@ impl Comment {
 	///
 	/// `id` is the ID of the comment.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
-		Ok(db.query_opt("SELECT * FROM comment WHERE id = '$1'", &[id])
+		Ok(db
+			.query_opt("SELECT * FROM comment WHERE id = '$1'", &[id])
 			.await?
 			.as_ref()
-			.map(FromRow::from_row)
-			.flatten())
+			.map(FromRow::from_row))
 	}
 
 	/// Returns the list of comments for the article with the given id `article_id`.
@@ -55,15 +78,20 @@ impl Comment {
 	pub async fn list_for_article(
 		db: &tokio_postgres::Client,
 		article_id: &Oid,
-	) -> PgResult<impl Stream> {
-		Ok(db.query_raw("SELECT * FROM comment WHERE article = '$1'", &[article_id])
+	) -> PgResult<impl Stream<Item = Self>> {
+		Ok(db
+			.query_raw("SELECT * FROM comment WHERE article = '$1'", &[article_id])
 			.await?
 			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
 
 	/// Returns replies to the current comment.
-	pub async fn get_replies(&self, db: &tokio_postgres::Client) -> PgResult<impl Stream> {
-		Ok(db.query_raw("SELECT * FROM comment WHERE reply_to = '$1'", &[&self.id])
+	pub async fn get_replies(
+		&self,
+		db: &tokio_postgres::Client,
+	) -> PgResult<impl Stream<Item = Self>> {
+		Ok(db
+			.query_raw("SELECT * FROM comment WHERE reply_to = '$1'", &[&self.id])
 			.await?
 			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
@@ -205,7 +233,7 @@ pub async fn to_html(
 	db: &tokio_postgres::Client,
 	article_title: &str,
 	comment: &Comment,
-	replies: Option<&'async_recursion [Comment]>,
+	replies: Option<impl Stream<Item = Comment> + Send>,
 	user_id: Option<&'async_recursion Oid>,
 	user_login: Option<&'async_recursion str>,
 	admin: bool,
@@ -216,10 +244,11 @@ pub async fn to_html(
 	// HTML for comment's replies
 	let replies_html = match replies {
 		Some(replies) => {
+			let mut replies = pin!(replies);
 			let mut html = String::new();
-			for com in replies {
+			while let Some(com) = replies.next().await {
 				html.push_str(
-					&to_html(db, article_title, com, None, user_id, user_login, admin).await?,
+					&to_html(db, article_title, &com, None, user_id, user_login, admin).await?,
 				);
 			}
 
@@ -234,18 +263,18 @@ pub async fn to_html(
 
 	// HTML for comment's buttons
 	let mut buttons = Vec::with_capacity(4);
-	if !comment.removed {
+	if comment.remove_date.is_none() {
 		buttons.push(format!(
 			r##"<a href="#{com_id}" id="{com_id}-link" onclick="clipboard('{com_id}-link', 'https://blog.lenot.re/a/{article_id}/{article_title}#com-{com_id}')" class="comment-button" alt="Copy link"><i class="fa-solid fa-link"></i></a>"##,
 		));
-	}
-	if (user_id == Some(&comment.author) || admin) && !comment.removed {
-		buttons.push(format!(
-			r##"<a href="#comment-{com_id}-edit-content" class="comment-button" onclick="toggle_edit('{com_id}')"><i class="fa-solid fa-pen-to-square"></i></a>"##
-		));
-		buttons.push(format!(
-			r##"<a class="comment-button" onclick="del('{com_id}')"><i class="fa-solid fa-trash"></i></a>"##
-		));
+		if user_id == Some(&comment.author_id) || admin {
+			buttons.push(format!(
+				r##"<a href="#comment-{com_id}-edit-content" class="comment-button" onclick="toggle_edit('{com_id}')"><i class="fa-solid fa-pen-to-square"></i></a>"##
+			));
+			buttons.push(format!(
+				r##"<a class="comment-button" onclick="del('{com_id}')"><i class="fa-solid fa-trash"></i></a>"##
+			));
+		}
 	}
 	if user_id.is_some() && replies.is_some() {
 		buttons.push(format!(
@@ -263,7 +292,7 @@ pub async fn to_html(
 		String::new()
 	};
 
-	if comment.removed && !admin {
+	if comment.remove_date.is_some() && !admin {
 		return Ok(format!(
 			r##"<div class="comment">
 				<div class="comment-header">
@@ -278,14 +307,14 @@ pub async fn to_html(
 	}
 
 	// Get author
-	let author = User::from_id(db, &comment.author)
+	let author = User::from_id(db, &comment.author_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(author) = author else {
 		return Ok(String::new());
 	};
-	let html_url = ammonia::clean(&author.github_info.html_url);
-	let login = ammonia::clean(&author.github_info.login);
+	let html_url = ammonia::clean(&author.github_html_url);
+	let login = ammonia::clean(&author.github_login);
 
 	// Translate markdown
 	let markdown = util::markdown_to_html(&comment.content.content, true);
@@ -302,7 +331,7 @@ pub async fn to_html(
 			comment.post_date.to_rfc3339()
 		)
 	};
-	if comment.removed && admin {
+	if comment.remove_date.is_some() && admin {
 		date_text.push_str(" - REMOVED");
 	}
 
