@@ -11,6 +11,7 @@ use actix_web::{error, get, post, web, Either, HttpResponse, Responder};
 use chrono::Utc;
 use futures_util::StreamExt;
 use serde::Deserialize;
+use tracing::error;
 
 #[get("/a/{id}/{title}")]
 pub async fn get(
@@ -332,7 +333,11 @@ pub async fn post(
 						&content.comments_locked,
 					],
 				)
-				.await?;
+				.await
+				.map_err(|e| {
+					error!(error = %e, "postgres: article insert");
+					error::ErrorInternalServerError("")
+				})?;
 
 			content.get_path()
 		}

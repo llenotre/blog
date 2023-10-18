@@ -10,7 +10,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures_util::{Stream, StreamExt};
 use std::collections::HashMap;
-use std::pin::pin;
 use tokio_postgres::Row;
 
 /// The maximum length of a comment in characters.
@@ -233,7 +232,7 @@ pub async fn to_html(
 	db: &tokio_postgres::Client,
 	article_title: &str,
 	comment: &Comment,
-	replies: Option<impl Stream<Item = Comment> + Send>,
+	replies: Option<&[Comment]>,
 	user_id: Option<&'async_recursion Oid>,
 	user_login: Option<&'async_recursion str>,
 	admin: bool,
@@ -244,9 +243,8 @@ pub async fn to_html(
 	// HTML for comment's replies
 	let replies_html = match replies {
 		Some(replies) => {
-			let mut replies = pin!(replies);
 			let mut html = String::new();
-			while let Some(com) = replies.next().await {
+			for com in replies {
 				html.push_str(
 					&to_html(db, article_title, &com, None, user_id, user_login, admin).await?,
 				);
