@@ -26,17 +26,17 @@ pub fn from_row(input: TokenStream) -> TokenStream {
 			let ident_str = format!("{ident}");
 
 			Some(quote! {
-				#ident: row.get(#ident_str)?
+				#ident: row.get(#ident_str)
 			})
 		})
 		.collect();
 
 	quote! {
 		impl crate::util::FromRow for #ident {
-			fn from_row(row: &tokio_postgres::Row) -> Option<Self> {
-				Some(Self {
+			fn from_row(row: &tokio_postgres::Row) -> Self {
+				Self {
 					#(#fields),*
-				})
+				}
 			}
 		}
 	}

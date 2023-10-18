@@ -9,6 +9,7 @@ use actix_web::http::header::ContentType;
 use actix_web::web::Redirect;
 use actix_web::{error, get, post, web, Either, HttpResponse, Responder};
 use chrono::Utc;
+use futures_util::StreamExt;
 use serde::Deserialize;
 
 #[get("/a/{id}/{title}")]
@@ -63,16 +64,18 @@ pub async fn get(
 	let user_login = session.get::<String>("user_login")?;
 
 	// Get article comments
-	let comments = Comment::list_for_article(&data.db, article.id)
+	let comments = Comment::list_for_article(&data.db, &article.id)
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|_| error::ErrorInternalServerError(""))?
+		.collect::<Vec<_>>()
+		.await;
 	let comments_count = comments.len();
 	let html = html.replace("{comments.count}", &comments_count.to_string());
 
 	let comments = comment::group(comments);
 	let mut comments_html = String::new();
 	for (com, replies) in comments {
-		if !admin && com.removed && replies.is_empty() {
+		if !admin && com.remove_date.is_some() && replies.is_empty() {
 			continue;
 		}
 
@@ -137,9 +140,7 @@ pub async fn editor(
 	}
 
 	// Get article
-	let article_id = query
-		.into_inner()
-		.id;
+	let article_id = query.into_inner().id;
 	let article = match article_id {
 		Some(article_id) => Article::from_id(&data.db, &article_id)
 			.await
@@ -277,7 +278,7 @@ pub async fn post(
 				error::ErrorInternalServerError("")
 			})?;
 
-			Article::update(&data.db, id, content_id, post_date)
+			Article::update(&data.db, &id, &content_id, &post_date)
 				.await
 				.map_err(|e| {
 					tracing::error!(error = %e, "mongodb");

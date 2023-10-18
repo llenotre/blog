@@ -43,12 +43,12 @@ pub async fn oauth(
 	};
 
 	// Get user ID
-	let github_info = User::query_info(&access_token).await.map_err(|error| {
+	let github_user = User::query_info(&access_token).await.map_err(|error| {
 		tracing::error!(error = %error, "could not retrieve user's informations from Github");
 		error::ErrorInternalServerError("")
 	})?;
 
-	let user = User::from_github_id(&data.db, &(github_info.id as _))
+	let user = User::from_github_id(&data.db, &(github_user.id as _))
 		.await
 		.map_err(|error| {
 			tracing::error!(error = %error, "could not reach database");
@@ -63,7 +63,9 @@ pub async fn oauth(
 				id: 0,
 
 				access_token,
-				github_info,
+				github_id: github_user.id,
+				github_login: github_user.login,
+				github_html_url: github_user.html_url,
 
 				admin: false,
 				banned: false,

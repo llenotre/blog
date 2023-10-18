@@ -1,17 +1,17 @@
 //! This module implements files upload and usage.
 
-use std::iter;
 use crate::service::user::User;
-use crate::{GlobalData};
+use crate::util::Oid;
+use crate::GlobalData;
 use actix_multipart::Multipart;
 use actix_session::Session;
 use actix_web::{
 	error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
 };
-use futures_util::{StreamExt};
+use futures_util::StreamExt;
 use futures_util::TryStreamExt;
+use std::iter;
 use tracing::error;
-use crate::util::Oid;
 
 #[get("/file/{id}")]
 pub async fn get(
@@ -20,14 +20,10 @@ pub async fn get(
 ) -> actix_web::Result<impl Responder> {
 	let id = id.into_inner();
 	let query = format!("SELECT data FROM file WHERE id = '{id}'");
-	let stream = data
-		.db
-		.copy_out(&query)
-		.await
-		.map_err(|e| {
-			error!(error = %e, "postgres: file copy out");
-			error::ErrorInternalServerError("")
-		})?;
+	let stream = data.db.copy_out(&query).await.map_err(|e| {
+		error!(error = %e, "postgres: file copy out");
+		error::ErrorInternalServerError("")
+	})?;
 	// TODO mime type
 	Ok(HttpResponse::Ok().streaming(stream))
 }

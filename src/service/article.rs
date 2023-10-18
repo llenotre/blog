@@ -1,31 +1,58 @@
 //! This module handles articles.
 
-use std::iter;
 use crate::util::Oid;
 use crate::util::{FromRow, PgResult};
 use chrono::DateTime;
 use chrono::Utc;
 use futures_util::{Stream, StreamExt};
-use macros::FromRow;
+use std::iter;
+use tokio_postgres::Row;
 
 /// Structure representing an article.
-#[derive(FromRow)]
 pub struct Article {
 	/// The article's id.
 	pub id: Oid,
 	/// Timestamp since epoch at which the article has been posted.
+	///
+	/// If `None`, the article has not been posted yet.
 	pub post_date: Option<DateTime<Utc>>,
 
 	/// The the article's content.
 	pub content: ArticleContent,
 }
 
+impl FromRow for Article {
+	fn from_row(row: &Row) -> Self {
+		Self {
+			id: row.get("id"),
+			post_date: row.get("post_date"),
+
+			content: ArticleContent {
+				article_id: row.get("article_content.article_id"),
+				edit_date: row.get("article_content.edit_date"),
+				title: row.get("article_content.title"),
+				desc: row.get("article_content.desc"),
+				cover_url: row.get("article_content.cover_url"),
+				content: row.get("article_content.content"),
+				tags: row.get("article_content.tags"),
+				public: row.get("article_content.public"),
+				sponsor: row.get("article_content.sponsor"),
+				comments_locked: row.get("article_content.comments_locked"),
+			},
+		}
+	}
+}
+
 impl Article {
 	/// Returns the list of articles.
 	pub async fn list(db: &tokio_postgres::Client) -> PgResult<impl Stream<Item = Self>> {
-		Ok(db.query_raw("SELECT * FROM article ORDER BY post_date DESC", iter::empty::<u32>())
+		Ok(db
+			.query_raw(
+				"SELECT * FROM article ORDER BY post_date DESC",
+				iter::empty::<u32>(),
+			)
 			.await?
-			.map(|r| Self::from_row(&r.unwrap()).unwrap()))
+			.map(|r| Self::from_row(&r.unwrap())))
 	}
 
 	/// Returns the article with the given ID.
@@ -35,7 +62,7 @@ impl Article {
 		Ok(db
 			.query_opt("SELECT * FROM article WHERE id = '$1'", &[id])
 			.await
-			.map(|r| r.map(|r| FromRow::from_row(&r).unwrap()))?)
+			.map(|r| r.map(|r| FromRow::from_row(&r)))?)
 	}
 
 	/// Updates the articles with the given ID.
@@ -57,7 +84,6 @@ impl Article {
 /// Content of an article.
 ///
 /// Several contents are stored for the same article to keep the history of edits.
-#[derive(FromRow)]
 pub struct ArticleContent {
 	/// The ID of the article.
 	pub article_id: Oid,

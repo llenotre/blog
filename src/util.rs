@@ -13,7 +13,9 @@ pub type Oid = u32;
 /// An object that can be instanciated from a SQL row.
 pub trait FromRow {
 	/// Creates an object from the given SQL row.
-	fn from_row(row: &Row) -> Option<Self>
+	///
+	/// If the given row is invalid, the function panics.
+	fn from_row(row: &Row) -> Self
 	where
 		Self: Sized;
 }
