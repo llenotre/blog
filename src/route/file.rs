@@ -8,11 +8,11 @@ use actix_session::Session;
 use actix_web::{
 	error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
 };
-use futures_util::{SinkExt, StreamExt};
+use chrono::Utc;
 use futures_util::TryStreamExt;
+use futures_util::{SinkExt, StreamExt};
 use std::iter;
 use std::pin::pin;
-use chrono::Utc;
 use tracing::error;
 
 #[get("/file/{id}")]
@@ -108,7 +108,10 @@ pub async fn upload(
 		let Some(field) = res? else {
 			break;
 		};
-		let (Some(filename), Some(mime_type)) = (field.content_disposition().get_filename(), field.content_type()) else {
+		let (Some(filename), Some(mime_type)) = (
+			field.content_disposition().get_filename(),
+			field.content_type(),
+		) else {
 			continue;
 		};
 		let mime_type = mime_type.to_string();
@@ -127,13 +130,13 @@ pub async fn upload(
 			Ok(chunk.unwrap()) // TODO handle error
 		});
 		let query = format!("SELECT data FROM file WHERE id = '{}'", id);
-		let out_stream = data.db.copy_in(&query)
+		let out_stream = data.db.copy_in(&query).await.map_err(|e| {
+			error!(error = %e, "postgres: open upload stream");
+			error::ErrorInternalServerError("")
+		})?;
+		pin!(out_stream)
+			.send_all(&mut in_stream)
 			.await
-			.map_err(|e| {
-				error!(error = %e, "postgres: open upload stream");
-				error::ErrorInternalServerError("")
-			})?;
-		pin!(out_stream).send_all(&mut in_stream).await
 			.map_err(|e| {
 				error!(error = %e, "postgres: upload stream");
 				error::ErrorInternalServerError("")
