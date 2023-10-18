@@ -65,15 +65,15 @@ impl Article {
 			.map(|r| r.map(|r| FromRow::from_row(&r)))?)
 	}
 
-	/// Updates the articles with the given ID.
+	/// Edits the article's content.
 	///
 	/// Arguments:
-	/// - `content_id` is the ID of the article's new content.
+	/// - `content` is the new content of the article.
 	/// - `post_date` is the post date. It is updated if set and only at the first call.
-	pub async fn update(
+	pub async fn edit(
 		db: &tokio_postgres::Client,
 		id: &Oid,
-		content_id: &Oid,
+		content: &ArticleContent,
 		post_date: &Option<DateTime<Utc>>,
 	) -> PgResult<()> {
 		db.execute("UPDATE article SET content_id = '$1' post_date = COALESCE(post_date, $2) WHERE id = '$3'", &[content_id, post_date, id]).await?;

@@ -95,11 +95,11 @@ impl Comment {
 			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
 
-	/// Updates the ID of the comment's content.
-	pub async fn update_content(
+	/// Edits the comment's content.
+	pub async fn edit(
 		&self,
 		db: &tokio_postgres::Client,
-		content_id: &Oid,
+		content: &CommentContent,
 	) -> PgResult<()> {
 		db.execute(
 			"UPDATE comment SET content_id = '$1' WHERE id = '$2'",

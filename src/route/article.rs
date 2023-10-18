@@ -274,12 +274,7 @@ pub async fn post(
 
 				edit_date: date,
 			};
-			let content_id = content.insert(&data.db).await.map_err(|e| {
-				tracing::error!(error = %e, "mongodb");
-				error::ErrorInternalServerError("")
-			})?;
-
-			Article::update(&data.db, &id, &content_id, &post_date)
+			Article::edit(&data.db, &id, &content, &post_date)
 				.await
 				.map_err(|e| {
 					tracing::error!(error = %e, "mongodb");
