@@ -7,6 +7,7 @@ use crate::GlobalData;
 use actix_session::Session;
 use actix_web::{delete, error, get, patch, post, web, HttpResponse, Responder};
 use chrono::Utc;
+use futures_util::StreamExt;
 use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
@@ -52,10 +53,17 @@ pub async fn get(
 
 	// Get replies
 	let replies = match comment.reply_to {
-		None => Some(comment.get_replies(&data.db).await.map_err(|e| {
-			tracing::error!(error = %e, "mongodb");
-			error::ErrorInternalServerError("")
-		})?),
+		None => Some(
+			comment
+				.get_replies(&data.db)
+				.await
+				.map_err(|e| {
+					tracing::error!(error = %e, "mongodb");
+					error::ErrorInternalServerError("")
+				})?
+				.collect::<Vec<_>>()
+				.await,
+		),
 		Some(_) => None,
 	};
 
@@ -65,7 +73,7 @@ pub async fn get(
 		&data.db,
 		&article.content.title,
 		&comment,
-		replies,
+		replies.as_deref(),
 		user_id,
 		user_login,
 		admin,

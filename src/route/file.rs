@@ -8,9 +8,11 @@ use actix_session::Session;
 use actix_web::{
 	error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
 };
-use futures_util::StreamExt;
+use futures_util::{SinkExt, StreamExt};
 use futures_util::TryStreamExt;
 use std::iter;
+use std::pin::pin;
+use chrono::Utc;
 use tracing::error;
 
 #[get("/file/{id}")]
@@ -96,25 +98,46 @@ pub async fn upload(
 		return Err(error::ErrorForbidden(""));
 	}
 
+	let now = Utc::now();
+
 	loop {
 		let res = multipart
 			.try_next()
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""));
-		let Some(mut field) = res? else {
+		let Some(field) = res? else {
 			break;
 		};
-		let Some(filename) = field.content_disposition().get_filename() else {
+		let (Some(filename), Some(mime_type)) = (field.content_disposition().get_filename(), field.content_type()) else {
 			continue;
 		};
+		let mime_type = mime_type.to_string();
 
-		// Upload file to database
-		let mut db_stream = bucket.open_upload_stream(filename, None);
-		while let Some(chunk) = field.next().await {
-			let chunk = chunk?;
-			db_stream.write_all(&chunk).await?;
-		}
-		db_stream.close().await?;
+		// Create file in database
+		let row = data.db.query_one("INSERT INTO file VALUES (name, mime_type, upload_date) VALUES ($1, $2, $3) RETURNING id", &[&filename, &mime_type, &now])
+			.await
+			.map_err(|e| {
+				error!(error = %e, "postgres: insert file");
+				error::ErrorInternalServerError("")
+			})?;
+		let id: Oid = row.get("id");
+
+		// Send file to database
+		let mut in_stream = field.map(|chunk| {
+			Ok(chunk.unwrap()) // TODO handle error
+		});
+		let query = format!("SELECT data FROM file WHERE id = '{}'", id);
+		let out_stream = data.db.copy_in(&query)
+			.await
+			.map_err(|e| {
+				error!(error = %e, "postgres: open upload stream");
+				error::ErrorInternalServerError("")
+			})?;
+		pin!(out_stream).send_all(&mut in_stream).await
+			.map_err(|e| {
+				error!(error = %e, "postgres: upload stream");
+				error::ErrorInternalServerError("")
+			})?;
 	}
 
 	// Redirect user
