@@ -278,7 +278,7 @@ pub async fn edit(
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	// Update comment's content
 	comment
-		.update_content(&data.db, content_id)
+		.edit(&data.db, content_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 
