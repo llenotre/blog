@@ -31,15 +31,8 @@ CREATE TABLE IF NOT EXISTS analytics (
     date TIMESTAMP NOT NULL,
     peer_addr INET NOT NULL,
     user_agent TEXT NOT NULL,
-    method VARCHAR(16) NOT NULL,
-    uri VARCHAR(255) NOT NULL,
-);
-
-CREATE TABLE IF NOT EXISTS aggregated_analytics (
-    id INT PRIMARY KEY NOT NULL,
-    date TIMESTAMP NOT NULL,
-    -- TODO geolocation
-    -- TODO device
+    geolocation JSON,
+    device JSON,
     method VARCHAR(16) NOT NULL,
     uri VARCHAR(255) NOT NULL,
 );
