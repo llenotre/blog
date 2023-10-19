@@ -17,7 +17,7 @@ use tracing::warn;
 use uaparser::{Parser, UserAgentParser};
 
 /// Informations about a user's geolocation.
-#[derive(Deserialize, Serialize)]
+#[derive(Serialize)]
 pub struct UserGeolocation {
 	city: Option<String>,
 	continent: Option<String>,
@@ -75,7 +75,7 @@ impl TryFrom<&str> for UserGeolocation {
 }
 
 /// Informations about a user's device.
-#[derive(Deserialize, Serialize)]
+#[derive(Serialize)]
 pub struct UserDevice {
 	device_family: String,
 	device_brand: Option<String>,
@@ -128,14 +128,22 @@ pub struct AnalyticsEntry {
 	/// The date of visit.
 	date: DateTime<Utc>,
 
-	/// The user's IP address. If unknown or removed, the value is `None`.
+	/// The user's IP address.
+	///
+	/// If unknown or removed, the value is `None`.
 	peer_addr: Option<String>,
-	/// The user agent. If unknown or removed, the value is `None`
+	/// The user agent.
+	///
+	/// If unknown or removed, the value is `None`
 	user_agent: Option<String>,
 
-	/// Informations about the user's geolocation. If unknown, the value is `None`.
+	/// Informations about the user's geolocation.
+	///
+	/// If unknown, the value is `None`.
 	geolocation: Option<UserGeolocation>,
-	/// Informations about the user's device. If unknown, the value is `None`.
+	/// Informations about the user's device.
+	///
+	/// If unknown, the value is `None`.
 	device: Option<UserDevice>,
 
 	/// The request method.
@@ -151,6 +159,32 @@ impl AnalyticsEntry {
 		method: String,
 		uri: String,
 	) -> Self {
+		Self {
+			date: Utc::now(),
+
+			peer_addr,
+			user_agent,
+
+			geolocation: None,
+			device: None,
+
+			method,
+			uri,
+		}
+	}
+
+	/// Inserts the analytics entry in the database.
+	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<()> {
+		db.execute("INSERT INTO analytics (date, peer_addr, user_agent, method, uri) VALUES ($1, $2) WHERE NOT EXISTS (SELECT peer_addr FROM analytics WHERE peer_addr = '$1' uri = '$2')", &[&self.date, &self.peer_addr, &self.user_agent, &self.method, &self.uri]).await?;
+		Ok(())
+	}
+
+	/// Aggregates entries.
+	pub async fn aggregate(db: &tokio_postgres::Client) -> PgResult<()> {
+		// The beginning of the date range in which entries are going to be aggregated
+		let begin = Utc::now() - Duration::hours(24);
+		// TODO aggregation queries
+
 		// Get geolocation from peer address
 		let geolocation =
 			peer_addr.as_ref().and_then(|peer_addr| {
@@ -173,30 +207,6 @@ impl AnalyticsEntry {
 			}
 		});
 
-		Self {
-			date: Utc::now(),
-
-			peer_addr,
-			user_agent,
-
-			geolocation,
-			device,
-
-			method,
-			uri,
-		}
-	}
-
-	/// Inserts the analytics entry in the database.
-	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<()> {
-		db.execute("INSERT INTO analytics (peer_addr, uri) VALUES ($1, $2) WHERE NOT EXISTS peer_addr = '$1' uri = '$2'", &[&self.peer_addr, &self.uri]).await?;
-		Ok(())
-	}
-
-	/// Aggregates entries.
-	pub async fn aggregate(db: &tokio_postgres::Client) -> PgResult<()> {
-		let oldest = Utc::now() - Duration::hours(24);
-		db.execute("UPDATE analytics SET peer_addr = NULL user_agent = NULL WHERE date < '$1' AND info_kind = 'Sensitive'", &[&oldest]).await?;
 		Ok(())
 	}
 }
