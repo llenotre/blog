@@ -135,8 +135,7 @@ impl Comment {
 			&[&content.edit_date, &content.content, &content.comment_id],
 		)
 		.await?;
-		User::update_cooldown(db, user_id, &content.edit_date)
-			.await?;
+		User::update_cooldown(db, user_id, &content.edit_date).await?;
 		Ok(())
 	}
 

@@ -3,10 +3,10 @@
 //! Some data that are collected on users are sensitive and need to be removed past a certain delay
 //! to comply with the GDPR.
 
+use anyhow::Result;
 use crate::util::PgResult;
 use chrono::Utc;
 use chrono::{DateTime, Duration};
-use serde::Deserialize;
 use serde::Serialize;
 use std::cell::OnceCell;
 use std::fs::File;
@@ -159,32 +159,6 @@ impl AnalyticsEntry {
 		method: String,
 		uri: String,
 	) -> Self {
-		Self {
-			date: Utc::now(),
-
-			peer_addr,
-			user_agent,
-
-			geolocation: None,
-			device: None,
-
-			method,
-			uri,
-		}
-	}
-
-	/// Inserts the analytics entry in the database.
-	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<()> {
-		db.execute("INSERT INTO analytics (date, peer_addr, user_agent, method, uri) VALUES ($1, $2) WHERE NOT EXISTS (SELECT peer_addr FROM analytics WHERE peer_addr = '$1' uri = '$2')", &[&self.date, &self.peer_addr, &self.user_agent, &self.method, &self.uri]).await?;
-		Ok(())
-	}
-
-	/// Aggregates entries.
-	pub async fn aggregate(db: &tokio_postgres::Client) -> PgResult<()> {
-		// The beginning of the date range in which entries are going to be aggregated
-		let begin = Utc::now() - Duration::hours(24);
-		// TODO aggregation queries
-
 		// Get geolocation from peer address
 		let geolocation =
 			peer_addr.as_ref().and_then(|peer_addr| {
@@ -207,6 +181,49 @@ impl AnalyticsEntry {
 			}
 		});
 
+		Self {
+			date: Utc::now(),
+
+			peer_addr,
+			user_agent,
+
+			geolocation,
+			device,
+
+			method,
+			uri,
+		}
+	}
+
+	/// Inserts the analytics entry in the database.
+	pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
+		db.execute(
+			r#"INSERT INTO analytics (date, peer_addr, user_agent, geolocation, device, method, uri)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			WHERE NOT EXISTS (SELECT peer_addr FROM analytics WHERE peer_addr = '$2' uri = '$3')"#,
+			&[
+				&self.date,
+				&self.peer_addr,
+				&self.user_agent,
+				&serde_json::to_value(&self.geolocation)?,
+				&serde_json::to_value(&self.device)?,
+				&self.method,
+				&self.uri,
+			],
+		)
+		.await?;
+		Ok(())
+	}
+
+	/// Anonymizes entries.
+	pub async fn aggregate(db: &tokio_postgres::Client) -> PgResult<()> {
+		// The end of the date range in which entries are going to be anonymized
+		let end = Utc::now() - Duration::hours(24);
+		db.execute(
+			"UPDATE analytics SET peer_addr = NULL AND user_agent = NULL WHERE date <= $1",
+			&[&end],
+		)
+		.await?;
 		Ok(())
 	}
 }
