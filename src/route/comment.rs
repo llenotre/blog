@@ -258,7 +258,8 @@ pub async fn edit(
 		edit_date: now,
 		content: info.content,
 	};
-	Comment::edit(&data.db, &user.id, &comment_content).await
+	Comment::edit(&data.db, &user.id, &comment_content)
+		.await
 		.map_err(|e| {
 			error!(error = %e, "postgres: comment edit");
 			error::ErrorInternalServerError("")
