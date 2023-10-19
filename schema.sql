@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS article (
 
 CREATE TABLE IF NOT EXISTS article_content (
     id INT PRIMARY KEY NOT NULL,
+    article_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     title TEXT NOT NULL,
     desc TEXT NOT NULL,
@@ -65,7 +66,7 @@ CREATE TABLE IF NOT EXISTS comment (
     id INT PRIMARY KEY NOT NULL,
     article_id INT NOT NULL,
     reply_to INT,
-    author INT NOT NULL,
+    author_id INT NOT NULL,
     post_date TIMESTAMP NOT NULL,
     content_id INT NOT NULL,
     removed TIMESTAMP,
@@ -73,7 +74,6 @@ CREATE TABLE IF NOT EXISTS comment (
 
 CREATE TABLE IF NOT EXISTS comment_content (
     id INT PRIMARY KEY NOT NULL,
-    comment_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     content TEXT NOT NULL,
 );

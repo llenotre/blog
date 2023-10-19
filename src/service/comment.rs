@@ -60,6 +60,32 @@ impl FromRow for Comment {
 }
 
 impl Comment {
+	/// Creates a comment.
+	///
+	/// Arguments:
+	/// - `article_id` is the ID of the article associated with the comment.
+	/// - `reply_to` is the comment to which the newly created comment replies.
+	/// - `user` is the user posting the comment.
+	/// - `post_date` is the date at which the comment has been posted.
+	/// - `content` is the content of the comment in markdown.
+	pub async fn create(
+		db: &tokio_postgres::Client,
+		article_id: &Oid,
+		reply_to: &Option<Oid>,
+		user_id: &Oid,
+		post_date: &DateTime<Utc>,
+		content: &str,
+	) -> PgResult<Oid> {
+		let row = db.query_one(r#"BEGIN TRANSACTION
+			WITH content_id AS (INSERT INTO comment_content (edit_date, content) VALUES ($4, $5) RETURNING id);
+			INSERT INTO comment (article_id, reply_to, author_id, post_date, content_id) VALUES ($1, $2, $3, $4, content_id) RETURNING id;
+		COMMIT"#, &[article_id, reply_to, &user_id, post_date, &content]).await?;
+		let id = row.get("id");
+		// TODO also place in transaction?
+		User::update_cooldown(db, user_id, post_date).await?;
+		Ok(id)
+	}
+
 	/// Returns the comment with the given ID.
 	///
 	/// `id` is the ID of the comment.

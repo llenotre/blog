@@ -188,15 +188,17 @@ impl User {
 
 	/// Updates the user's cooldown.
 	///
-	/// `last_post` is the date/time of the last post from the user.
+	/// Arguments:
+	/// - `id` is the ID of the user whose cooldown is to be updated.
+	/// - `last_post` is the date/time of the last post from the user.
 	pub async fn update_cooldown(
-		&self,
 		db: &tokio_postgres::Client,
+		id: &Oid,
 		last_post: &DateTime<Utc>,
 	) -> PgResult<()> {
 		db.execute(
 			"UPDATE user SET last_post = '$1' WHERE id = '$2'",
-			&[last_post, &self.id],
+			&[last_post, id],
 		)
 		.await?;
 		Ok(())
