@@ -123,15 +123,20 @@ impl Comment {
 
 	/// Edits the comment's content.
 	pub async fn edit(
-		&self,
 		db: &tokio_postgres::Client,
+		user_id: &Oid,
 		content: &CommentContent,
 	) -> PgResult<()> {
 		db.execute(
-			"UPDATE comment SET content_id = '$1' WHERE id = '$2'",
-			&[content_id, &self.id],
+			r#"BEGIN TRANSACTION
+				WITH cid AS (INSERT INTO comment_content (edit_date, content) VALUES ($1, $2) RETURNING id);
+				UPDATE comment SET content_id = cid WHERE id = '$3';
+			COMMIT"#,
+			&[&content.edit_date, &content.content, &content.comment_id],
 		)
 		.await?;
+		User::update_cooldown(db, user_id, &content.edit_date)
+			.await?;
 		Ok(())
 	}
 
@@ -258,7 +263,7 @@ pub async fn to_html(
 	db: &tokio_postgres::Client,
 	article_title: &str,
 	comment: &Comment,
-	replies: Option<&[Comment]>,
+	replies: Option<&'async_recursion [Comment]>,
 	user_id: Option<&'async_recursion Oid>,
 	user_login: Option<&'async_recursion str>,
 	admin: bool,
