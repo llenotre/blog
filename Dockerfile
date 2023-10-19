@@ -5,6 +5,7 @@ WORKDIR /usr/src/blog
 # Prepare
 FROM base AS prepare
 COPY src/ src/
+COPY macros/ macros/
 COPY pages/ pages/
 COPY analytics/ analytics/
 ADD Cargo.toml .
@@ -14,12 +15,12 @@ RUN cargo chef prepare --recipe-path recipe.json
 # Build
 FROM base as build
 COPY --from=prepare /usr/src/blog/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+COPY macros/ macros/
 COPY src/ src/
 COPY pages/ pages/
 ADD Cargo.toml .
 ADD Cargo.lock .
-ADD config.toml .
+RUN cargo chef cook --release --recipe-path recipe.json
 RUN cargo build --release
 
 # Prepare runtime

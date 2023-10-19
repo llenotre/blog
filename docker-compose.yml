@@ -10,17 +10,18 @@ services:
     image: bitnami/postgresql:16.0.0
     restart: always
     ports:
-      - 127.0.0.1:27017:27017
+      - 127.0.0.1:5432:5432
     environment:
       POSTGRESQL_USERNAME: blog
       POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
-  backup:
-    build: backup/
-    depends_on:
-      - postgresql
-    restart: always
-    environment:
-      POSTGRESQL_USERNAME: blog
-      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
-    volumes:
-      - ./backup/.aws:/root/.aws
+# FIXME
+#  backup:
+#    build: backup/
+#    depends_on:
+#      - postgresql
+#    restart: always
+#    environment:
+#      POSTGRESQL_USERNAME: blog
+#      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
+#    volumes:
+#      - ./backup/.aws:/root/.aws
