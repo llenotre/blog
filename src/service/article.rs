@@ -69,14 +69,32 @@ impl Article {
 	///
 	/// Arguments:
 	/// - `content` is the new content of the article.
-	/// - `post_date` is the post date. It is updated if set and only at the first call.
+	/// - `date` is the edit date.
 	pub async fn edit(
 		db: &tokio_postgres::Client,
-		id: &Oid,
 		content: &ArticleContent,
-		post_date: &Option<DateTime<Utc>>,
+		date: &DateTime<Utc>,
 	) -> PgResult<()> {
-		db.execute("UPDATE article SET content_id = '$1' post_date = COALESCE(post_date, $2) WHERE id = '$3'", &[content_id, post_date, id]).await?;
+		let post_date = content.public.then_some(date);
+		db.execute(r#"BEGIN TRANSACTION
+			WITH cid AS (
+				INSERT INTO article_content (article_id, edit_date, title, desc, cover_url, content, tags, public, sponsor, comments_locked)
+					VALUES ($1, $2, $4, $5, $6, $7, $8, $9, $10, $11)
+			);
+			UPDATE article SET content_id = cid post_date = COALESCE(post_date, $3) WHERE id = $1;
+		COMMIT"#, &[
+			&content.article_id,
+			date,
+			&post_date,
+			&content.title,
+			&content.desc,
+			&content.cover_url,
+			&content.content,
+			&content.tags,
+			&content.public,
+			&content.sponsor,
+			&content.comments_locked,
+		]).await?;
 		Ok(())
 	}
 }

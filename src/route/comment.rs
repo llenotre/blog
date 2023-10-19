@@ -11,6 +11,7 @@ use futures_util::StreamExt;
 use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
+use tracing::error;
 
 /// Minimum post cooldown.
 const INTERVAL: Duration = Duration::from_secs(10);
@@ -160,36 +161,22 @@ pub async fn post(
 	}
 
 	let date = Utc::now();
-
-	// Insert comment content
-	// TODO SQL transaction
-	let comment_content = CommentContent {
-		comment_id: 0,
-		edit_date: date,
-		content: info.content,
-	};
-	let comment = Comment {
-		id: 0,
-
-		article_id: info.article_id,
-		reply_to: info.reply_to,
-		author_id: user.id,
-		post_date: date,
-
-		content: comment_content,
-
-		remove_date: None,
-	};
-	comment
-		.insert(&data.db)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-	user.update_cooldown(&data.db, &date)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let comment_id = Comment::create(
+		&data.db,
+		&info.article_id,
+		&info.reply_to,
+		&user.id,
+		&date,
+		&info.content,
+	)
+	.await
+	.map_err(|e| {
+		error!(error = %e, "postgres: comment create");
+		error::ErrorInternalServerError("")
+	})?;
 
 	Ok(HttpResponse::Ok().json(json!({
-		"id": comment.id
+		"id": comment_id
 	})))
 }
 

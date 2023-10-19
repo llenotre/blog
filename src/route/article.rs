@@ -254,8 +254,6 @@ pub async fn post(
 	let comments_locked = info.comments_locked.map(|p| p == "on").unwrap_or(false);
 
 	let date = Utc::now();
-	let post_date = public.then_some(date);
-
 	let path = match info.id {
 		// Update article
 		Some(id) => {
@@ -274,7 +272,7 @@ pub async fn post(
 
 				edit_date: date,
 			};
-			Article::edit(&data.db, &id, &content, &post_date)
+			Article::edit(&data.db, &content, &date)
 				.await
 				.map_err(|e| {
 					tracing::error!(error = %e, "mongodb");
