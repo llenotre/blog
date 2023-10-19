@@ -253,25 +253,16 @@ pub async fn edit(
 	}
 
 	// Insert comment content
-	// TODO SQL transaction
 	let comment_content = CommentContent {
 		comment_id: info.comment_id,
 		edit_date: now,
 		content: info.content,
 	};
-	let content_id = comment_content
-		.insert(&data.db)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-	// Update comment's content
-	comment
-		.edit(&data.db, content_id)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
-
-	user.update_cooldown(&data.db, &now)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+	Comment::edit(&data.db, &user.id, &comment_content).await
+		.map_err(|e| {
+			error!(error = %e, "postgres: comment edit");
+			error::ErrorInternalServerError("")
+		})?;
 
 	Ok(HttpResponse::Ok().finish())
 }
