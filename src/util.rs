@@ -28,7 +28,7 @@ pub fn now() -> NaiveDateTime {
 
 lazy_static! {
 	/// Email validation regex.
-	static ref EMAIL_VALIDATION: Regex = Regex::new(r##"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$"##).unwrap();
+	static ref EMAIL_VALIDATION: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
 }
 
 /// Tells whether the given email is valid.

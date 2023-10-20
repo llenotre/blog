@@ -275,7 +275,7 @@ pub async fn to_html(
 			let mut html = String::new();
 			for com in replies {
 				html.push_str(
-					&to_html(db, article_title, &com, None, user_id, user_login, admin).await?,
+					&to_html(db, article_title, com, None, user_id, user_login, admin).await?,
 				);
 			}
 

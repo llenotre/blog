@@ -5,7 +5,9 @@ use chrono::NaiveDateTime;
 
 /// An email address of a newsletter subscriber.
 pub struct NewsletterEmail<'s> {
-	/// The registered email. If `None`, the email has been anonymized.
+	/// The registered email.
+	///
+	/// If `None`, the email has been anonymized.
 	pub email: Option<&'s str>,
 	/// The date at which the user subscribed.
 	pub subscribe_date: NaiveDateTime,

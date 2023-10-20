@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS article (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     post_date TIMESTAMP,
     content_id INT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS article_content (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     article_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     title TEXT NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS article_content (
 );
 
 CREATE TABLE IF NOT EXISTS file (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     name TEXT,
     mime_type TEXT NOT NULL,
     upload_date TIMESTAMP NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS file (
 );
 
 CREATE TABLE IF NOT EXISTS analytics (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     date TIMESTAMP NOT NULL,
     peer_addr INET NOT NULL,
     user_agent TEXT NOT NULL,
@@ -38,13 +38,13 @@ CREATE TABLE IF NOT EXISTS analytics (
 );
 
 CREATE TABLE IF NOT EXISTS newsletter_subscriber (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     email TEXT,
     subscribe_date TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "user" (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     access_token TEXT NOT NULL,
     github_login TEXT NOT NULL,
     github_id INT NOT NULL,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS "user" (
 );
 
 CREATE TABLE IF NOT EXISTS comment (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     article_id INT NOT NULL,
     reply_to INT,
     author_id INT NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS comment (
 );
 
 CREATE TABLE IF NOT EXISTS comment_content (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     edit_date TIMESTAMP NOT NULL,
     content TEXT NOT NULL
 );

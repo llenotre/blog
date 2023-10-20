@@ -58,10 +58,10 @@ impl Article {
 	///
 	/// `id` is the ID of the article.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
-		Ok(db
+		db
 			.query_opt("SELECT * FROM article WHERE id = '$1'", &[id])
 			.await
-			.map(|r| r.map(|r| FromRow::from_row(&r)))?)
+			.map(|r| r.map(|r| FromRow::from_row(&r)))
 	}
 
 	/// Edits the article's content.

@@ -11,6 +11,8 @@ use actix_web::Error;
 use futures_util::future::LocalBoxFuture;
 use std::future::ready;
 use std::future::Ready;
+use std::net::IpAddr;
+use std::str::FromStr;
 use std::sync::Arc;
 
 /// Middleware allowing to collect analytics.
@@ -24,11 +26,11 @@ where
 	S::Future: 'static,
 	B: 'static,
 {
-	type Error = Error;
-	type Future = Ready<Result<Self::Transform, Self::InitError>>;
-	type InitError = ();
 	type Response = ServiceResponse<B>;
+	type Error = Error;
 	type Transform = AnalyticsMiddleware<S>;
+	type InitError = ();
+	type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
 	fn new_transform(&self, service: S) -> Self::Future {
 		ready(Ok(AnalyticsMiddleware {
@@ -61,7 +63,10 @@ where
 		let peer_addr = req
 			.connection_info()
 			.realip_remote_addr()
-			.map(str::to_owned);
+			.map(IpAddr::from_str)
+			.transpose()
+			.ok()
+			.flatten();
 		let user_agent = req
 			.headers()
 			.get("User-Agent")
