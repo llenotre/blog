@@ -11,7 +11,6 @@ use serde::Serialize;
 use std::cell::OnceCell;
 use std::fs::File;
 use std::net::IpAddr;
-use std::str::FromStr;
 use std::sync::Mutex;
 use tracing::warn;
 use uaparser::{Parser, UserAgentParser};
@@ -29,12 +28,10 @@ pub struct UserGeolocation {
 	time_zone: Option<String>,
 }
 
-impl TryFrom<&str> for UserGeolocation {
+impl TryFrom<IpAddr> for UserGeolocation {
 	type Error = anyhow::Error;
 
-	fn try_from(addr: &str) -> Result<Self, Self::Error> {
-		let addr = IpAddr::from_str(addr)?;
-
+	fn try_from(addr: IpAddr) -> Result<Self, Self::Error> {
 		static GEOIP_DB: Mutex<OnceCell<maxminddb::Reader<Vec<u8>>>> = Mutex::new(OnceCell::new());
 		let geoip_db = GEOIP_DB.lock().unwrap();
 		let geoip_db = geoip_db.get_or_init(|| {
@@ -131,7 +128,7 @@ pub struct AnalyticsEntry {
 	/// The user's IP address.
 	///
 	/// If unknown or removed, the value is `None`.
-	peer_addr: Option<String>,
+	peer_addr: Option<IpAddr>,
 	/// The user agent.
 	///
 	/// If unknown or removed, the value is `None`
@@ -154,25 +151,25 @@ pub struct AnalyticsEntry {
 
 impl AnalyticsEntry {
 	pub fn new(
-		peer_addr: Option<String>,
+		peer_addr: Option<IpAddr>,
 		user_agent: Option<String>,
 		method: String,
 		uri: String,
 	) -> Self {
 		// Get geolocation from peer address
 		let geolocation =
-			peer_addr.as_ref().and_then(|peer_addr| {
-				match UserGeolocation::try_from(peer_addr.as_str()) {
+			peer_addr.and_then(|peer_addr| {
+				match UserGeolocation::try_from(peer_addr) {
 					Ok(l) => Some(l),
 					Err(e) => {
-						warn!(peer_addr, error = %e, "could not retrieve user's location");
+						warn!(%peer_addr, error = %e, "could not retrieve user's location");
 						None
 					}
 				}
 			});
 		// Parse user agent
-		let device = user_agent.as_ref().and_then(|user_agent| {
-			match UserDevice::try_from(user_agent.as_str()) {
+		let device = user_agent.as_deref().and_then(|user_agent| {
+			match UserDevice::try_from(user_agent) {
 				Ok(l) => Some(l),
 				Err(e) => {
 					warn!(user_agent, error = %e, "could not retrieve informations about user's device");
@@ -199,8 +196,7 @@ impl AnalyticsEntry {
 	pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
 		db.execute(
 			r#"INSERT INTO analytics (date, peer_addr, user_agent, geolocation, device, method, uri)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-			ON CONFLICT (peer_addr, uri) DO NOTHING"#,
+			SELECT $1, $2, $3, $4, $5, $6, $7 WHERE NOT EXISTS (SELECT 1 FROM analytics WHERE peer_addr = $2 AND user_agent = $3)"#,
 			&[
 				&self.date,
 				&self.peer_addr,
