@@ -90,7 +90,7 @@ impl Comment {
 	/// `id` is the ID of the comment.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		Ok(db
-			.query_opt("SELECT * FROM comment WHERE id = '$1'", &[id])
+			.query_opt("SELECT * FROM comment WHERE id = $1", &[id])
 			.await?
 			.as_ref()
 			.map(FromRow::from_row))
@@ -104,7 +104,7 @@ impl Comment {
 		article_id: &Oid,
 	) -> PgResult<impl Stream<Item = Self>> {
 		Ok(db
-			.query_raw("SELECT * FROM comment WHERE article = '$1'", &[article_id])
+			.query_raw("SELECT * FROM comment WHERE article = $1", &[article_id])
 			.await?
 			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
@@ -115,7 +115,7 @@ impl Comment {
 		db: &tokio_postgres::Client,
 	) -> PgResult<impl Stream<Item = Self>> {
 		Ok(db
-			.query_raw("SELECT * FROM comment WHERE reply_to = '$1'", &[&self.id])
+			.query_raw("SELECT * FROM comment WHERE reply_to = $1", &[&self.id])
 			.await?
 			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
@@ -129,7 +129,7 @@ impl Comment {
 		db.execute(
 			r#"BEGIN TRANSACTION
 				WITH cid AS (INSERT INTO comment_content (edit_date, content) VALUES ($1, $2) RETURNING id);
-				UPDATE comment SET content_id = cid WHERE id = '$3';
+				UPDATE comment SET content_id = cid WHERE id = $3;
 			COMMIT"#,
 			&[&content.edit_date, &content.content, &content.comment_id],
 		)
@@ -153,13 +153,13 @@ impl Comment {
 		let now = now();
 		if bypass_perm {
 			db.execute(
-				"UPDATE comment SET remove_date = '$1' WHERE id = '$2'",
+				"UPDATE comment SET remove_date = $1 WHERE id = $2",
 				&[&now, comment_id],
 			)
 			.await?;
 		} else {
 			db.execute(
-				"UPDATE comment SET remove_date = '$1' WHERE id = '$2' AND author = '$3'",
+				"UPDATE comment SET remove_date = $1 WHERE id = $2 AND author = $3",
 				&[&now, comment_id, user_id],
 			)
 			.await?;

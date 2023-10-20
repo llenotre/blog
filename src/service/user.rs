@@ -141,7 +141,7 @@ impl User {
 	/// If the user doesn't exist, the function returns `None`.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		Ok(db
-			.query_opt("SELECT * FROM \"user\" WHERE id = '$1'", &[id])
+			.query_opt("SELECT * FROM \"user\" WHERE id = $1", &[id])
 			.await?
 			.map(|r| FromRow::from_row(&r)))
 	}
@@ -196,7 +196,7 @@ impl User {
 		last_post: &NaiveDateTime,
 	) -> PgResult<()> {
 		db.execute(
-			"UPDATE \"user\" SET last_post = '$1' WHERE id = '$2'",
+			"UPDATE \"user\" SET last_post = $1 WHERE id = $2",
 			&[last_post, id],
 		)
 		.await?;
