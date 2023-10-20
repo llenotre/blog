@@ -7,6 +7,7 @@ use actix_web::http::StatusCode;
 use actix_web::web::Redirect;
 use actix_web::{error, get, web, HttpResponseBuilder, Responder};
 use serde::Deserialize;
+use tracing::error;
 
 #[get("/auth")]
 pub async fn auth(data: web::Data<GlobalData>) -> impl Responder {
@@ -34,24 +35,24 @@ pub async fn oauth(
 	let access_token = User::query_access_token(&data.client_id, &data.client_secret, &code)
 		.await
 		.map_err(|error| {
-			tracing::error!(error = %error, "could not retrieve access token from Github");
+			error!(%error, "could not retrieve access token from Github");
 			error::ErrorInternalServerError("")
 		})?;
 	let Some(access_token) = access_token else {
-		// TODO log
+		error!("no Github access token");
 		return Err(error::ErrorInternalServerError(""));
 	};
 
 	// Get user ID
 	let github_user = User::query_info(&access_token).await.map_err(|error| {
-		tracing::error!(error = %error, "could not retrieve user's informations from Github");
+		error!(%error, access_token, "could not retrieve user's informations from Github");
 		error::ErrorInternalServerError("")
 	})?;
 
 	let user = User::from_github_id(&data.db, &(github_user.id as _))
 		.await
 		.map_err(|error| {
-			tracing::error!(error = %error, "could not reach database");
+			error!(%error, github_id = github_user.id, "postgres: cannot get user from ID");
 			error::ErrorInternalServerError("")
 		})?;
 	let user = match user {
@@ -74,7 +75,7 @@ pub async fn oauth(
 				last_post: Default::default(),
 			};
 			user.insert(&data.db).await.map_err(|error| {
-				tracing::error!(error = %error, "could not reach database");
+				error!(%error, "postgres: cannot insert user");
 				error::ErrorInternalServerError("")
 			})?;
 			user
@@ -103,7 +104,7 @@ pub async fn avatar(user: web::Path<String>) -> actix_web::Result<impl Responder
 		.send()
 		.await
 		.map_err(|error| {
-			tracing::error!(error = %error, user, "could not get avatar from Github");
+			error!(error = %error, user, "could not get avatar from Github");
 			error::ErrorInternalServerError("")
 		})?;
 

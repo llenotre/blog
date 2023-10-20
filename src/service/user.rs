@@ -141,7 +141,7 @@ impl User {
 	/// If the user doesn't exist, the function returns `None`.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		Ok(db
-			.query_opt("SELECT * FROM user WHERE id = '$1'", &[id])
+			.query_opt("SELECT * FROM \"user\" WHERE id = '$1'", &[id])
 			.await?
 			.map(|r| FromRow::from_row(&r)))
 	}
@@ -152,7 +152,7 @@ impl User {
 	///
 	/// If the user doesn't exist, the function returns `None`.
 	pub async fn from_github_id(db: &tokio_postgres::Client, id: &i64) -> PgResult<Option<Self>> {
-		db.query_opt("SELECT * FROM user WHERE github_id = '$1'", &[id])
+		db.query_opt("SELECT * FROM \"user\" WHERE github_id = $1", &[id])
 			.await
 			.map(|r| r.map(|r| FromRow::from_row(&r)))
 	}
@@ -160,7 +160,7 @@ impl User {
 	/// Inserts the user in the database.
 	pub async fn insert(&self, db: &tokio_postgres::Client) -> PgResult<()> {
 		db.execute(
-			r#"INSERT INTO user (
+			r#"INSERT INTO "user" (
 			access_token,
 			github_login,
 			github_id,
@@ -168,8 +168,8 @@ impl User {
 			admin,
 			banned,
 			register_date,
-			last_post,
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
+			last_post
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
 			&[
 				&self.access_token,
 				&self.github_login,
@@ -196,7 +196,7 @@ impl User {
 		last_post: &NaiveDateTime,
 	) -> PgResult<()> {
 		db.execute(
-			"UPDATE user SET last_post = '$1' WHERE id = '$2'",
+			"UPDATE \"user\" SET last_post = '$1' WHERE id = '$2'",
 			&[last_post, id],
 		)
 		.await?;

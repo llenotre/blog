@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     id SERIAL PRIMARY KEY,
     access_token TEXT NOT NULL,
     github_login TEXT NOT NULL,
-    github_id INT NOT NULL,
+    github_id BIGINT NOT NULL,
     github_html_url TEXT NOT NULL,
     admin BOOLEAN NOT NULL,
     banned BOOLEAN NOT NULL,
