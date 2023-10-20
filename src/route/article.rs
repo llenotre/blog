@@ -2,13 +2,12 @@ use crate::service::article::{Article, ArticleContent};
 use crate::service::comment::Comment;
 use crate::service::user::User;
 use crate::service::{comment, user};
-use crate::util::Oid;
+use crate::util::{now, Oid};
 use crate::{util, GlobalData};
 use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::web::Redirect;
 use actix_web::{error, get, post, web, Either, HttpResponse, Responder};
-use chrono::Utc;
 use futures_util::StreamExt;
 use serde::Deserialize;
 use tracing::error;
@@ -45,7 +44,7 @@ pub async fn get(
 		return Err(error::ErrorNotFound(""));
 	}
 	let post_date = if let Some(post_date) = article.post_date {
-		post_date.to_rfc3339()
+		post_date.and_utc().to_rfc3339()
 	} else {
 		"not posted yet".to_string()
 	};
@@ -253,7 +252,7 @@ pub async fn post(
 	let sponsor = info.sponsor.map(|p| p == "on").unwrap_or(false);
 	let comments_locked = info.comments_locked.map(|p| p == "on").unwrap_or(false);
 
-	let date = Utc::now();
+	let date = now();
 	let path = match info.id {
 		// Update article
 		Some(id) => {

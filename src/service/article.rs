@@ -2,8 +2,7 @@
 
 use crate::util::Oid;
 use crate::util::{FromRow, PgResult};
-use chrono::DateTime;
-use chrono::Utc;
+use chrono::NaiveDateTime;
 use futures_util::{Stream, StreamExt};
 use std::iter;
 use tokio_postgres::Row;
@@ -15,7 +14,7 @@ pub struct Article {
 	/// Timestamp since epoch at which the article has been posted.
 	///
 	/// If `None`, the article has not been posted yet.
-	pub post_date: Option<DateTime<Utc>>,
+	pub post_date: Option<NaiveDateTime>,
 
 	/// The the article's content.
 	pub content: ArticleContent,
@@ -73,7 +72,7 @@ impl Article {
 	pub async fn edit(
 		db: &tokio_postgres::Client,
 		content: &ArticleContent,
-		date: &DateTime<Utc>,
+		date: &NaiveDateTime,
 	) -> PgResult<()> {
 		let post_date = content.public.then_some(date);
 		db.execute(r#"BEGIN TRANSACTION
@@ -106,7 +105,7 @@ pub struct ArticleContent {
 	/// The ID of the article.
 	pub article_id: Oid,
 	/// Timestamp since epoch at which the article has been edited.
-	pub edit_date: DateTime<Utc>,
+	pub edit_date: NaiveDateTime,
 	/// The article's title.
 	pub title: String,
 	/// The article's description.

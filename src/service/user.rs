@@ -4,8 +4,7 @@ use crate::util::Oid;
 use crate::util::{FromRow, PgResult};
 use actix_session::Session;
 use actix_web::web::Redirect;
-use chrono::DateTime;
-use chrono::Utc;
+use chrono::NaiveDateTime;
 use macros::FromRow;
 use serde::Deserialize;
 use serde::Serialize;
@@ -88,9 +87,9 @@ pub struct User {
 	pub banned: bool,
 
 	/// The date/time at which the user registered.
-	pub register_date: DateTime<Utc>,
+	pub register_date: NaiveDateTime,
 	/// The date/time of the last post, used for cooldown.
-	pub last_post: DateTime<Utc>,
+	pub last_post: NaiveDateTime,
 }
 
 impl User {
@@ -194,7 +193,7 @@ impl User {
 	pub async fn update_cooldown(
 		db: &tokio_postgres::Client,
 		id: &Oid,
-		last_post: &DateTime<Utc>,
+		last_post: &NaiveDateTime,
 	) -> PgResult<()> {
 		db.execute(
 			"UPDATE user SET last_post = '$1' WHERE id = '$2'",

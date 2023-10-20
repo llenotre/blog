@@ -1,14 +1,14 @@
 //! This module implements files upload and usage.
 
 use crate::service::user::User;
-use crate::util::Oid;
+use crate::util::{now, Oid};
 use crate::GlobalData;
 use actix_multipart::Multipart;
 use actix_session::Session;
 use actix_web::{
 	error, get, http::header::ContentType, post, web, web::Redirect, HttpResponse, Responder,
 };
-use chrono::Utc;
+use chrono::NaiveDateTime;
 use futures_util::TryStreamExt;
 use futures_util::{SinkExt, StreamExt};
 use std::iter;
@@ -59,7 +59,7 @@ pub async fn manage(
 			let file = file.unwrap(); // TODO handle error
 			let id: Oid = file.get("id");
 			let name: String = file.get("name");
-			let upload_date: chrono::DateTime<chrono::Utc> = file.get("upload_date");
+			let upload_date: NaiveDateTime = file.get("upload_date");
 			let size: u32 = file.get("size");
 
 			// TODO if picture, show it as background? (mime type is not available here)
@@ -98,7 +98,7 @@ pub async fn upload(
 		return Err(error::ErrorForbidden(""));
 	}
 
-	let now = Utc::now();
+	let now = now();
 
 	loop {
 		let res = multipart

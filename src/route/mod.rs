@@ -38,7 +38,7 @@ pub async fn root(
 		}
 
 		let post_date = if let Some(post_date) = article.post_date {
-			post_date.to_rfc3339()
+			post_date.and_utc().to_rfc3339()
 		} else {
 			"not posted yet".to_string()
 		};
@@ -170,7 +170,7 @@ pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 		let Some(ref post_date) = a.post_date else {
 			continue;
 		};
-		let post_date = post_date.to_rfc2822();
+		let post_date = post_date.and_utc().to_rfc2822();
 		let url = a.content.get_url();
 
 		items_str.push_str(&format!(

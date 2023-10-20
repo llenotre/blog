@@ -2,11 +2,10 @@ use crate::service::article::Article;
 use crate::service::comment;
 use crate::service::comment::{Comment, CommentContent, MAX_CHARS};
 use crate::service::user::User;
-use crate::util::Oid;
+use crate::util::{now, Oid};
 use crate::GlobalData;
 use actix_session::Session;
 use actix_web::{delete, error, get, patch, post, web, HttpResponse, Responder};
-use chrono::Utc;
 use futures_util::StreamExt;
 use serde::Deserialize;
 use serde_json::json;
@@ -150,7 +149,7 @@ pub async fn post(
 		}
 
 		// Check user's cooldown
-		let now = Utc::now();
+		let now = now();
 		let cooldown_end = user.last_post + chrono::Duration::from_std(INTERVAL).unwrap();
 		if now < cooldown_end {
 			let remaining = (cooldown_end - now).num_seconds();
@@ -160,7 +159,7 @@ pub async fn post(
 		}
 	}
 
-	let date = Utc::now();
+	let date = now();
 	let comment_id = Comment::create(
 		&data.db,
 		&info.article_id,
@@ -227,7 +226,7 @@ pub async fn edit(
 		return Err(error::ErrorForbidden("forbidden"));
 	};
 
-	let now = Utc::now();
+	let now = now();
 
 	if !user.admin {
 		if !article.content.public {
