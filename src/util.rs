@@ -1,5 +1,6 @@
 //! Module implementing utilities.
 
+use chrono::{NaiveDateTime, Utc};
 use lazy_static::lazy_static;
 use pulldown_cmark::{html, Options, Parser};
 use regex::Regex;
@@ -18,6 +19,11 @@ pub trait FromRow {
 	fn from_row(row: &Row) -> Self
 	where
 		Self: Sized;
+}
+
+/// Returns the current date time on the UTC timezone.
+pub fn now() -> NaiveDateTime {
+	Utc::now().naive_utc()
 }
 
 lazy_static! {

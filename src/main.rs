@@ -23,6 +23,7 @@ use std::process::exit;
 use std::time::Duration;
 use tokio::time;
 use tokio_postgres::NoTls;
+use tracing::info;
 
 /// Server configuration.
 #[derive(Deserialize)]
@@ -30,8 +31,8 @@ struct Config {
 	/// The HTTP server's port.
 	port: u16,
 
-	/// The connection string for postgres.
-	pg_conn: String,
+	/// The connection string for the database.
+	db: String,
 
 	/// The client ID of the Github application.
 	client_id: String,
@@ -86,9 +87,7 @@ fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerRe
 			.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html"));
 		response
 	} else {
-		res.map_body(|_, body| EitherBody::Left {
-			body,
-		})
+		res.map_body(|_, body| EitherBody::Left { body })
 	};
 	Ok(ErrorHandlerResponse::Response(response))
 }
@@ -98,6 +97,8 @@ async fn main() -> io::Result<()> {
 	// Enabling logging
 	env::set_var("RUST_LOG", "info");
 	env_logger::init();
+
+	info!("read configuration");
 
 	// Read configuration
 	let config = fs::read_to_string("config.toml")
@@ -110,19 +111,24 @@ async fn main() -> io::Result<()> {
 			tracing::error!(error = %e, "invalid configuration file");
 			exit(1);
 		});
+	let session_secret_key = base64::engine::general_purpose::STANDARD
+		.decode(config.session_secret_key)
+		.unwrap();
+
+	info!("connect to database");
 
 	// Open database connection
 	// TODO tls
-	let (client, connection) = tokio_postgres::connect(&config.pg_conn, NoTls)
+	let (client, connection) = tokio_postgres::connect(&config.db, NoTls)
 		.await
 		.unwrap_or_else(|e| {
-			tracing::error!(error = %e, "database connection error");
+			tracing::error!(error = %e, "postgres: connection");
 			exit(1);
 		});
 	// TODO re-open on error
 	tokio::spawn(async move {
 		if let Err(e) = connection.await {
-			tracing::error!(error = %e, "postgres");
+			tracing::error!(error = %e, "postgres: connection");
 		}
 	});
 
@@ -135,9 +141,7 @@ async fn main() -> io::Result<()> {
 		discord_invite: config.discord_invite,
 	});
 
-	let session_secret_key = base64::engine::general_purpose::STANDARD
-		.decode(config.session_secret_key)
-		.unwrap();
+	info!("start worker");
 
 	// Worker task
 	let data_clone = data.clone();
@@ -149,6 +153,8 @@ async fn main() -> io::Result<()> {
 			interval.tick().await;
 		}
 	});
+
+	info!("start http server");
 
 	HttpServer::new(move || {
 		App::new()

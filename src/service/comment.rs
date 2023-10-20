@@ -2,12 +2,11 @@
 
 use crate::service::user::User;
 use crate::util;
-use crate::util::PgResult;
+use crate::util::{now, PgResult};
 use crate::util::{FromRow, Oid};
 use actix_web::error;
 use async_recursion::async_recursion;
-use chrono::DateTime;
-use chrono::Utc;
+use chrono::NaiveDateTime;
 use futures_util::{Stream, StreamExt};
 use std::collections::HashMap;
 use tokio_postgres::Row;
@@ -29,13 +28,13 @@ pub struct Comment {
 	/// The ID of author of the comment.
 	pub author_id: Oid,
 	/// Timestamp since epoch at which the comment has been posted.
-	pub post_date: DateTime<Utc>,
+	pub post_date: NaiveDateTime,
 
 	/// The comment's content.
 	pub content: CommentContent,
 
 	/// Tells whether the comment has been removed.
-	pub remove_date: Option<DateTime<Utc>>,
+	pub remove_date: Option<NaiveDateTime>,
 }
 
 impl FromRow for Comment {
@@ -73,7 +72,7 @@ impl Comment {
 		article_id: &Oid,
 		reply_to: &Option<Oid>,
 		user_id: &Oid,
-		post_date: &DateTime<Utc>,
+		post_date: &NaiveDateTime,
 		content: &str,
 	) -> PgResult<Oid> {
 		let row = db.query_one(r#"BEGIN TRANSACTION
@@ -151,7 +150,7 @@ impl Comment {
 		user_id: &Oid,
 		bypass_perm: bool,
 	) -> PgResult<()> {
-		let now = Utc::now();
+		let now = now();
 		if bypass_perm {
 			db.execute(
 				"UPDATE comment SET remove_date = '$1' WHERE id = '$2'",
@@ -176,7 +175,7 @@ pub struct CommentContent {
 	/// The ID of the comment.
 	pub comment_id: Oid,
 	/// Timestamp since epoch at which the comment has been edited.
-	pub edit_date: DateTime<Utc>,
+	pub edit_date: NaiveDateTime,
 	/// The content of the comment.
 	pub content: String,
 }
@@ -350,13 +349,13 @@ pub async fn to_html(
 	let mut date_text = if comment.content.edit_date > comment.post_date {
 		format!(
 			r#"<span id="date-long">{}</span> (edit: <span id="date-long">{}</span>)"#,
-			comment.post_date.to_rfc3339(),
-			comment.content.edit_date.to_rfc3339()
+			comment.post_date.and_utc().to_rfc3339(),
+			comment.content.edit_date.and_utc().to_rfc3339()
 		)
 	} else {
 		format!(
 			r#"<span id="date-long">{}</span>"#,
-			comment.post_date.to_rfc3339()
+			comment.post_date.and_utc().to_rfc3339()
 		)
 	};
 	if comment.remove_date.is_some() && admin {

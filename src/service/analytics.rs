@@ -3,10 +3,10 @@
 //! Some data that are collected on users are sensitive and need to be removed past a certain delay
 //! to comply with the GDPR.
 
+use crate::util::{now, PgResult};
 use anyhow::Result;
-use crate::util::PgResult;
-use chrono::Utc;
-use chrono::{DateTime, Duration};
+use chrono::Duration;
+use chrono::NaiveDateTime;
 use serde::Serialize;
 use std::cell::OnceCell;
 use std::fs::File;
@@ -126,7 +126,7 @@ impl TryFrom<&str> for UserDevice {
 /// Each time a page is visited, an instance of this structure is saved.
 pub struct AnalyticsEntry {
 	/// The date of visit.
-	date: DateTime<Utc>,
+	date: NaiveDateTime,
 
 	/// The user's IP address.
 	///
@@ -182,7 +182,7 @@ impl AnalyticsEntry {
 		});
 
 		Self {
-			date: Utc::now(),
+			date: now(),
 
 			peer_addr,
 			user_agent,
@@ -200,13 +200,17 @@ impl AnalyticsEntry {
 		db.execute(
 			r#"INSERT INTO analytics (date, peer_addr, user_agent, geolocation, device, method, uri)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
-			WHERE NOT EXISTS (SELECT peer_addr FROM analytics WHERE peer_addr = '$2' uri = '$3')"#,
+			ON CONFLICT (peer_addr, uri) DO NOTHING"#,
 			&[
 				&self.date,
 				&self.peer_addr,
 				&self.user_agent,
-				&serde_json::to_value(&self.geolocation)?,
-				&serde_json::to_value(&self.device)?,
+				&self
+					.geolocation
+					.as_ref()
+					.map(serde_json::to_value)
+					.transpose()?,
+				&self.device.as_ref().map(serde_json::to_value).transpose()?,
 				&self.method,
 				&self.uri,
 			],
@@ -218,7 +222,7 @@ impl AnalyticsEntry {
 	/// Anonymizes entries.
 	pub async fn aggregate(db: &tokio_postgres::Client) -> PgResult<()> {
 		// The end of the date range in which entries are going to be anonymized
-		let end = Utc::now() - Duration::hours(24);
+		let end = now() - Duration::hours(24);
 		db.execute(
 			"UPDATE analytics SET peer_addr = NULL AND user_agent = NULL WHERE date <= $1",
 			&[&end],

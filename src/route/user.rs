@@ -1,11 +1,11 @@
 use crate::service::user;
 use crate::service::user::User;
+use crate::util::now;
 use crate::GlobalData;
 use actix_session::Session;
 use actix_web::http::StatusCode;
 use actix_web::web::Redirect;
 use actix_web::{error, get, web, HttpResponseBuilder, Responder};
-use chrono::Utc;
 use serde::Deserialize;
 
 #[get("/auth")]
@@ -70,7 +70,7 @@ pub async fn oauth(
 				admin: false,
 				banned: false,
 
-				register_date: Utc::now(),
+				register_date: now(),
 				last_post: Default::default(),
 			};
 			user.insert(&data.db).await.map_err(|error| {

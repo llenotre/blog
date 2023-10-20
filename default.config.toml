@@ -1,6 +1,6 @@
 port = 80
 
-pg_conn = "host= dbname= user= password="
+db = "host= dbname= user= password="
 
 client_id = "..."
 client_secret = "..."
