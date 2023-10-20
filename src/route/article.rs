@@ -32,7 +32,7 @@ pub async fn get(
 	let expected_title = article.content.get_url_title();
 	if title != expected_title {
 		return Ok(Either::Left(
-			Redirect::to(article.content.get_path()).see_other(),
+			Redirect::to(article.get_path()).see_other(),
 		));
 	}
 
@@ -52,10 +52,10 @@ pub async fn get(
 	let html = include_str!("../../pages/article.html");
 	let html = html.replace("{article.tags}", &article.content.tags);
 	let html = html.replace("{article.id}", &id.to_string());
-	let html = html.replace("{article.url}", &article.content.get_url());
+	let html = html.replace("{article.url}", &article.get_url());
 	let html = html.replace("{article.title}", &article.content.title);
 	let html = html.replace("{article.date}", &post_date);
-	let html = html.replace("{article.desc}", &article.content.desc);
+	let html = html.replace("{article.description}", &article.content.description);
 	let html = html.replace("{article.cover_url}", &article.content.cover_url);
 	let markdown = util::markdown_to_html(&article.content.content, false);
 	let html = html.replace("{article.content}", &markdown);
@@ -163,7 +163,7 @@ pub async fn editor(
 		.unwrap_or("");
 	let article_desc = article
 		.as_ref()
-		.map(|a| a.content.desc.as_str())
+		.map(|a| a.content.description.as_str())
 		.unwrap_or("");
 	let article_cover_url = article
 		.as_ref()
@@ -187,7 +187,7 @@ pub async fn editor(
 	let html = include_str!("../../pages/editor.html");
 	let html = html.replace("{article.id}", &article_id_html);
 	let html = html.replace("{article.title}", article_title);
-	let html = html.replace("{article.desc}", article_desc);
+	let html = html.replace("{article.description}", article_desc);
 	let html = html.replace("{article.cover_url}", article_cover_url);
 	let html = html.replace("{article.content}", article_content);
 	let html = html.replace(
@@ -218,7 +218,7 @@ pub struct ArticleEdit {
 	/// The title of the article.
 	title: String,
 	/// The description of the article.
-	desc: String,
+	description: String,
 	/// The URL to the cover image of the article.
 	cover_url: String,
 	/// The content of the article in markdown.
@@ -258,10 +258,8 @@ pub async fn post(
 		Some(id) => {
 			// Insert article content
 			let content = ArticleContent {
-				article_id: id,
-
 				title: info.title,
-				desc: info.desc,
+				description: info.description,
 				cover_url: info.cover_url,
 				content: info.content,
 				tags: info.tags,
@@ -283,12 +281,10 @@ pub async fn post(
 
 		// Create article
 		None => {
-			// Insert article content
 			let content = ArticleContent {
-				article_id: 0,
 				edit_date: date,
 				title: info.title,
-				desc: info.desc,
+				description: info.description,
 				cover_url: info.cover_url,
 				content: info.content,
 				tags: info.tags,
@@ -296,36 +292,7 @@ pub async fn post(
 				sponsor,
 				comments_locked,
 			};
-			data.db
-				.execute(
-					r#"BEGIN TRANSACTION
-				INSERT INTO article (post_date, content_id) VALUES ($1, $2);
-				INSERT INTO article_content (
-					article_id,
-					edit_date,
-					title,
-					desc,
-					cover_url,
-					content,
-					tags,
-					public,
-					sponsor,
-					comments_locked,
-				) VALUES (0, $1, $2, $3, $4, $5, $6, $7, $8, $9); -- TODO article_id
-			COMMIT"#,
-					&[
-						&content.edit_date,
-						&content.title,
-						&content.desc,
-						&content.cover_url,
-						&content.content,
-						&content.tags,
-						&content.public,
-						&content.sponsor,
-						&content.comments_locked,
-					],
-				)
-				.await
+			Article::create(&data.db, &content).await
 				.map_err(|e| {
 					error!(error = %e, "postgres: article insert");
 					error::ErrorInternalServerError("")

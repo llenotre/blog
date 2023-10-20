@@ -27,10 +27,9 @@ impl FromRow for Article {
 			post_date: row.get("post_date"),
 
 			content: ArticleContent {
-				article_id: row.get("article_content.article_id"),
 				edit_date: row.get("article_content.edit_date"),
 				title: row.get("article_content.title"),
-				desc: row.get("article_content.desc"),
+				description: row.get("article_content.desc"),
 				cover_url: row.get("article_content.cover_url"),
 				content: row.get("article_content.content"),
 				tags: row.get("article_content.tags"),
@@ -64,6 +63,40 @@ impl Article {
 			.map(|r| r.map(|r| FromRow::from_row(&r)))
 	}
 
+	/// Creates a new article.
+	pub async fn create(db: &tokio_postgres::Client, content: &ArticleContent) -> PgResult<()> {
+		let row = db.query_one("INSERT INTO article (post_date) VALUES ($1) RETURNING id", &[&content.edit_date]).await?;
+		let article_id: Oid = row.get("id");
+		db.query_one(
+				r#"INSERT INTO article_content (
+					article_id,
+					edit_date,
+					title,
+					description,
+					cover_url,
+					content,
+					tags,
+					public,
+					sponsor,
+					comments_locked
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
+				&[
+					&article_id,
+					&content.edit_date,
+					&content.title,
+					&content.description,
+					&content.cover_url,
+					&content.content,
+					&content.tags,
+					&content.public,
+					&content.sponsor,
+					&content.comments_locked,
+				],
+			)
+			.await?;
+		Ok(())
+	}
+
 	/// Edits the article's content.
 	///
 	/// Arguments:
@@ -77,16 +110,15 @@ impl Article {
 		let post_date = content.public.then_some(date);
 		db.execute(r#"BEGIN TRANSACTION
 			WITH cid AS (
-				INSERT INTO article_content (article_id, edit_date, title, desc, cover_url, content, tags, public, sponsor, comments_locked)
-					VALUES ($1, $2, $4, $5, $6, $7, $8, $9, $10, $11)
+				INSERT INTO article_content (edit_date, title, desc, cover_url, content, tags, public, sponsor, comments_locked)
+					VALUES ($1, $3, $4, $5, $6, $7, $8, $9, $10)
 			);
-			UPDATE article SET content_id = cid post_date = COALESCE(post_date, $3) WHERE id = $1;
+			UPDATE article SET content_id = cid post_date = COALESCE(post_date, $2) WHERE id = $1;
 		COMMIT"#, &[
-			&content.article_id,
 			date,
 			&post_date,
 			&content.title,
-			&content.desc,
+			&content.description,
 			&content.cover_url,
 			&content.content,
 			&content.tags,
@@ -96,20 +128,28 @@ impl Article {
 		]).await?;
 		Ok(())
 	}
+
+	/// Returns the path to the article.
+	pub fn get_path(&self) -> String {
+		format!("/a/{}/{}", self.article_id, self.content.get_url_title())
+	}
+
+	/// Returns the URL of the article.
+	pub fn get_url(&self) -> String {
+		format!("https://blog.lenot.re{}", self.get_path())
+	}
 }
 
 /// Content of an article.
 ///
 /// Several contents are stored for the same article to keep the history of edits.
 pub struct ArticleContent {
-	/// The ID of the article.
-	pub article_id: Oid,
 	/// Timestamp since epoch at which the article has been edited.
 	pub edit_date: NaiveDateTime,
 	/// The article's title.
 	pub title: String,
 	/// The article's description.
-	pub desc: String,
+	pub description: String,
 	/// The URL to the cover image of the article.
 	pub cover_url: String,
 	/// The content of the article in markdown.
@@ -136,15 +176,5 @@ impl ArticleContent {
 			})
 			.collect::<String>()
 			.to_lowercase()
-	}
-
-	/// Returns the path to the article.
-	pub fn get_path(&self) -> String {
-		format!("/a/{}/{}", self.article_id, self.get_url_title())
-	}
-
-	/// Returns the URL of the article.
-	pub fn get_url(&self) -> String {
-		format!("https://blog.lenot.re{}", self.get_path())
 	}
 }
