@@ -1,7 +1,6 @@
 CREATE TABLE IF NOT EXISTS article (
     id SERIAL PRIMARY KEY,
     post_date TIMESTAMP,
-    content_id INT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS article_content (
@@ -14,7 +13,7 @@ CREATE TABLE IF NOT EXISTS article_content (
     content TEXT NOT NULL,
     tags TEXT NOT NULL,
     public BOOLEAN NOT NULL,
-    sponsors BOOLEAN NOT NULL,
+    sponsor BOOLEAN NOT NULL,
     comments_locked BOOLEAN NOT NULL
 );
 
@@ -61,12 +60,12 @@ CREATE TABLE IF NOT EXISTS comment (
     reply_to INT,
     author_id INT NOT NULL,
     post_date TIMESTAMP NOT NULL,
-    content_id INT NOT NULL,
     removed TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS comment_content (
     id SERIAL PRIMARY KEY,
+    comment_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     content TEXT NOT NULL
 );
