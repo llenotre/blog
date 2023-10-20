@@ -60,7 +60,7 @@ pub async fn oauth(
 
 		None => {
 			// Insert new user
-			let user = User {
+			let mut user = User {
 				id: 0,
 
 				access_token,
