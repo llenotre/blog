@@ -29,15 +29,15 @@ impl FromRow for Article {
 
 			content: ArticleContent {
 				article_id: id,
-				edit_date: row.get("article_content.edit_date"),
-				title: row.get("article_content.title"),
-				description: row.get("article_content.desc"),
-				cover_url: row.get("article_content.cover_url"),
-				content: row.get("article_content.content"),
-				tags: row.get("article_content.tags"),
-				public: row.get("article_content.public"),
-				sponsor: row.get("article_content.sponsor"),
-				comments_locked: row.get("article_content.comments_locked"),
+				edit_date: row.get("edit_date"),
+				title: row.get("title"),
+				description: row.get("description"),
+				cover_url: row.get("cover_url"),
+				content: row.get("content"),
+				tags: row.get("tags"),
+				public: row.get("public"),
+				sponsor: row.get("sponsor"),
+				comments_locked: row.get("comments_locked"),
 			},
 		}
 	}
@@ -48,7 +48,7 @@ impl Article {
 	pub async fn list(db: &tokio_postgres::Client) -> PgResult<impl Stream<Item = Self>> {
 		Ok(db
 			.query_raw(
-				"SELECT * FROM article ORDER BY post_date DESC",
+				"SELECT * FROM article INNER JOIN article_content ON article_content.id = article.id ORDER BY post_date DESC",
 				iter::empty::<u32>(),
 			)
 			.await?
@@ -60,7 +60,7 @@ impl Article {
 	/// `id` is the ID of the article.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		db
-			.query_opt("SELECT * FROM article WHERE id = $1", &[id])
+			.query_opt("SELECT * FROM article INNER JOIN article_content ON article_content.id = article.id WHERE id = $1 ORDER BY post_date DESC LIMIT 1", &[id])
 			.await
 			.map(|r| r.map(|r| FromRow::from_row(&r)))
 	}
@@ -71,7 +71,7 @@ impl Article {
 	pub async fn create(db: &tokio_postgres::Client, content: &mut ArticleContent) -> PgResult<()> {
 		let row = db.query_one("INSERT INTO article (post_date) VALUES ($1) RETURNING id", &[&content.edit_date]).await?;
 		let article_id: Oid = row.get("id");
-		db.query_one(
+		db.execute(
 				r#"INSERT INTO article_content (
 					article_id,
 					edit_date,
