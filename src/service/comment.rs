@@ -104,7 +104,7 @@ impl Comment {
 		article_id: &Oid,
 	) -> PgResult<impl Stream<Item = Self>> {
 		Ok(db
-			.query_raw("SELECT * FROM comment WHERE article = $1", &[article_id])
+			.query_raw("SELECT * FROM comment WHERE article_id = $1", &[article_id])
 			.await?
 			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
