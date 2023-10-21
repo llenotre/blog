@@ -87,7 +87,9 @@ fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerRe
 			.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html"));
 		response
 	} else {
-		res.map_body(|_, body| EitherBody::Left { body })
+		res.map_body(|_, body| EitherBody::Left {
+			body,
+		})
 	};
 	Ok(ErrorHandlerResponse::Response(response))
 }
@@ -172,6 +174,7 @@ async fn main() -> io::Result<()> {
 			.service(route::file::upload)
 			.service(route::legal)
 			.service(route::newsletter::subscribe)
+			.service(route::newsletter::unsubscribe)
 			.service(route::robots)
 			.service(route::root)
 			.service(route::rss)

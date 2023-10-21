@@ -158,25 +158,24 @@ impl AnalyticsEntry {
 	) -> Self {
 		// Get geolocation from peer address
 		let geolocation =
-			peer_addr.and_then(|peer_addr| {
-				match UserGeolocation::try_from(peer_addr) {
-					Ok(l) => Some(l),
-					Err(e) => {
-						warn!(%peer_addr, error = %e, "could not retrieve user's location");
-						None
-					}
+			peer_addr.and_then(|peer_addr| match UserGeolocation::try_from(peer_addr) {
+				Ok(l) => Some(l),
+				Err(e) => {
+					warn!(%peer_addr, error = %e, "could not retrieve user's location");
+					None
 				}
 			});
 		// Parse user agent
-		let device = user_agent.as_deref().and_then(|user_agent| {
-			match UserDevice::try_from(user_agent) {
-				Ok(l) => Some(l),
-				Err(e) => {
-					warn!(user_agent, error = %e, "could not retrieve informations about user's device");
-					None
-				}
-			}
-		});
+		let device =
+			user_agent
+				.as_deref()
+				.and_then(|user_agent| match UserDevice::try_from(user_agent) {
+					Ok(l) => Some(l),
+					Err(e) => {
+						warn!(user_agent, error = %e, "could not retrieve informations about user's device");
+						None
+					}
+				});
 
 		Self {
 			date: now(),
