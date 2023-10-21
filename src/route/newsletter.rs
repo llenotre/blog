@@ -1,7 +1,7 @@
 use crate::service::newsletter::NewsletterEmail;
 use crate::{util, GlobalData};
-use actix_web::{get, post, web, HttpResponse, Responder, error};
 use actix_web::http::header::ContentType;
+use actix_web::{error, get, post, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use tracing::error;
 

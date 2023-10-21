@@ -21,9 +21,10 @@ pub async fn get(
 	let (id, title) = path.into_inner();
 
 	// Get article
-	let article = Article::from_id(&data.db, &id)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let article = Article::from_id(&data.db, &id).await.map_err(|e| {
+		error!(error = %e, "postgres: article from ID");
+		error::ErrorInternalServerError("")
+	})?;
 	let Some(article) = article else {
 		return Err(error::ErrorNotFound(""));
 	};
@@ -37,9 +38,10 @@ pub async fn get(
 	}
 
 	// If article is not public, the user must be admin to see it
-	let admin = User::check_admin(&data.db, &session)
-		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+	let admin = User::check_admin(&data.db, &session).await.map_err(|e| {
+		error!(error = %e, "postgres: check admin");
+		error::ErrorInternalServerError("")
+	})?;
 	if (!article.content.public || article.post_date.is_none()) && !admin {
 		return Err(error::ErrorNotFound(""));
 	}
@@ -66,7 +68,10 @@ pub async fn get(
 	// Get article comments
 	let comments = Comment::list_for_article(&data.db, &article.id)
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?
+		.map_err(|e| {
+			error!(error = %e, "postgres: list article comments");
+			error::ErrorInternalServerError("")
+		})?
 		.collect::<Vec<_>>()
 		.await;
 	let comments_count = comments.len();
@@ -92,7 +97,6 @@ pub async fn get(
 			.await?,
 		);
 	}
-
 	let html = html.replace("{comments}", &comments_html);
 
 	let comment_editor_html = match user_login {
@@ -259,6 +263,7 @@ pub async fn post(
 			// Insert article content
 			let content = ArticleContent {
 				article_id: id,
+				edit_date: date,
 				title: info.title,
 				description: info.description,
 				cover_url: info.cover_url,
@@ -267,15 +272,11 @@ pub async fn post(
 				public,
 				sponsor,
 				comments_locked,
-
-				edit_date: date,
 			};
-			Article::edit(&data.db, &content, &date)
-				.await
-				.map_err(|e| {
-					tracing::error!(error = %e, "mongodb");
-					error::ErrorInternalServerError("")
-				})?;
+			Article::edit(&data.db, &content).await.map_err(|e| {
+				tracing::error!(error = %e, "postgres: article update");
+				error::ErrorInternalServerError("")
+			})?;
 
 			content.get_path()
 		}
