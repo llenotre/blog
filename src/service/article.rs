@@ -22,11 +22,13 @@ pub struct Article {
 
 impl FromRow for Article {
 	fn from_row(row: &Row) -> Self {
+		let id = row.get("id");
 		Self {
-			id: row.get("id"),
+			id,
 			post_date: row.get("post_date"),
 
 			content: ArticleContent {
+				article_id: id,
 				edit_date: row.get("article_content.edit_date"),
 				title: row.get("article_content.title"),
 				description: row.get("article_content.desc"),
@@ -64,7 +66,9 @@ impl Article {
 	}
 
 	/// Creates a new article.
-	pub async fn create(db: &tokio_postgres::Client, content: &ArticleContent) -> PgResult<()> {
+	///
+	/// On success, the function updates the article ID on the content.
+	pub async fn create(db: &tokio_postgres::Client, content: &mut ArticleContent) -> PgResult<()> {
 		let row = db.query_one("INSERT INTO article (post_date) VALUES ($1) RETURNING id", &[&content.edit_date]).await?;
 		let article_id: Oid = row.get("id");
 		db.query_one(
@@ -94,6 +98,7 @@ impl Article {
 				],
 			)
 			.await?;
+		content.article_id = article_id;
 		Ok(())
 	}
 
@@ -128,22 +133,14 @@ impl Article {
 		]).await?;
 		Ok(())
 	}
-
-	/// Returns the path to the article.
-	pub fn get_path(&self) -> String {
-		format!("/a/{}/{}", self.article_id, self.content.get_url_title())
-	}
-
-	/// Returns the URL of the article.
-	pub fn get_url(&self) -> String {
-		format!("https://blog.lenot.re{}", self.get_path())
-	}
 }
 
 /// Content of an article.
 ///
 /// Several contents are stored for the same article to keep the history of edits.
 pub struct ArticleContent {
+	/// The ID of the article.
+	pub article_id: Oid,
 	/// Timestamp since epoch at which the article has been edited.
 	pub edit_date: NaiveDateTime,
 	/// The article's title.
@@ -176,5 +173,15 @@ impl ArticleContent {
 			})
 			.collect::<String>()
 			.to_lowercase()
+	}
+
+	/// Returns the path to the article.
+	pub fn get_path(&self) -> String {
+		format!("/a/{}/{}", self.article_id, self.get_url_title())
+	}
+
+	/// Returns the URL of the article.
+	pub fn get_url(&self) -> String {
+		format!("https://blog.lenot.re{}", self.get_path())
 	}
 }

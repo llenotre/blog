@@ -82,7 +82,7 @@ pub async fn root(
 				</div>
 			</a>"#,
 			article_cover_url = article.content.cover_url,
-			article_path = article.get_path(),
+			article_path = article.content.get_path(),
 			article_title = article.content.title,
 			article_desc = article.content.description,
 		));
@@ -131,7 +131,7 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let mut articles = pin!(articles);
 	while let Some(a) = articles.next().await {
-		urls.push((a.get_url(), Some(a.content.edit_date)));
+		urls.push((a.content.get_url(), Some(a.content.edit_date)));
 	}
 
 	let urls: String = urls
@@ -171,7 +171,7 @@ pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 			continue;
 		};
 		let post_date = post_date.and_utc().to_rfc2822();
-		let url = a.get_url();
+		let url = a.content.get_url();
 
 		items_str.push_str(&format!(
 			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{post_date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
