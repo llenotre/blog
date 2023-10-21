@@ -36,9 +36,25 @@ CREATE TABLE IF NOT EXISTS analytics (
 );
 
 CREATE TABLE IF NOT EXISTS newsletter_subscriber (
-    id SERIAL PRIMARY KEY,
     email TEXT,
-    subscribe_date TIMESTAMP NOT NULL
+    subscribe_date TIMESTAMP NOT NULL,
+    unsubscribe_date TIMESTAMP,
+    unsubscribe_token UUID
+);
+
+CREATE TABLE IF NOT EXISTS newsletter_group (
+    id SERIAL PRIMARY KEY NOT NULL,
+    subject TEXT NOT NULL,
+    content_html TEXT NOT NULL,
+    content_text TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS newsletter_email (
+    token UUID PRIMARY KEY NOT NULL,
+    email_group INT,
+    recipient TEXT NOT NULL,
+    sent_at TIMESTAMP,
+    send_error TEXT
 );
 
 CREATE TABLE IF NOT EXISTS "user" (

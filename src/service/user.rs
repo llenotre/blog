@@ -161,8 +161,9 @@ impl User {
 	///
 	/// On success, the user's ID is updated.
 	pub async fn insert(&mut self, db: &tokio_postgres::Client) -> PgResult<()> {
-		let row = db.query_one(
-			r#"INSERT INTO "user" (
+		let row = db
+			.query_one(
+				r#"INSERT INTO "user" (
 			access_token,
 			github_login,
 			github_id,
@@ -173,18 +174,18 @@ impl User {
 			last_post
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id"#,
-			&[
-				&self.access_token,
-				&self.github_login,
-				&self.github_id,
-				&self.github_html_url,
-				&self.admin,
-				&self.banned,
-				&self.register_date,
-				&self.last_post,
-			],
-		)
-		.await?;
+				&[
+					&self.access_token,
+					&self.github_login,
+					&self.github_id,
+					&self.github_html_url,
+					&self.admin,
+					&self.banned,
+					&self.register_date,
+					&self.last_post,
+				],
+			)
+			.await?;
 		self.id = row.get("id");
 		Ok(())
 	}

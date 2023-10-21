@@ -294,11 +294,10 @@ pub async fn post(
 				sponsor,
 				comments_locked,
 			};
-			Article::create(&data.db, &mut content).await
-				.map_err(|e| {
-					error!(error = %e, "postgres: article insert");
-					error::ErrorInternalServerError("")
-				})?;
+			Article::create(&data.db, &mut content).await.map_err(|e| {
+				error!(error = %e, "postgres: article insert");
+				error::ErrorInternalServerError("")
+			})?;
 
 			content.get_path()
 		}

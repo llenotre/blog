@@ -69,10 +69,15 @@ impl Article {
 	///
 	/// On success, the function updates the article ID on the content.
 	pub async fn create(db: &tokio_postgres::Client, content: &mut ArticleContent) -> PgResult<()> {
-		let row = db.query_one("INSERT INTO article (post_date) VALUES ($1) RETURNING id", &[&content.edit_date]).await?;
+		let row = db
+			.query_one(
+				"INSERT INTO article (post_date) VALUES ($1) RETURNING id",
+				&[&content.edit_date],
+			)
+			.await?;
 		let article_id: Oid = row.get("id");
 		db.execute(
-				r#"INSERT INTO article_content (
+			r#"INSERT INTO article_content (
 					article_id,
 					edit_date,
 					title,
@@ -84,20 +89,20 @@ impl Article {
 					sponsor,
 					comments_locked
 				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
-				&[
-					&article_id,
-					&content.edit_date,
-					&content.title,
-					&content.description,
-					&content.cover_url,
-					&content.content,
-					&content.tags,
-					&content.public,
-					&content.sponsor,
-					&content.comments_locked,
-				],
-			)
-			.await?;
+			&[
+				&article_id,
+				&content.edit_date,
+				&content.title,
+				&content.description,
+				&content.cover_url,
+				&content.content,
+				&content.tags,
+				&content.public,
+				&content.sponsor,
+				&content.comments_locked,
+			],
+		)
+		.await?;
 		content.article_id = article_id;
 		Ok(())
 	}
