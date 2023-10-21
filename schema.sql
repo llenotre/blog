@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS article (
     id SERIAL PRIMARY KEY,
-    post_date TIMESTAMP,
+    post_date TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS article_content (
