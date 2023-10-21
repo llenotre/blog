@@ -32,7 +32,7 @@ pub async fn get(
 	let expected_title = article.content.get_url_title();
 	if title != expected_title {
 		return Ok(Either::Left(
-			Redirect::to(article.get_path()).see_other(),
+			Redirect::to(article.content.get_path()).see_other(),
 		));
 	}
 
@@ -52,7 +52,7 @@ pub async fn get(
 	let html = include_str!("../../pages/article.html");
 	let html = html.replace("{article.tags}", &article.content.tags);
 	let html = html.replace("{article.id}", &id.to_string());
-	let html = html.replace("{article.url}", &article.get_url());
+	let html = html.replace("{article.url}", &article.content.get_url());
 	let html = html.replace("{article.title}", &article.content.title);
 	let html = html.replace("{article.date}", &post_date);
 	let html = html.replace("{article.description}", &article.content.description);
@@ -258,6 +258,7 @@ pub async fn post(
 		Some(id) => {
 			// Insert article content
 			let content = ArticleContent {
+				article_id: id,
 				title: info.title,
 				description: info.description,
 				cover_url: info.cover_url,
@@ -281,7 +282,8 @@ pub async fn post(
 
 		// Create article
 		None => {
-			let content = ArticleContent {
+			let mut content = ArticleContent {
+				article_id: 0,
 				edit_date: date,
 				title: info.title,
 				description: info.description,
@@ -292,7 +294,7 @@ pub async fn post(
 				sponsor,
 				comments_locked,
 			};
-			Article::create(&data.db, &content).await
+			Article::create(&data.db, &mut content).await
 				.map_err(|e| {
 					error!(error = %e, "postgres: article insert");
 					error::ErrorInternalServerError("")
