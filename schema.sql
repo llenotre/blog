@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS article (
 );
 
 CREATE TABLE IF NOT EXISTS article_content (
-    id SERIAL PRIMARY KEY,
     article_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     title TEXT NOT NULL,
@@ -64,7 +63,6 @@ CREATE TABLE IF NOT EXISTS comment (
 );
 
 CREATE TABLE IF NOT EXISTS comment_content (
-    id SERIAL PRIMARY KEY,
     comment_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     content TEXT NOT NULL
