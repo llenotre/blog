@@ -1,4 +1,4 @@
-var article_id = document.getElementById("article-id").value;
+var article_id = parseInt(document.getElementById("article-id").value);
 
 var comments_visible = false;
 highlight_selected_comment();

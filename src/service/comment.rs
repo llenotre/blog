@@ -75,12 +75,10 @@ impl Comment {
 		post_date: &NaiveDateTime,
 		content: &str,
 	) -> PgResult<Oid> {
-		let row = db.query_one(r#"BEGIN TRANSACTION
-			WITH content_id AS (INSERT INTO comment_content (edit_date, content) VALUES ($4, $5) RETURNING id);
-			INSERT INTO comment (article_id, reply_to, author_id, post_date, content_id) VALUES ($1, $2, $3, $4, content_id) RETURNING id;
-		COMMIT"#, &[article_id, reply_to, &user_id, post_date, &content]).await?;
+		// TODO transaction?
+		let row = db.query_one(r#"INSERT INTO comment (article_id, reply_to, author_id, post_date, content_id)
+			VALUES ($1, $2, $3, $4, (INSERT INTO comment_content (edit_date, content) VALUES ($4, $5) RETURNING id)) RETURNING id"#, &[article_id, reply_to, &user_id, post_date, &content]).await?;
 		let id = row.get("id");
-		// TODO also place in transaction?
 		User::update_cooldown(db, user_id, post_date).await?;
 		Ok(id)
 	}
