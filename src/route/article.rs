@@ -216,7 +216,9 @@ pub async fn editor(
 /// Article edition coming from the editor.
 #[derive(Deserialize)]
 pub struct ArticleEdit {
-	/// The ID of the article. If `None`, a new article is being created.
+	/// The ID of the article.
+	///
+	/// If `None`, a new article is being created.
 	id: Option<Oid>,
 
 	/// The title of the article.

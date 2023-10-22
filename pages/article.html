@@ -21,7 +21,6 @@
 		<meta property="og:image" content="{article.cover_url}" />
 		<meta property="og:image:alt" content="{article.description}" />
 	</head>
-
 	<body class="article">
 		<input id="article-id" type="hidden" value="{article.id}" />
 		<div class="background">
@@ -35,13 +34,10 @@
 			<div class="content">
 				<div class="article-section article-header">
 					<h1>{article.title}</h1>
-
 					<h6><span id="date-long">{article.date}</span></h6>
-
 					<p>
 						{article.description}
 					</p>
-
 					<img class="cover" src="{article.cover_url}">
 				</div>
 				<div class="article-section">
@@ -50,7 +46,6 @@
 				<div class="article-section spaced">
 					<div class="share">
 						<p>Like my work? Share it! ❤️</p>
-
 						<ul class="share">
 							<li><a href="#" id="article-link" onclick="clipboard('article-link', '{article.url}')" alt="Copy link"><i class="fa-solid fa-link"></i></a></li>
 							<li><a href="https://twitter.com/intent/tweet?text={article.url}" target="_blank" alt="Share on Twitter"><i class="fa-brands fa-twitter"></i></a></li>
@@ -67,11 +62,9 @@
 				<a class="logo-button" href="#" onclick="toggle_comments()"><i class="fa-solid fa-xmark"></i></a>
 				<h3>Comments (<span id="comments-count">{comments.count}</span>)</h3>
 			</div>
-
 			<div id="comments-list" class="comments-list">
 				{comments}
 			</div>
-
 			<div>
 				{comment.editor}
 			</div>
