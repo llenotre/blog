@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS analytics (
     user_agent TEXT NOT NULL,
     geolocation JSON,
     device JSON,
-    method VARCHAR(16) NOT NULL,
-    uri VARCHAR(255) NOT NULL
+    method TEXT NOT NULL,
+    uri TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS newsletter_subscriber (
