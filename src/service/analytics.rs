@@ -195,7 +195,7 @@ impl AnalyticsEntry {
 	pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
 		db.execute(
 			r#"INSERT INTO analytics (date, peer_addr, user_agent, geolocation, device, method, uri)
-			SELECT $1, $2, $3, $4, $5, $6, $7 WHERE NOT EXISTS (SELECT 1 FROM analytics WHERE peer_addr = $2 AND user_agent = $3)"#,
+				SELECT $1, $2, $3, $4, $5, $6, $7 WHERE NOT EXISTS (SELECT 1 FROM analytics WHERE peer_addr = $2 AND method = $6 AND uri = $7)"#,
 			&[
 				&self.date,
 				&self.peer_addr,
