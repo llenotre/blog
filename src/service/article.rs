@@ -48,7 +48,11 @@ impl Article {
 	pub async fn list(db: &tokio_postgres::Client) -> PgResult<impl Stream<Item = Self>> {
 		Ok(db
 			.query_raw(
-				"SELECT * FROM article INNER JOIN article_content ON article_content.article_id = article.id ORDER BY post_date DESC",
+				"SELECT article.*,B1.*
+					FROM article
+					LEFT JOIN article_content AS B1 ON B1.article_id = article.id
+					LEFT JOIN article_content AS B2 ON B2.article_id = article.id AND B2.edit_date > B1.edit_date
+					WHERE B2.article_id IS NULL",
 				iter::empty::<u32>(),
 			)
 			.await?
@@ -60,7 +64,7 @@ impl Article {
 	/// `id` is the ID of the article.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		db
-			.query_opt("SELECT * FROM article INNER JOIN article_content ON article_content.article_id = article.id WHERE id = $1 ORDER BY post_date DESC LIMIT 1", &[id])
+			.query_opt("SELECT * FROM article INNER JOIN article_content ON article_content.article_id = article.id WHERE id = $1 ORDER BY edit_date DESC LIMIT 1", &[id])
 			.await
 			.map(|r| r.map(|r| FromRow::from_row(&r)))
 	}
@@ -111,25 +115,24 @@ impl Article {
 	///
 	/// `content` is the new content of the article.
 	pub async fn edit(db: &tokio_postgres::Client, content: &ArticleContent) -> PgResult<()> {
-		db.execute(r"INSERT INTO article_content (article_id, edit_date, title, description, cover_url, content, tags, public, sponsor, comments_locked)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", &[
-			&content.article_id,
-			&content.edit_date,
-			&content.title,
-			&content.description,
-			&content.cover_url,
-			&content.content,
-			&content.tags,
-			&content.public,
-			&content.sponsor,
-			&content.comments_locked,
-		]).await?;
+		// TODO transaction?
+		db.execute("INSERT INTO article_content (article_id, edit_date, title, description, cover_url, content, tags, public, sponsor, comments_locked)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+			 &[
+				&content.article_id,
+				&content.edit_date,
+				&content.title,
+				&content.description,
+				&content.cover_url,
+				&content.content,
+				&content.tags,
+				&content.public,
+				&content.sponsor,
+				&content.comments_locked,
+			])
+			.await?;
 		let post_date = content.public.then_some(content.edit_date);
-		db.execute(
-			"UPDATE article SET post_date = COALESCE(post_date, $2) WHERE id = $1",
-			&[&content.article_id, &post_date],
-		)
-		.await?;
+		db.execute("UPDATE article SET post_date = COALESCE(post_date, $2) WHERE id = $1", &[&content.article_id, &post_date]).await?;
 		Ok(())
 	}
 }
