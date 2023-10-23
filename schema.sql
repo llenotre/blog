@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS article_content (
 );
 
 CREATE TABLE IF NOT EXISTS file (
-    id SERIAL PRIMARY KEY,
+    uuid UUID PRIMARY KEY,
     name TEXT,
     mime_type TEXT NOT NULL,
     upload_date TIMESTAMP NOT NULL,
