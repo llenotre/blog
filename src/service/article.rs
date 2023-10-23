@@ -132,7 +132,11 @@ impl Article {
 			])
 			.await?;
 		let post_date = content.public.then_some(content.edit_date);
-		db.execute("UPDATE article SET post_date = COALESCE(post_date, $2) WHERE id = $1", &[&content.article_id, &post_date]).await?;
+		db.execute(
+			"UPDATE article SET post_date = COALESCE(post_date, $2) WHERE id = $1",
+			&[&content.article_id, &post_date],
+		)
+		.await?;
 		Ok(())
 	}
 }

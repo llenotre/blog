@@ -1,7 +1,7 @@
 //! This module implements files upload and usage.
 
 use crate::service::user::User;
-use crate::util::{now, Oid};
+use crate::util::now;
 use crate::GlobalData;
 use actix_multipart::Multipart;
 use actix_session::Session;
@@ -14,16 +14,17 @@ use futures_util::{SinkExt, StreamExt};
 use std::iter;
 use std::pin::pin;
 use tracing::error;
+use uuid::Uuid;
 
-#[get("/file/{id}")]
+#[get("/file/{uuid}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
-	id: web::Path<String>,
+	uuid: web::Path<String>,
 ) -> actix_web::Result<impl Responder> {
-	let id = id.into_inner();
-	let query = format!("SELECT data FROM file WHERE id = '{id}'");
+	let uuid = uuid.into_inner();
+	let query = format!("COPY (SELECT data FROM file WHERE uuid = '{uuid}') TO STDOUT BINARY");
 	let stream = data.db.copy_out(&query).await.map_err(|e| {
-		error!(error = %e, "postgres: file copy out");
+		error!(error = %e, "postgres: open download stream");
 		error::ErrorInternalServerError("")
 	})?;
 	// TODO mime type
@@ -46,7 +47,7 @@ pub async fn manage(
 	let files = data
 		.db
 		.query_raw(
-			"SELECT id,name,upload_date,length(data) as size FROM file ORDER BY upload_date DESC",
+			"SELECT uuid,name,upload_date,length(data) as size FROM file ORDER BY upload_date DESC",
 			iter::empty::<u32>(),
 		)
 		.await
@@ -57,16 +58,16 @@ pub async fn manage(
 	let files_html = files
 		.map(|file| {
 			let file = file.unwrap(); // TODO handle error
-			let id: Oid = file.get("id");
+			let uuid: Uuid = file.get("uuid");
 			let name: String = file.get("name");
 			let upload_date: NaiveDateTime = file.get("upload_date");
-			let size: u32 = file.get("size");
+			let size: i32 = file.get("size");
 
 			// TODO if picture, show it as background? (mime type is not available here)
 
 			format!(
 				r#"<div class="article" style="background: #2f2f2f;">
-					<h2><a href="/file/{id}" target="_blank">{name}</a></h2>
+					<h2><a href="/file/{uuid}" target="_blank">{name}</a></h2>
 
 					<p>Size: {size} bytes</p>
 					<p>Uploaded at: {upload_date} (UTC)</p>
@@ -117,19 +118,19 @@ pub async fn upload(
 		let mime_type = mime_type.to_string();
 
 		// Create file in database
-		let row = data.db.query_one("INSERT INTO file (name, mime_type, upload_date, data) VALUES ($1, $2, $3, '') RETURNING id", &[&filename, &mime_type, &now])
+		let row = data.db.query_one("INSERT INTO file (uuid, name, mime_type, upload_date, data) VALUES (gen_random_uuid(), $1, $2, $3, '') RETURNING uuid", &[&filename, &mime_type, &now])
 			.await
 			.map_err(|e| {
 				error!(error = %e, "postgres: insert file");
 				error::ErrorInternalServerError("")
 			})?;
-		let id: Oid = row.get("id");
+		let uuid: Uuid = row.get("uuid");
 
 		// Send file to database
 		let mut in_stream = field.map(|chunk| {
 			Ok(chunk.unwrap()) // TODO handle error
 		});
-		let query = format!("SELECT data FROM file WHERE id = '{id}'");
+		let query = format!("COPY file (data) FROM STDIN BINARY WHERE uuid = '{uuid}'");
 		let out_stream = data.db.copy_in(&query).await.map_err(|e| {
 			error!(error = %e, "postgres: open upload stream");
 			error::ErrorInternalServerError("")
