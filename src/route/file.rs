@@ -117,7 +117,7 @@ pub async fn upload(
 		let mime_type = mime_type.to_string();
 
 		// Create file in database
-		let row = data.db.query_one("INSERT INTO file VALUES (name, mime_type, upload_date) VALUES ($1, $2, $3) RETURNING id", &[&filename, &mime_type, &now])
+		let row = data.db.query_one("INSERT INTO file (name, mime_type, upload_date, data) VALUES ($1, $2, $3, '') RETURNING id", &[&filename, &mime_type, &now])
 			.await
 			.map_err(|e| {
 				error!(error = %e, "postgres: insert file");
@@ -129,7 +129,7 @@ pub async fn upload(
 		let mut in_stream = field.map(|chunk| {
 			Ok(chunk.unwrap()) // TODO handle error
 		});
-		let query = format!("SELECT data FROM file WHERE id = '{}'", id);
+		let query = format!("SELECT data FROM file WHERE id = '{id}'");
 		let out_stream = data.db.copy_in(&query).await.map_err(|e| {
 			error!(error = %e, "postgres: open upload stream");
 			error::ErrorInternalServerError("")
