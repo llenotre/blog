@@ -1,9 +1,11 @@
 CREATE TABLE IF NOT EXISTS article (
     id SERIAL PRIMARY KEY,
-    post_date TIMESTAMP
+    post_date TIMESTAMP,
+    content_id INT
 );
 
 CREATE TABLE IF NOT EXISTS article_content (
+    id INT PRIMARY KEY NOT NULL,
     article_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     title TEXT NOT NULL,
@@ -25,7 +27,6 @@ CREATE TABLE IF NOT EXISTS file (
 );
 
 CREATE TABLE IF NOT EXISTS analytics (
-    id SERIAL PRIMARY KEY,
     date TIMESTAMP NOT NULL,
     peer_addr INET NOT NULL,
     user_agent TEXT NOT NULL,
@@ -36,7 +37,7 @@ CREATE TABLE IF NOT EXISTS analytics (
 );
 
 CREATE TABLE IF NOT EXISTS newsletter_subscriber (
-    email TEXT,
+    email TEXT PRIMARY KEY,
     subscribe_date TIMESTAMP NOT NULL,
     unsubscribe_date TIMESTAMP,
     unsubscribe_token UUID
@@ -75,10 +76,12 @@ CREATE TABLE IF NOT EXISTS comment (
     reply_to INT,
     author_id INT NOT NULL,
     post_date TIMESTAMP NOT NULL,
+    content_id INT,
     removed TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS comment_content (
+    id INT PRIMARY KEY NOT NULL,
     comment_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     content TEXT NOT NULL
