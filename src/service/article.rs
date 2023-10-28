@@ -48,11 +48,7 @@ impl Article {
 	pub async fn list(db: &tokio_postgres::Client) -> PgResult<impl Stream<Item = Self>> {
 		Ok(db
 			.query_raw(
-				"SELECT article.*,B1.*
-					FROM article
-					LEFT JOIN article_content AS B1 ON B1.article_id = article.id
-					LEFT JOIN article_content AS B2 ON B2.article_id = article.id AND B2.edit_date > B1.edit_date
-					WHERE B2.article_id IS NULL",
+				"SELECT * FROM article INNER JOIN article_content ON article_content.id = article.content_id",
 				iter::empty::<u32>(),
 			)
 			.await?
@@ -64,7 +60,7 @@ impl Article {
 	/// `id` is the ID of the article.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		db
-			.query_opt("SELECT * FROM article INNER JOIN article_content ON article_content.article_id = article.id WHERE id = $1 ORDER BY edit_date DESC LIMIT 1", &[id])
+			.query_opt("SELECT * FROM article INNER JOIN article_content ON article_content.id = article.content_id WHERE id = $1", &[id])
 			.await
 			.map(|r| r.map(|r| FromRow::from_row(&r)))
 	}
@@ -72,42 +68,50 @@ impl Article {
 	/// Creates a new article.
 	///
 	/// On success, the function updates the article ID on the content.
-	pub async fn create(db: &tokio_postgres::Client, content: &mut ArticleContent) -> PgResult<()> {
-		let row = db
-			.query_one(
-				"INSERT INTO article (post_date) VALUES ($1) RETURNING id",
-				&[&content.edit_date],
+	pub async fn create(
+		db: &mut tokio_postgres::Client,
+		content: &mut ArticleContent,
+	) -> PgResult<()> {
+		let post_date = content.public.then_some(content.edit_date);
+		let transaction = db.transaction().await?;
+		transaction
+			.execute(
+				r#"WITH content_id AS (SELECT nextval(pg_get_serial_sequence('article_content', 'id')))
+			INSERT INTO article (post_date, content_id) VALUES ($1, (SELECT 0 FROM content_id))"#,
+				&[&post_date],
 			)
 			.await?;
-		let article_id: Oid = row.get("id");
-		db.execute(
-			r#"INSERT INTO article_content (
-					article_id,
-					edit_date,
-					title,
-					description,
-					cover_url,
-					content,
-					tags,
-					public,
-					sponsor,
-					comments_locked
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
-			&[
-				&article_id,
-				&content.edit_date,
-				&content.title,
-				&content.description,
-				&content.cover_url,
-				&content.content,
-				&content.tags,
-				&content.public,
-				&content.sponsor,
-				&content.comments_locked,
-			],
-		)
-		.await?;
-		content.article_id = article_id;
+		transaction
+			.execute(
+				r"WITH article_id AS (SELECT currval(pg_get_serial_sequence('article', 'id')))
+			INSERT INTO article_content (
+				article_id,
+				edit_date,
+				title,
+				description,
+				cover_url,
+				content,
+				tags,
+				public,
+				sponsor,
+				comments_locked
+			) VALUES ((SELECT 0 FROM article_id), $1, $2, $3, $4, $5, $6, $7, $8, $9)",
+				&[
+					&content.edit_date,
+					&content.title,
+					&content.description,
+					&content.cover_url,
+					&content.content,
+					&content.tags,
+					&content.public,
+					&content.sponsor,
+					&content.comments_locked,
+				],
+			)
+			.await?;
+		let row = transaction.query_one("SELECT article_id", &[]).await?;
+		transaction.commit().await?;
+		content.article_id = row.get("article_id");
 		Ok(())
 	}
 
@@ -115,28 +119,26 @@ impl Article {
 	///
 	/// `content` is the new content of the article.
 	pub async fn edit(db: &tokio_postgres::Client, content: &ArticleContent) -> PgResult<()> {
-		// TODO transaction?
-		db.execute("INSERT INTO article_content (article_id, edit_date, title, description, cover_url, content, tags, public, sponsor, comments_locked)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+		let post_date = content.public.then_some(content.edit_date);
+		db.execute(r"WITH cid AS (
+				INSERT INTO article_content (article_id, edit_date, title, description, cover_url, content, tags, public, sponsor, comments_locked)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
+			)
+			UPDATE article SET post_date = COALESCE(post_date, $11), content_id = cid WHERE id = $1",
 			 &[
-				&content.article_id,
-				&content.edit_date,
-				&content.title,
-				&content.description,
-				&content.cover_url,
-				&content.content,
-				&content.tags,
-				&content.public,
-				&content.sponsor,
-				&content.comments_locked,
+				 &content.article_id,
+				 &content.edit_date,
+				 &content.title,
+				 &content.description,
+				 &content.cover_url,
+				 &content.content,
+				 &content.tags,
+				 &content.public,
+				 &content.sponsor,
+				 &content.comments_locked,
+				 &post_date,
 			])
 			.await?;
-		let post_date = content.public.then_some(content.edit_date);
-		db.execute(
-			"UPDATE article SET post_date = COALESCE(post_date, $2) WHERE id = $1",
-			&[&content.article_id, &post_date],
-		)
-		.await?;
 		Ok(())
 	}
 }

@@ -79,7 +79,7 @@ where
 			let entry = AnalyticsEntry::new(peer_addr, user_agent, method, uri);
 			let global = self.global.clone();
 			tokio::spawn(async move {
-				if let Err(e) = entry.insert(&global.db).await {
+				if let Err(e) = entry.insert(&*global.db.read().await).await {
 					tracing::error!(error = %e, "cannot log analytics");
 				}
 			});

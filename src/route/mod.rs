@@ -18,13 +18,15 @@ pub async fn root(
 	data: web::Data<GlobalData>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let admin = User::check_admin(&data.db, &session).await.map_err(|e| {
+	let db = data.db.read().await;
+
+	let admin = User::check_admin(&db, &session).await.map_err(|e| {
 		tracing::error!(error = %e, "database: user");
 		error::ErrorInternalServerError("")
 	})?;
 
 	// Get articles
-	let articles = Article::list(&data.db).await.map_err(|e| {
+	let articles = Article::list(&db).await.map_err(|e| {
 		tracing::error!(error = %e, "database: articles");
 		error::ErrorInternalServerError("")
 	})?;
@@ -126,7 +128,7 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 	urls.push(("/bio".to_owned(), None));
 	urls.push(("/legal".to_owned(), None));
 
-	let articles = Article::list(&data.db)
+	let articles = Article::list(&*data.db.read().await)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let mut articles = pin!(articles);
@@ -160,7 +162,7 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 
 #[get("/rss")]
 pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
-	let articles = Article::list(&data.db)
+	let articles = Article::list(&*data.db.read().await)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let mut articles = pin!(articles);

@@ -21,6 +21,7 @@ use std::fs;
 use std::io;
 use std::process::exit;
 use std::time::Duration;
+use tokio::sync::RwLock;
 use tokio::time;
 use tokio_postgres::NoTls;
 use tracing::info;
@@ -49,7 +50,7 @@ struct Config {
 /// Structure shared across the server.
 pub struct GlobalData {
 	/// The connection to the database.
-	pub db: tokio_postgres::Client,
+	pub db: RwLock<tokio_postgres::Client>,
 
 	/// The client ID of the Github application.
 	pub client_id: String,
@@ -135,7 +136,7 @@ async fn main() -> io::Result<()> {
 	});
 
 	let data = web::Data::new(GlobalData {
-		db: client,
+		db: RwLock::new(client),
 
 		client_id: config.client_id,
 		client_secret: config.client_secret,
@@ -151,7 +152,7 @@ async fn main() -> io::Result<()> {
 		let data = data_clone.into_inner();
 		let mut interval = time::interval(Duration::from_secs(10));
 		loop {
-			let _ = AnalyticsEntry::aggregate(&data.db).await;
+			let _ = AnalyticsEntry::aggregate(&*data.db.read().await).await;
 			interval.tick().await;
 		}
 	});

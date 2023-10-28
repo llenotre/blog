@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS article (
 );
 
 CREATE TABLE IF NOT EXISTS article_content (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     article_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     title TEXT NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS article_content (
 );
 
 CREATE TABLE IF NOT EXISTS file (
-    uuid UUID PRIMARY KEY,
+    uuid UUID PRIMARY KEY NOT NULL,
     name TEXT,
     mime_type TEXT NOT NULL,
     upload_date TIMESTAMP NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS comment (
 );
 
 CREATE TABLE IF NOT EXISTS comment_content (
-    id INT PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY,
     comment_id INT NOT NULL,
     edit_date TIMESTAMP NOT NULL,
     content TEXT NOT NULL
