@@ -23,7 +23,7 @@ pub async fn get(
 ) -> actix_web::Result<impl Responder> {
 	let uuid = uuid.into_inner();
 	let query = format!("COPY (SELECT data FROM file WHERE uuid = '{uuid}') TO STDOUT BINARY");
-	let stream = data.db.copy_out(&query).await.map_err(|e| {
+	let stream = data.db.read().await.copy_out(&query).await.map_err(|e| {
 		error!(error = %e, "postgres: open download stream");
 		error::ErrorInternalServerError("")
 	})?;
@@ -36,16 +36,17 @@ pub async fn manage(
 	data: web::Data<GlobalData>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
+	let db = data.db.read().await;
+
 	// Check auth
-	let admin = User::check_admin(&data.db, &session)
+	let admin = User::check_admin(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if !admin {
 		return Err(error::ErrorForbidden(""));
 	}
 
-	let files = data
-		.db
+	let files = db
 		.query_raw(
 			"SELECT uuid,name,upload_date,length(data) as size FROM file ORDER BY upload_date DESC",
 			iter::empty::<u32>(),
@@ -91,8 +92,10 @@ pub async fn upload(
 	mut multipart: Multipart,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
+	let db = data.db.read().await;
+
 	// Check auth
-	let admin = User::check_admin(&data.db, &session)
+	let admin = User::check_admin(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if !admin {
@@ -118,7 +121,7 @@ pub async fn upload(
 		let mime_type = mime_type.to_string();
 
 		// Create file in database
-		let row = data.db.query_one("INSERT INTO file (uuid, name, mime_type, upload_date, data) VALUES (gen_random_uuid(), $1, $2, $3, '') RETURNING uuid", &[&filename, &mime_type, &now])
+		let row = db.query_one("INSERT INTO file (uuid, name, mime_type, upload_date, data) VALUES (gen_random_uuid(), $1, $2, $3, '') RETURNING uuid", &[&filename, &mime_type, &now])
 			.await
 			.map_err(|e| {
 				error!(error = %e, "postgres: insert file");
@@ -131,7 +134,7 @@ pub async fn upload(
 			Ok(chunk.unwrap()) // TODO handle error
 		});
 		let query = format!("COPY file (data) FROM STDIN BINARY WHERE uuid = '{uuid}'");
-		let out_stream = data.db.copy_in(&query).await.map_err(|e| {
+		let out_stream = db.copy_in(&query).await.map_err(|e| {
 			error!(error = %e, "postgres: open upload stream");
 			error::ErrorInternalServerError("")
 		})?;

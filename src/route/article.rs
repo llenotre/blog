@@ -19,9 +19,10 @@ pub async fn get(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let (id, title) = path.into_inner();
+	let db = data.db.read().await;
 
 	// Get article
-	let article = Article::from_id(&data.db, &id).await.map_err(|e| {
+	let article = Article::from_id(&db, &id).await.map_err(|e| {
 		error!(error = %e, "postgres: article from ID");
 		error::ErrorInternalServerError("")
 	})?;
@@ -38,7 +39,7 @@ pub async fn get(
 	}
 
 	// If article is not public, the user must be admin to see it
-	let admin = User::check_admin(&data.db, &session).await.map_err(|e| {
+	let admin = User::check_admin(&db, &session).await.map_err(|e| {
 		error!(error = %e, "postgres: check admin");
 		error::ErrorInternalServerError("")
 	})?;
@@ -66,7 +67,7 @@ pub async fn get(
 	let user_login = session.get::<String>("user_login")?;
 
 	// Get article comments
-	let comments = Comment::list_for_article(&data.db, &article.id)
+	let comments = Comment::list_for_article(&db, &article.id)
 		.await
 		.map_err(|e| {
 			error!(error = %e, "postgres: list article comments");
@@ -86,7 +87,7 @@ pub async fn get(
 
 		comments_html.push_str(
 			&comment::to_html(
-				&data.db,
+				&db,
 				&expected_title,
 				&com,
 				Some(&replies),
@@ -135,8 +136,10 @@ pub async fn editor(
 	query: web::Query<EditorQuery>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
+	let db = data.db.read().await;
+
 	// Check auth
-	let admin = User::check_admin(&data.db, &session)
+	let admin = User::check_admin(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if !admin {
@@ -146,7 +149,7 @@ pub async fn editor(
 	// Get article
 	let article_id = query.into_inner().id;
 	let article = match article_id {
-		Some(article_id) => Article::from_id(&data.db, &article_id)
+		Some(article_id) => Article::from_id(&db, &article_id)
 			.await
 			.map_err(|_| error::ErrorInternalServerError(""))?,
 		None => None,
@@ -246,7 +249,7 @@ pub async fn post(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	// Check auth
-	let admin = User::check_admin(&data.db, &session)
+	let admin = User::check_admin(&*data.db.read().await, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	if !admin {
@@ -275,10 +278,12 @@ pub async fn post(
 				sponsor,
 				comments_locked,
 			};
-			Article::edit(&data.db, &content).await.map_err(|e| {
-				tracing::error!(error = %e, "postgres: article update");
-				error::ErrorInternalServerError("")
-			})?;
+			Article::edit(&*data.db.read().await, &content)
+				.await
+				.map_err(|e| {
+					tracing::error!(error = %e, "postgres: article update");
+					error::ErrorInternalServerError("")
+				})?;
 
 			content.get_path()
 		}
@@ -297,10 +302,12 @@ pub async fn post(
 				sponsor,
 				comments_locked,
 			};
-			Article::create(&data.db, &mut content).await.map_err(|e| {
-				error!(error = %e, "postgres: article insert");
-				error::ErrorInternalServerError("")
-			})?;
+			Article::create(&mut *data.db.write().await, &mut content)
+				.await
+				.map_err(|e| {
+					error!(error = %e, "postgres: article insert");
+					error::ErrorInternalServerError("")
+				})?;
 
 			content.get_path()
 		}

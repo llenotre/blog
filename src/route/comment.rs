@@ -24,13 +24,14 @@ pub async fn get(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let id = id.into_inner();
+	let db = data.db.read().await;
 
-	let user = User::current_user(&data.db, &session)
+	let user = User::current_user(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let admin = user.as_ref().map(|u| u.admin).unwrap_or(false);
 
-	let comment = Comment::from_id(&data.db, &id)
+	let comment = Comment::from_id(&db, &id)
 		.await
 		.map_err(|e| {
 			tracing::error!(error = %e, "mongodb");
@@ -43,7 +44,7 @@ pub async fn get(
 			.body("comment not found"));
 	}
 
-	let article = Article::from_id(&data.db, &comment.article_id)
+	let article = Article::from_id(&db, &comment.article_id)
 		.await
 		.map_err(|e| {
 			tracing::error!(error = %e, "mongodb");
@@ -55,7 +56,7 @@ pub async fn get(
 	let replies = match comment.reply_to {
 		None => Some(
 			comment
-				.get_replies(&data.db)
+				.get_replies(&db)
 				.await
 				.map_err(|e| {
 					tracing::error!(error = %e, "mongodb");
@@ -70,7 +71,7 @@ pub async fn get(
 	let user_id = user.as_ref().map(|u| &u.id);
 	let user_login = user.as_ref().map(|u| u.github_login.as_str());
 	let html = comment::to_html(
-		&data.db,
+		&db,
 		&article.content.title,
 		&comment,
 		replies.as_deref(),
@@ -103,6 +104,7 @@ pub async fn post(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let info = info.into_inner();
+	let db = data.db.read().await;
 
 	let len = info.content.as_bytes().len();
 	if len == 0 {
@@ -119,7 +121,7 @@ pub async fn post(
 	}
 
 	// Check article exists
-	let article = Article::from_id(&data.db, &info.article_id)
+	let article = Article::from_id(&db, &info.article_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(article) = article else {
@@ -127,7 +129,7 @@ pub async fn post(
 	};
 
 	// Get user
-	let user = User::current_user(&data.db, &session)
+	let user = User::current_user(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(user) = user else {
@@ -161,7 +163,7 @@ pub async fn post(
 
 	let date = now();
 	let comment_id = Comment::create(
-		&data.db,
+		&db,
 		&info.article_id,
 		&info.reply_to,
 		&user.id,
@@ -195,6 +197,7 @@ pub async fn edit(
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
 	let info = info.into_inner();
+	let db = data.db.read().await;
 
 	if info.content.is_empty() {
 		return Err(error::ErrorBadRequest("no content provided"));
@@ -204,14 +207,14 @@ pub async fn edit(
 	}
 
 	// Get comment
-	let comment = Comment::from_id(&data.db, &info.comment_id)
+	let comment = Comment::from_id(&db, &info.comment_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(comment) = comment else {
 		return Err(error::ErrorNotFound("comment not found"));
 	};
 
-	let article = Article::from_id(&data.db, &comment.article_id)
+	let article = Article::from_id(&db, &comment.article_id)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(article) = article else {
@@ -219,7 +222,7 @@ pub async fn edit(
 	};
 
 	// Get user
-	let user = User::current_user(&data.db, &session)
+	let user = User::current_user(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	let Some(user) = user else {
@@ -257,7 +260,7 @@ pub async fn edit(
 		edit_date: now,
 		content: info.content,
 	};
-	Comment::edit(&data.db, &user.id, &comment_content)
+	Comment::edit(&db, &user.id, &comment_content)
 		.await
 		.map_err(|e| {
 			error!(error = %e, "postgres: comment edit");
@@ -274,16 +277,17 @@ pub async fn delete(
 	session: Session,
 ) -> impl Responder {
 	let comment_id = comment_id.into_inner();
+	let db = data.db.read().await;
 
 	let Some(user_id) = session.get::<Oid>("user_id").ok().flatten() else {
 		return Err(error::ErrorForbidden("forbidden"));
 	};
 
 	// Delete if the user has permission
-	let admin = User::check_admin(&data.db, &session)
+	let admin = User::check_admin(&db, &session)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
-	Comment::delete(&data.db, &comment_id, &user_id, admin)
+	Comment::delete(&db, &comment_id, &user_id, admin)
 		.await
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 

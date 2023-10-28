@@ -49,7 +49,9 @@ pub async fn oauth(
 		error::ErrorInternalServerError("")
 	})?;
 
-	let user = User::from_github_id(&data.db, &(github_user.id as _))
+	let db = data.db.read().await;
+
+	let user = User::from_github_id(&db, &(github_user.id as _))
 		.await
 		.map_err(|error| {
 			error!(%error, github_id = github_user.id, "postgres: cannot get user from ID");
@@ -74,7 +76,7 @@ pub async fn oauth(
 				register_date: now(),
 				last_post: Default::default(),
 			};
-			user.insert(&data.db).await.map_err(|error| {
+			user.insert(&db).await.map_err(|error| {
 				error!(%error, "postgres: cannot insert user");
 				error::ErrorInternalServerError("")
 			})?;
