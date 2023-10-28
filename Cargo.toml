@@ -30,3 +30,6 @@ toml = "0.8.2"
 tracing = "*"
 uaparser = "0.6.1"
 uuid = { version = "1.5.0", features = ["v4"] }
+
+[profile.release]
+strip = true
