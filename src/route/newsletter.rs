@@ -32,10 +32,8 @@ pub async fn subscribe(
 			.body("invalid email address"));
 	}
 	// Insert in DB
-	if NewsletterEmail::insert(&data.db, &info.email)
-		.await
-		.is_err()
-	{
+	if let Err(error) = NewsletterEmail::insert(&data.db, &info.email).await {
+		error!(%error, "could not insert subscriber");
 		return Ok(HttpResponse::InternalServerError()
 			.content_type("text/plain")
 			.body("internal server error"));
