@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS article (
     id SERIAL PRIMARY KEY,
     post_date TIMESTAMP,
-    content_id INT
+    content_id INT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS article_content (
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS comment (
     reply_to INT,
     author_id INT NOT NULL,
     post_date TIMESTAMP NOT NULL,
-    content_id INT,
+    content_id INT NOT NULL,
     removed TIMESTAMP
 );
 
