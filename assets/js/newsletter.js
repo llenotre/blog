@@ -9,7 +9,7 @@ email.addEventListener("keypress", function(event) {
 });
 
 async function newsletter_subscribe() {
-	if (email.value.length == 0) {
+	if (email.value.length === 0) {
 		return;
 	}
 
@@ -23,7 +23,7 @@ async function newsletter_subscribe() {
             return [response.status, await response.text()];
 		});
 
-	if (status == 200) {
+	if (status === 200) {
 		email.value = "";
 
 		// Indicate success
