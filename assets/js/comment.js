@@ -1,29 +1,29 @@
-var article_id = parseInt(document.getElementById("article-id").value);
+let article_id = parseInt(document.getElementById("article-id").value);
 
-var comments_visible = false;
+let comments_visible = false;
 highlight_selected_comment();
 
-var stored_visible = window.localStorage.getItem("comments_visible") == "true";
+let stored_visible = window.localStorage.getItem("comments_visible") === "true";
 if (stored_visible && !comments_visible) {
 	toggle_comments();
 }
 
 // Highlights the select comment
 function highlight_selected_comment() {
-	var fragment = window.location.hash;
+	let fragment = window.location.hash;
 	if (!fragment) {
 		return;
 	}
 
-	var selected_comment_id = fragment.slice(1);
-	if (selected_comment_id.length == 0) {
+	let selected_comment_id = fragment.slice(1);
+	if (selected_comment_id.length === 0) {
 		return;
 	}
 	if (!selected_comment_id.startsWith("com-")) {
 		return;
 	}
 
-	var selected_comment = document.getElementById(selected_comment_id);
+	let selected_comment = document.getElementById(selected_comment_id);
 	if (!selected_comment) {
 		return;
 	}
@@ -36,7 +36,7 @@ function highlight_selected_comment() {
 function clipboard(id, content) {
 	navigator.clipboard.writeText(content);
 
-	var button = document.getElementById(id);
+	let button = document.getElementById(id);
 	button.innerHTML = "<i class=\"fa-solid fa-check\"></i>";
 	setTimeout(() => {
 		button.innerHTML = "<i class=\"fa-solid fa-link\"></i>";
@@ -45,7 +45,7 @@ function clipboard(id, content) {
 
 // Toggles visibility of the comments window.
 function toggle_comments() {
-	var comments = document.getElementById("comments");
+	let comments = document.getElementById("comments");
 	if (comments_visible) {
 		comments.style.display = "none";
 	} else {
@@ -57,19 +57,13 @@ function toggle_comments() {
 	window.localStorage.setItem("comments_visible", comments_visible);
 }
 
-// Toggles visibility of a reactions selector.
-function toggle_reactions(id) {
-	var selector = document.getElementById(id);
-	selector.hidden = !selector.hidden;
-}
-
 // Updates the number of characters in the counter
 function input(comment_id, action) {
-	var comment_content = document.getElementById("comment-" + comment_id + "-" + action + "-content");
-	var comment_submit = document.getElementById("comment-" + comment_id + "-" + action + "-submit");
-	var comment_len = document.getElementById("comment-" + comment_id + "-" + action + "-len");
+	let comment_content = document.getElementById("comment-" + comment_id + "-" + action + "-content");
+	let comment_submit = document.getElementById("comment-" + comment_id + "-" + action + "-submit");
+	let comment_len = document.getElementById("comment-" + comment_id + "-" + action + "-len");
 
-	var len = new TextEncoder().encode(comment_content.value).length;
+	let len = new TextEncoder().encode(comment_content.value).length;
 	comment_len.innerHTML = len;
 	if (len > 5000) {
 		comment_len.style.color = 'red';
@@ -81,16 +75,16 @@ function input(comment_id, action) {
 
 // Toggles visibility of the edit editor for the comment with the given ID.
 function toggle_edit(comment_id) {
-	var edit_div = document.getElementById("editor-" + comment_id + "-edit");
-	var reply_div = document.getElementById("editor-" + comment_id + "-reply");
+	let edit_div = document.getElementById("editor-" + comment_id + "-edit");
+	let reply_div = document.getElementById("editor-" + comment_id + "-reply");
 	edit_div.hidden = !edit_div.hidden;
 	reply_div.hidden = true;
 }
 
 // Toggles visibility of the reply editor for the comment with the given ID.
 function toggle_reply(comment_id) {
-	var edit_div = document.getElementById("editor-" + comment_id + "-edit");
-	var reply_div = document.getElementById("editor-" + comment_id + "-reply");
+	let edit_div = document.getElementById("editor-" + comment_id + "-edit");
+	let reply_div = document.getElementById("editor-" + comment_id + "-reply");
 	edit_div.hidden = true;
 	reply_div.hidden = !reply_div.hidden;
 }
@@ -104,8 +98,8 @@ function expand_editor(id) {
 async function fetch_comment(id) {
 	return await fetch("/comment/" + id)
 		.then(async function(response) {
-			var body = await response.text();
-			if (response.status == 200) {
+			let body = await response.text();
+			if (response.status === 200) {
 				return body;
 			} else {
 				alert("Failed to fetch comment: " + body);
@@ -116,26 +110,26 @@ async function fetch_comment(id) {
 
 // Posts a comment.
 async function post(comment_id) {
-	var comment_content = document.getElementById("comment-" + comment_id + "-post-content");
-	if (comment_content.value.length == 0) {
+	let comment_content = document.getElementById("comment-" + comment_id + "-post-content");
+	if (comment_content.value.length === 0) {
 		return;
 	}
 
     // Post comment
-	var headers = new Headers();
+	let headers = new Headers();
 	headers.append("Content-Type", "application/json");
-	var payload = JSON.stringify({
+	let payload = JSON.stringify({
 		"article_id": article_id,
 		"reply_to": parseInt(comment_id),
 		"content": comment_content.value
 	});
-	var id = await fetch("/comment", { method: "POST", headers: headers, body: payload })
+	let id = await fetch("/comment", { method: "POST", headers: headers, body: payload })
 		.then(async function(response) {
-			if (response.status == 200) {
-				var json = await response.json();
+			if (response.status === 200) {
+				let json = await response.json();
 				return json["id"];
 			} else {
-				var error = await response.text();
+				let error = await response.text();
 				alert("Failed to post comment: " + error);
 				return null;
 			}
@@ -145,13 +139,13 @@ async function post(comment_id) {
 	}
 
 	// Get new comment's HTML
-	var comment_html = await fetch_comment(id);
+	let comment_html = await fetch_comment(id);
 	if (comment_html == null) {
 		return;
 	}
 
     // Add comment on front-end
-	var comments_list;
+	let comments_list;
 	if (comment_id == null) {
 		comments_list = document.getElementById("comments-list");
 	} else {
@@ -160,7 +154,7 @@ async function post(comment_id) {
     comments_list.innerHTML += comment_html;
 
 	// Format comment's date
-	var com = document.getElementById("com-" + id);
+	let com = document.getElementById("com-" + id);
 	format_date_long(com.querySelectorAll("[id=date-long]"));
 
     // Empty text editor
@@ -168,43 +162,40 @@ async function post(comment_id) {
     input(comment_id, "post");
 
     // Update comments count
-    var coms_count = document.getElementById("comments-count");
+    let coms_count = document.getElementById("comments-count");
     coms_count.textContent = parseInt(coms_count.textContent) + 1;
 }
 
 // Edits the comment with the given ID.
 async function edit(comment_id) {
-	var comment_content = document.getElementById("comment-" + comment_id + "-edit-content");
-	if (comment_content.value.length == 0) {
+	let comment_content = document.getElementById("comment-" + comment_id + "-edit-content");
+	if (comment_content.value.length === 0) {
 		return;
 	}
 
     // Update comment
-	var headers = new Headers();
+	let headers = new Headers();
     headers.append("Content-Type", "application/json");
-	var payload = JSON.stringify({
-		"comment_id": comment_id,
+	let payload = JSON.stringify({
+		"comment_id": parseInt(comment_id),
 		"content": comment_content.value
 	});
-	var response = await fetch("/comment", { method: "PATCH", headers: headers, body: payload });
-	if (response.status != 200) {
-		var error = await response.text();
+	let response = await fetch("/comment", { method: "PATCH", headers: headers, body: payload });
+	if (response.status !== 200) {
+		let error = await response.text();
 		alert("Failed to edit comment: " + error);
 		return;
 	}
 
 	// Fetch updated HTML
-	var comment_html = await fetch_comment(comment_id);
+	let comment_html = await fetch_comment(comment_id);
 	if (comment_html == null) {
 		return;
 	}
 
     // Update comment on front-end
-	var com = document.getElementById("com-" + comment_id);
+	let com = document.getElementById("com-" + comment_id);
 	com.outerHTML = comment_html;
-
-	// Update comment's date
-	var com = document.getElementById("com-" + comment_id);
 	format_date_long(com.querySelectorAll("[id=date-long]"));
 }
 
@@ -214,18 +205,18 @@ async function del(comment_id) {
 		return;
 	}
 
-	var response = await fetch("/comment/" + comment_id, { method: "DELETE" });
-	if (response.status != 200) {
-		var error = await response.text();
+	let response = await fetch("/comment/" + comment_id, { method: "DELETE" });
+	if (response.status !== 200) {
+		let error = await response.text();
 		alert("Failed to delete comment: " + error);
 		return;
 	}
 
     // Remove comment from front-end
-    var com = document.getElementById("com-" + comment_id);
+    let com = document.getElementById("com-" + comment_id);
     com.parentNode.removeChild(com);
 
     // Update comments count
-    var coms_count = document.getElementById("comments-count");
+    let coms_count = document.getElementById("comments-count");
     coms_count.textContent = parseInt(coms_count.textContent) - 1;
 }
