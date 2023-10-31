@@ -117,7 +117,7 @@ impl Article {
 				INSERT INTO article_content (article_id, edit_date, title, description, cover_url, content, tags, public, sponsor, comments_locked)
 					VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
 			)
-			UPDATE article SET post_date = COALESCE(post_date, $11), content_id = cid WHERE id = $1",
+			UPDATE article SET post_date = COALESCE(post_date, $11), content_id = (SELECT id FROM cid) WHERE id = $1",
 			 &[
 				 &content.article_id,
 				 &content.edit_date,
