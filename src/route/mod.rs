@@ -6,6 +6,7 @@ use actix_web::http::header::ContentType;
 use actix_web::{error, get, web, HttpResponse, Responder};
 use futures_util::StreamExt;
 use std::pin::pin;
+use tracing::warn;
 
 pub mod article;
 pub mod comment;
@@ -39,31 +40,15 @@ pub async fn root(
 			continue;
 		}
 
-		let post_date = if let Some(post_date) = article.post_date {
-			post_date.and_utc().to_rfc3339()
-		} else {
-			"not posted yet".to_string()
+		let post_date = match article.post_date {
+			Some(post_date) => post_date.and_utc().to_rfc3339(),
+			None => "not posted yet".to_string(),
 		};
 
-		let mut tags = vec![];
-		if admin {
-			let pub_tag = if article.content.public {
-				"Public"
-			} else {
-				"Private"
-			};
-			tags.push(pub_tag);
+		let mut tags_html = String::new();
+		if let Err(error) = article.get_tags_html(&mut tags_html, admin) {
+			warn!(article = article.id, %error, "tags formatting");
 		}
-		if article.content.sponsor {
-			tags.push("<i>Sponsors early access</i>&nbsp;❤️");
-		}
-		if !article.content.tags.is_empty() {
-			tags.extend(article.content.tags.split(','));
-		}
-		let tags_html: String = tags
-			.into_iter()
-			.map(|s| format!(r#"<li class="tag">{s}</li>"#))
-			.collect();
 
 		articles_html.push_str(&format!(
 			r#"<a href="{article_path}">
@@ -71,12 +56,10 @@ pub async fn root(
 					<img class="article-cover" src="{article_cover_url}"></img>
 					<div class="article-element-content">
 						<h3>{article_title}</h3>
-
 						<ul class="tags">
 							<li><h6 style="color: gray;"><span id="date">{post_date}</span></h6></li>
 							{tags_html}
 						</ul>
-
 						<p>
 							{article_desc}
 						</p>

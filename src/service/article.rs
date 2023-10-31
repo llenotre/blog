@@ -4,7 +4,8 @@ use crate::util::Oid;
 use crate::util::{FromRow, PgResult};
 use chrono::NaiveDateTime;
 use futures_util::{Stream, StreamExt};
-use std::iter;
+use std::fmt::Write;
+use std::{fmt, iter};
 use tokio_postgres::Row;
 
 /// Structure representing an article.
@@ -48,7 +49,7 @@ impl Article {
 	pub async fn list(db: &tokio_postgres::Client) -> PgResult<impl Stream<Item = Self>> {
 		Ok(db
 			.query_raw(
-				"SELECT * FROM article INNER JOIN article_content ON article_content.id = article.content_id",
+				"SELECT * FROM article INNER JOIN article_content ON article_content.id = article.content_id ORDER BY article.id DESC",
 				iter::empty::<u32>(),
 			)
 			.await?
@@ -68,10 +69,7 @@ impl Article {
 	/// Creates a new article.
 	///
 	/// On success, the function updates the article ID on the content.
-	pub async fn create(
-		db: &tokio_postgres::Client,
-		content: &mut ArticleContent,
-	) -> PgResult<()> {
+	pub async fn create(db: &tokio_postgres::Client, content: &mut ArticleContent) -> PgResult<()> {
 		let post_date = content.public.then_some(content.edit_date);
 		let row = db.query_one(
 			r"WITH
@@ -133,6 +131,29 @@ impl Article {
 			])
 			.await?;
 		Ok(())
+	}
+
+	/// Write the HTML code representing the article's tags to the given output.
+	///
+	/// `admin` tells whether the user is admin.
+	pub fn get_tags_html<W: Write>(&self, out: &mut W, admin: bool) -> fmt::Result {
+		if admin {
+			if self.content.public {
+				write!(out, r#"<li class="tag">Public</li>"#)?;
+			} else {
+				write!(out, r#"<li class="tag">Private</li>"#)?;
+			}
+		}
+		if self.content.sponsor {
+			write!(out, "<i>Sponsors early access</i>&nbsp;&nbsp;&nbsp;❤️")?;
+		}
+		self.content
+			.tags
+			.split(',')
+			.map(str::trim)
+			.filter(|s| !s.is_empty())
+			.map(|tag| write!(out, r#"<li class="tag">{tag}</li>"#))
+			.collect()
 	}
 }
 
