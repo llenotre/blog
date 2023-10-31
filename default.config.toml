@@ -1,10 +1,13 @@
 port = 80
-
 db = "host= dbname= user= password="
+session_secret_key = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+discord_invite = "..."
 
+[s3]
+region = "..."
+endpoint = "..."
+bucket = "..."
+
+[github]
 client_id = "..."
 client_secret = "..."
-
-session_secret_key = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-
-discord_invite = ""

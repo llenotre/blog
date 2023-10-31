@@ -11,11 +11,14 @@ use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
 use actix_web::middleware::Logger;
 use actix_web::{
-	App, body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse,
-	http::header, http::header::HeaderValue, HttpServer, middleware::ErrorHandlerResponse,
-	middleware::ErrorHandlers, web,
+	body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, http::header,
+	http::header::HeaderValue, middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web,
+	App, HttpServer,
 };
+use awscreds::Credentials;
 use base64::Engine;
+use config::{Config, GithubConfig};
+use s3::{Bucket, Region};
 use std::env;
 use std::fs;
 use std::io;
@@ -25,16 +28,16 @@ use tokio::sync::RwLock;
 use tokio::time;
 use tokio_postgres::NoTls;
 use tracing::info;
-use config::{Config, GithubConfig};
 
 /// Structure shared across the server.
 pub struct GlobalData {
 	/// The connection to the database.
 	pub db: RwLock<tokio_postgres::Client>,
+	/// The s3 bucket for files storage.
+	pub s3_bucket: Bucket,
 
 	/// Github configuration.
 	pub github_config: GithubConfig,
-
 	/// The URL to the Discord server's invitation.
 	pub discord_invite: String,
 }
@@ -80,16 +83,14 @@ async fn main() -> io::Result<()> {
 	info!("read configuration");
 
 	// Read configuration
-	let config = fs::read_to_string("config.toml")
-		.unwrap_or_else(|error| {
-			tracing::error!(%error, "cannot read configuration file");
-			exit(1);
-		});
-	let config: Config = toml::from_str(&config)
-		.unwrap_or_else(|error| {
-			tracing::error!(%error, "invalid configuration file");
-			exit(1);
-		});
+	let config = fs::read_to_string("config.toml").unwrap_or_else(|error| {
+		tracing::error!(%error, "cannot read configuration file");
+		exit(1);
+	});
+	let config: Config = toml::from_str(&config).unwrap_or_else(|error| {
+		tracing::error!(%error, "invalid configuration file");
+		exit(1);
+	});
 	let session_secret_key = base64::engine::general_purpose::STANDARD
 		.decode(config.session_secret_key)
 		.unwrap();
@@ -111,8 +112,22 @@ async fn main() -> io::Result<()> {
 		}
 	});
 
+	let s3_region = Region::Custom {
+		region: config.s3.region,
+		endpoint: config.s3.endpoint,
+	};
+	let aws_creds = Credentials::default().unwrap_or_else(|error| {
+		tracing::error!(%error, "s3 credentials");
+		exit(1);
+	});
+	let s3_bucket = Bucket::new(&config.s3.bucket, s3_region, aws_creds).unwrap_or_else(|error| {
+		tracing::error!(%error, "s3 bucket");
+		exit(1);
+	});
+
 	let data = web::Data::new(GlobalData {
 		db: RwLock::new(client),
+		s3_bucket,
 
 		github_config: config.github,
 		discord_invite: config.discord_invite,

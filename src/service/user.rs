@@ -1,5 +1,6 @@
 //! This module implements user accounts.
 
+use crate::config::GithubConfig;
 use crate::util::Oid;
 use crate::util::{FromRow, PgResult};
 use actix_session::Session;
@@ -8,7 +9,6 @@ use chrono::NaiveDateTime;
 use macros::FromRow;
 use serde::Deserialize;
 use serde::Serialize;
-use crate::config::GithubConfig;
 
 /// The user agent for Github requests.
 const GITHUB_USER_AGENT: &str = "maestro";
