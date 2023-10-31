@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS comment (
     author_id INT NOT NULL,
     post_date TIMESTAMP NOT NULL,
     content_id INT NOT NULL,
-    removed TIMESTAMP
+    remove_date TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS comment_content (

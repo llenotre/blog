@@ -289,7 +289,10 @@ pub async fn delete(
 		.map_err(|_| error::ErrorInternalServerError(""))?;
 	Comment::delete(&db, &comment_id, &user_id, admin)
 		.await
-		.map_err(|_| error::ErrorInternalServerError(""))?;
+		.map_err(|e| {
+			error!(error = %e, "postgres: comment delete");
+			error::ErrorInternalServerError("")
+		})?;
 
 	// TODO change status according to error (not found, forbidden, etc...)
 	Ok(HttpResponse::Ok().finish())

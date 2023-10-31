@@ -126,7 +126,7 @@ async function post(comment_id) {
 	headers.append("Content-Type", "application/json");
 	var payload = JSON.stringify({
 		"article_id": article_id,
-		"reply_to": comment_id,
+		"reply_to": parseInt(comment_id),
 		"content": comment_content.value
 	});
 	var id = await fetch("/comment", { method: "POST", headers: headers, body: payload })

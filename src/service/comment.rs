@@ -54,7 +54,7 @@ impl FromRow for Comment {
 				content: row.get("content"),
 			},
 
-			remove_date: row.get("removed"),
+			remove_date: row.get("remove_date"),
 		}
 	}
 }
@@ -97,7 +97,7 @@ impl Comment {
 	/// `id` is the ID of the comment.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		Ok(db
-			.query_opt("SELECT * FROM comment INNER JOIN comment_content ON comment_content.id = comment.content_id WHERE id = $1", &[id])
+			.query_opt("SELECT * FROM comment INNER JOIN comment_content ON comment_content.id = comment.content_id WHERE comment.id = $1", &[id])
 			.await?
 			.as_ref()
 			.map(FromRow::from_row))
