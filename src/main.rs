@@ -88,9 +88,7 @@ fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerRe
 			.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html"));
 		response
 	} else {
-		res.map_body(|_, body| EitherBody::Left {
-			body,
-		})
+		res.map_body(|_, body| EitherBody::Left { body })
 	};
 	Ok(ErrorHandlerResponse::Response(response))
 }
