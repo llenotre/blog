@@ -134,11 +134,11 @@ impl Comment {
 		content: &CommentContent,
 	) -> PgResult<()> {
 		db.execute(
-			r#"BEGIN TRANSACTION
-				WITH cid AS (INSERT INTO comment_content (edit_date, content) VALUES ($1, $2) RETURNING id);
-				UPDATE comment SET content_id = cid WHERE id = $3;
-			COMMIT"#,
-			&[&content.edit_date, &content.content, &content.comment_id],
+			r#"WITH cid AS (
+				INSERT INTO comment_content (comment_id, edit_date, content) VALUES ($1, $2, $3) RETURNING id
+			)
+			UPDATE comment SET content_id = (SELECT id FROM cid) WHERE id = $1"#,
+			&[&content.comment_id, &content.edit_date, &content.content],
 		)
 		.await?;
 		User::update_cooldown(db, user_id, &content.edit_date).await?;
