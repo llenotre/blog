@@ -529,6 +529,7 @@ dependencies = [
  "ammonia",
  "anyhow",
  "async-recursion",
+ "aws-creds",
  "base64 0.21.4",
  "chrono",
  "env_logger",

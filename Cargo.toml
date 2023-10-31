@@ -11,6 +11,7 @@ actix-web = { version = "4.3.1", features = ["cookies"] }
 ammonia = "3.3.0"
 anyhow = "1.0.72"
 async-recursion = "1.0.4"
+aws-creds = "*"
 base64 = "0.21.2"
 chrono = "0.4.24"
 env_logger = "0.10.0"
