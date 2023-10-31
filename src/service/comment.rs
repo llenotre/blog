@@ -39,8 +39,9 @@ pub struct Comment {
 
 impl FromRow for Comment {
 	fn from_row(row: &Row) -> Self {
+		let id = row.get("id");
 		Self {
-			id: row.get("id"),
+			id,
 
 			article_id: row.get("article_id"),
 			reply_to: row.get("reply_to"),
@@ -48,9 +49,9 @@ impl FromRow for Comment {
 			post_date: row.get("post_date"),
 
 			content: CommentContent {
-				comment_id: row.get("comment_content.comment_id"),
-				edit_date: row.get("comment_content.edit_date"),
-				content: row.get("comment_content.content"),
+				comment_id: id,
+				edit_date: row.get("edit_date"),
+				content: row.get("content"),
 			},
 
 			remove_date: row.get("removed"),
@@ -75,14 +76,18 @@ impl Comment {
 		post_date: &NaiveDateTime,
 		content: &str,
 	) -> PgResult<Oid> {
-		let row = db.query_one(r#"BEGIN;
-			WITH
-				comment_id AS (SELECT nextval(pg_get_serial_sequence("comment", "id"))),
-				content_id AS (SELECT nextval(pg_get_serial_sequence("comment_content", "id")))
-			INSERT INTO comment (id, article_id, reply_to, author_id, post_date, content_id) VALUES (comment_id, $1, $2, $3, $4, content_id);
-			INSERT INTO comment_content (id, comment_id, edit_date, content) VALUES (content_id, comment_id, $4, $5)
-		COMMIT;"#, &[article_id, reply_to, &user_id, post_date, &content]).await?;
-		let id = row.get("id");
+		let row = db.query_one(r#"WITH
+				com_id AS (SELECT nextval(pg_get_serial_sequence('comment', 'id'))),
+				cont_id AS (
+					INSERT INTO comment_content (comment_id, edit_date, content)
+						VALUES ((SELECT nextval FROM com_id), $4, $5)
+						RETURNING comment_content.id
+				)
+			INSERT INTO comment (id, article_id, reply_to, author_id, post_date, content_id)
+				VALUES ((SELECT nextval FROM com_id), $1, $2, $3, $4, (SELECT id FROM cont_id))
+				RETURNING comment.id"#,
+		   &[article_id, reply_to, &user_id, post_date, &content]).await?;
+		let id = row.get(0);
 		User::update_cooldown(db, user_id, post_date).await?;
 		Ok(id)
 	}
@@ -92,7 +97,7 @@ impl Comment {
 	/// `id` is the ID of the comment.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		Ok(db
-			.query_opt("SELECT * FROM comment WHERE id = $1", &[id])
+			.query_opt("SELECT * FROM comment INNER JOIN comment_content ON comment_content.id = comment.content_id WHERE id = $1", &[id])
 			.await?
 			.as_ref()
 			.map(FromRow::from_row))
@@ -106,7 +111,7 @@ impl Comment {
 		article_id: &Oid,
 	) -> PgResult<impl Stream<Item = Self>> {
 		Ok(db
-			.query_raw("SELECT * FROM comment WHERE article_id = $1", &[article_id])
+			.query_raw("SELECT * FROM comment INNER JOIN comment_content ON comment_content.id = comment.content_id WHERE article_id = $1", &[article_id])
 			.await?
 			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
@@ -117,7 +122,7 @@ impl Comment {
 		db: &tokio_postgres::Client,
 	) -> PgResult<impl Stream<Item = Self>> {
 		Ok(db
-			.query_raw("SELECT * FROM comment WHERE reply_to = $1", &[&self.id])
+			.query_raw("SELECT * FROM comment INNER JOIN comment_content ON comment_content.id = comment.content_id WHERE reply_to = $1", &[&self.id])
 			.await?
 			.map(|r| FromRow::from_row(&r.unwrap())))
 	}
