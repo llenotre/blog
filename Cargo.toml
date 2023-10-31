@@ -21,6 +21,7 @@ maxminddb = "0.23.0"
 pulldown-cmark = "0.9.2"
 regex = "1.8.3"
 reqwest = { version = "0.11.16", features = ["json", "stream"] }
+rust-s3 = "0.33.0"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "*"
 tokio = "1.27.0"
