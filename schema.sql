@@ -18,14 +18,6 @@ CREATE TABLE IF NOT EXISTS article_content (
     comments_locked BOOLEAN NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS file (
-    uuid UUID PRIMARY KEY NOT NULL,
-    name TEXT,
-    mime_type TEXT NOT NULL,
-    upload_date TIMESTAMP NOT NULL,
-    data BYTEA NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS analytics (
     date TIMESTAMP NOT NULL,
     peer_addr INET NOT NULL,

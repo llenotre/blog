@@ -8,6 +8,7 @@ use chrono::NaiveDateTime;
 use macros::FromRow;
 use serde::Deserialize;
 use serde::Serialize;
+use crate::config::GithubConfig;
 
 /// The user agent for Github requests.
 const GITHUB_USER_AGENT: &str = "maestro";
@@ -95,8 +96,7 @@ pub struct User {
 impl User {
 	/// Queries the access token from the given `code` returned by Github.
 	pub async fn query_access_token(
-		client_id: &str,
-		client_secret: &str,
+		github_config: &GithubConfig,
 		code: &str,
 	) -> Result<Option<String>, reqwest::Error> {
 		let client = reqwest::Client::new();
@@ -106,8 +106,8 @@ impl User {
 			.header("User-Agent", GITHUB_USER_AGENT)
 			.header("X-GitHub-Api-Version", GITHUB_API_VERSION)
 			.query(&[
-				("client_id", client_id),
-				("client_secret", client_secret),
+				("client_id", github_config.client_id.as_str()),
+				("client_secret", github_config.client_secret.as_str()),
 				("code", code),
 			])
 			.send()

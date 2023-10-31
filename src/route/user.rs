@@ -11,7 +11,7 @@ use tracing::error;
 
 #[get("/auth")]
 pub async fn auth(data: web::Data<GlobalData>) -> impl Responder {
-	Redirect::to(user::get_auth_url(&data.client_id)).see_other()
+	Redirect::to(user::get_auth_url(&data.github_config.client_id)).see_other()
 }
 
 /// The query containing informations returned by Github for OAuth.
@@ -32,7 +32,7 @@ pub async fn oauth(
 	};
 
 	// Get access token
-	let access_token = User::query_access_token(&data.client_id, &data.client_secret, &code)
+	let access_token = User::query_access_token(&data.github_config, &code)
 		.await
 		.map_err(|error| {
 			error!(%error, "could not retrieve access token from Github");

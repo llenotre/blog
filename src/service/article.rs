@@ -152,8 +152,7 @@ impl Article {
 			.split(',')
 			.map(str::trim)
 			.filter(|s| !s.is_empty())
-			.map(|tag| write!(out, r#"<li class="tag">{tag}</li>"#))
-			.collect()
+			.try_for_each(|tag| write!(out, r#"<li class="tag">{tag}</li>"#))
 	}
 }
 

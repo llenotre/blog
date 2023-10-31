@@ -1,3 +1,4 @@
+mod config;
 mod middleware;
 mod route;
 mod service;
@@ -10,12 +11,11 @@ use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
 use actix_web::middleware::Logger;
 use actix_web::{
-	body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse, http::header,
-	http::header::HeaderValue, middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web,
-	App, HttpServer,
+	App, body::BoxBody, body::EitherBody, cookie::Key, dev::ServiceResponse,
+	http::header, http::header::HeaderValue, HttpServer, middleware::ErrorHandlerResponse,
+	middleware::ErrorHandlers, web,
 };
 use base64::Engine;
-use serde::Deserialize;
 use std::env;
 use std::fs;
 use std::io;
@@ -25,37 +25,15 @@ use tokio::sync::RwLock;
 use tokio::time;
 use tokio_postgres::NoTls;
 use tracing::info;
-
-/// Server configuration.
-#[derive(Deserialize)]
-struct Config {
-	/// The HTTP server's port.
-	port: u16,
-
-	/// The connection string for the database.
-	db: String,
-
-	/// The client ID of the Github application.
-	client_id: String,
-	/// The client secret of the Github application.
-	client_secret: String,
-
-	/// The secret key used to secure sessions.
-	session_secret_key: String,
-
-	/// The URL to the Discord server's invitation.
-	discord_invite: String,
-}
+use config::{Config, GithubConfig};
 
 /// Structure shared across the server.
 pub struct GlobalData {
 	/// The connection to the database.
 	pub db: RwLock<tokio_postgres::Client>,
 
-	/// The client ID of the Github application.
-	pub client_id: String,
-	/// The client secret of the Github application.
-	pub client_secret: String,
+	/// Github configuration.
+	pub github_config: GithubConfig,
 
 	/// The URL to the Discord server's invitation.
 	pub discord_invite: String,
@@ -103,13 +81,13 @@ async fn main() -> io::Result<()> {
 
 	// Read configuration
 	let config = fs::read_to_string("config.toml")
-		.map(|s| toml::from_str::<Config>(&s))
-		.unwrap_or_else(|e| {
-			tracing::error!(error = %e, "cannot read configuration file");
+		.unwrap_or_else(|error| {
+			tracing::error!(%error, "cannot read configuration file");
 			exit(1);
-		})
-		.unwrap_or_else(|e| {
-			tracing::error!(error = %e, "invalid configuration file");
+		});
+	let config: Config = toml::from_str(&config)
+		.unwrap_or_else(|error| {
+			tracing::error!(%error, "invalid configuration file");
 			exit(1);
 		});
 	let session_secret_key = base64::engine::general_purpose::STANDARD
@@ -122,23 +100,21 @@ async fn main() -> io::Result<()> {
 	// TODO tls
 	let (client, connection) = tokio_postgres::connect(&config.db, NoTls)
 		.await
-		.unwrap_or_else(|e| {
-			tracing::error!(error = %e, "postgres: connection");
+		.unwrap_or_else(|error| {
+			tracing::error!(%error, "postgres: connection");
 			exit(1);
 		});
 	// TODO re-open on error
 	tokio::spawn(async move {
-		if let Err(e) = connection.await {
-			tracing::error!(error = %e, "postgres: connection");
+		if let Err(error) = connection.await {
+			tracing::error!(%error, "postgres: connection");
 		}
 	});
 
 	let data = web::Data::new(GlobalData {
 		db: RwLock::new(client),
 
-		client_id: config.client_id,
-		client_secret: config.client_secret,
-
+		github_config: config.github,
 		discord_invite: config.discord_invite,
 	});
 
@@ -169,8 +145,6 @@ async fn main() -> io::Result<()> {
 			.service(route::comment::edit)
 			.service(route::comment::post)
 			.service(route::file::get)
-			.service(route::file::manage)
-			.service(route::file::upload)
 			.service(route::legal)
 			.service(route::newsletter::subscribe)
 			.service(route::newsletter::unsubscribe)

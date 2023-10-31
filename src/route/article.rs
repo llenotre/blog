@@ -108,7 +108,7 @@ pub async fn get(
                 <a class="login-button" href="{}"><i class="fa-brands fa-github"></i>&nbsp;&nbsp;&nbsp;Sign in with Github to comment</a>
                 <h6>By clicking, you accept the <a href="/legal#privacy" target="_blank">Privacy Policy</a></h6>
             </center>"#,
-			user::get_auth_url(&data.client_id)
+			user::get_auth_url(&data.github_config.client_id)
 		),
 	};
 	let html = html.replace("{comment.editor}", &comment_editor_html);
