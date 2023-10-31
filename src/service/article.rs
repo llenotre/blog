@@ -60,7 +60,7 @@ impl Article {
 	/// `id` is the ID of the article.
 	pub async fn from_id(db: &tokio_postgres::Client, id: &Oid) -> PgResult<Option<Self>> {
 		db
-			.query_opt("SELECT * FROM article INNER JOIN article_content ON article_content.id = article.content_id WHERE id = $1", &[id])
+			.query_opt("SELECT * FROM article INNER JOIN article_content ON article_content.id = article.content_id WHERE article.id = $1", &[id])
 			.await
 			.map(|r| r.map(|r| FromRow::from_row(&r)))
 	}
@@ -69,49 +69,42 @@ impl Article {
 	///
 	/// On success, the function updates the article ID on the content.
 	pub async fn create(
-		db: &mut tokio_postgres::Client,
+		db: &tokio_postgres::Client,
 		content: &mut ArticleContent,
 	) -> PgResult<()> {
 		let post_date = content.public.then_some(content.edit_date);
-		let transaction = db.transaction().await?;
-		transaction
-			.execute(
-				r#"WITH content_id AS (SELECT nextval(pg_get_serial_sequence('article_content', 'id')))
-			INSERT INTO article (post_date, content_id) VALUES ($1, (SELECT 0 FROM content_id))"#,
-				&[&post_date],
-			)
-			.await?;
-		transaction
-			.execute(
-				r"WITH article_id AS (SELECT currval(pg_get_serial_sequence('article', 'id')))
-			INSERT INTO article_content (
-				article_id,
-				edit_date,
-				title,
-				description,
-				cover_url,
-				content,
-				tags,
-				public,
-				sponsor,
-				comments_locked
-			) VALUES ((SELECT 0 FROM article_id), $1, $2, $3, $4, $5, $6, $7, $8, $9)",
-				&[
-					&content.edit_date,
-					&content.title,
-					&content.description,
-					&content.cover_url,
-					&content.content,
-					&content.tags,
-					&content.public,
-					&content.sponsor,
-					&content.comments_locked,
-				],
-			)
-			.await?;
-		let row = transaction.query_one("SELECT article_id", &[]).await?;
-		transaction.commit().await?;
-		content.article_id = row.get("article_id");
+		let row = db.query_one(
+			r"WITH
+				aid AS (SELECT nextval(pg_get_serial_sequence('article', 'id'))),
+				cid AS (
+					INSERT INTO article_content (
+						article_id,
+						edit_date,
+						title,
+						description,
+						cover_url,
+						content,
+						tags,
+						public,
+						sponsor,
+						comments_locked
+					) VALUES ((SELECT nextval FROM aid), $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING article_content.id
+				)
+			INSERT INTO article (id, post_date, content_id) VALUES ((SELECT nextval FROM aid), $1, (SELECT id FROM cid)) RETURNING article.id",
+			&[
+				&post_date,
+				&content.edit_date,
+				&content.title,
+				&content.description,
+				&content.cover_url,
+				&content.content,
+				&content.tags,
+				&content.public,
+				&content.sponsor,
+				&content.comments_locked,
+			]
+		).await?;
+		content.article_id = row.get(0);
 		Ok(())
 	}
 
