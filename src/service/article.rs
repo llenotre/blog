@@ -88,7 +88,8 @@ impl Article {
 						comments_locked
 					) VALUES ((SELECT nextval FROM aid), $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING article_content.id
 				)
-			INSERT INTO article (id, post_date, content_id) VALUES ((SELECT nextval FROM aid), $1, (SELECT id FROM cid)) RETURNING article.id",
+			INSERT INTO article (id, post_date, content_id)
+				VALUES ((SELECT nextval FROM aid), $1, (SELECT id FROM cid)) RETURNING article.id",
 			&[
 				&post_date,
 				&content.edit_date,

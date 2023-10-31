@@ -13,7 +13,7 @@ pub async fn get(
 	let name = name.into_inner();
 	let stream = data
 		.s3_bucket
-		.get_object_stream(name)
+		.get_object_stream(format!("/{name}"))
 		.await
 		.map_err(|error| {
 			error!(%error, "s3 download");
