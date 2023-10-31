@@ -302,7 +302,7 @@ pub async fn post(
 				sponsor,
 				comments_locked,
 			};
-			Article::create(&mut *data.db.write().await, &mut content)
+			Article::create(&*data.db.read().await, &mut content)
 				.await
 				.map_err(|e| {
 					error!(error = %e, "postgres: article insert");
