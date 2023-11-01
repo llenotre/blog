@@ -15,9 +15,9 @@ use actix_web::{
 	http::header::HeaderValue, middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web,
 	App, HttpServer,
 };
-use s3::awscreds::Credentials;
 use base64::Engine;
 use config::{Config, GithubConfig};
+use s3::creds::Credentials;
 use s3::{Bucket, Region};
 use std::env;
 use std::fs;
@@ -85,7 +85,7 @@ async fn main() -> io::Result<()> {
 	info!("read configuration");
 
 	// Read configuration
-	let config = fs::read_to_string("../config.toml").unwrap_or_else(|error| {
+	let config = fs::read_to_string("config.toml").unwrap_or_else(|error| {
 		tracing::error!(%error, "cannot read configuration file");
 		exit(1);
 	});
