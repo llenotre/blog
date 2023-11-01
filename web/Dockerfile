@@ -9,7 +9,6 @@ COPY macros macros/
 COPY pages pages/
 COPY analytics analytics/
 ADD Cargo.toml .
-ADD ../Cargo.lock .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Build
@@ -19,7 +18,6 @@ COPY macros macros/
 COPY src src/
 COPY pages pages/
 ADD Cargo.toml .
-ADD ../Cargo.lock .
 RUN cargo chef cook --release --recipe-path recipe.json
 RUN cargo build --release
 
