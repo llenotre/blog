@@ -15,9 +15,9 @@ use actix_web::{
 	http::header::HeaderValue, middleware::ErrorHandlerResponse, middleware::ErrorHandlers, web,
 	App, HttpServer,
 };
-use awscreds::Credentials;
 use base64::Engine;
 use config::{Config, GithubConfig};
+use s3::creds::Credentials;
 use s3::{Bucket, Region};
 use std::env;
 use std::fs;

@@ -1,6 +1,1 @@
 /target
-config.toml
-analytics/
-
-.env
-backup/.aws/credentials
