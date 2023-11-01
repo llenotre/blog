@@ -2,26 +2,17 @@ services:
   web:
     build: web/
     depends_on:
-      - postgresql
+      - db
     restart: always
     ports:
       - 127.0.0.1:8080:8080
-  postgresql:
-    image: bitnami/postgresql:16.0.0
+  db:
+    build: db/
     restart: always
     ports:
       - 127.0.0.1:5432:5432
     environment:
       POSTGRESQL_USERNAME: blog
       POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
-# FIXME
-#  backup:
-#    build: backup/
-#    depends_on:
-#      - postgresql
-#    restart: always
-#    environment:
-#      POSTGRESQL_USERNAME: blog
-#      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
-#    volumes:
-#      - ./backup/.aws:/root/.aws
+    volumes:
+      - ./db/.aws:/root/.aws
