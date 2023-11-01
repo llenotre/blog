@@ -1,11 +1,11 @@
 @font-face {
 	font-family: 'Source Sans Pro';
-	src: url('/assets/font/SourceSansPro.ttf');
+	src: url('/web/assetssets/font/SourceSansPro.ttf');
 }
 
 @font-face {
 	font-family: 'Fira Code';
-	src: url('/assets/font/FiraCode.ttf');
+	src: url('/web/assetssets/font/FiraCode.ttf');
 }
 
 ::selection {
