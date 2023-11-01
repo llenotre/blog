@@ -10,7 +10,6 @@ use tracing::warn;
 
 pub mod article;
 pub mod comment;
-pub mod file;
 pub mod newsletter;
 pub mod user;
 

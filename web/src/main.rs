@@ -17,8 +17,6 @@ use actix_web::{
 };
 use base64::Engine;
 use config::{Config, GithubConfig};
-use s3::creds::Credentials;
-use s3::{Bucket, Region};
 use std::env;
 use std::fs;
 use std::io;
@@ -33,8 +31,6 @@ use tracing::info;
 pub struct GlobalData {
 	/// The connection to the database.
 	pub db: RwLock<tokio_postgres::Client>,
-	/// The s3 bucket for files storage.
-	pub s3_bucket: Bucket,
 
 	/// Github configuration.
 	pub github_config: GithubConfig,
@@ -114,22 +110,8 @@ async fn main() -> io::Result<()> {
 		}
 	});
 
-	let s3_region = Region::Custom {
-		region: config.s3.region,
-		endpoint: config.s3.endpoint,
-	};
-	let aws_creds = Credentials::default().unwrap_or_else(|error| {
-		tracing::error!(%error, "s3 credentials");
-		exit(1);
-	});
-	let s3_bucket = Bucket::new(&config.s3.bucket, s3_region, aws_creds).unwrap_or_else(|error| {
-		tracing::error!(%error, "s3 bucket");
-		exit(1);
-	});
-
 	let data = web::Data::new(GlobalData {
 		db: RwLock::new(client),
-		s3_bucket,
 
 		github_config: config.github,
 		discord_invite: config.discord_invite,
@@ -161,7 +143,6 @@ async fn main() -> io::Result<()> {
 			.service(route::comment::delete)
 			.service(route::comment::edit)
 			.service(route::comment::post)
-			.service(route::file::get)
 			.service(route::legal)
 			.service(route::newsletter::subscribe)
 			.service(route::newsletter::unsubscribe)

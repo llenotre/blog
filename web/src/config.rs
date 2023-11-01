@@ -1,16 +1,5 @@
 use serde::Deserialize;
 
-/// S3 configuration for files storage.
-#[derive(Deserialize)]
-pub struct S3Config {
-	/// The bucket's region.
-	pub region: String,
-	/// The endpoint of the service.
-	pub endpoint: String,
-	/// The bucket's name.
-	pub bucket: String,
-}
-
 /// Github configuration.
 #[derive(Deserialize)]
 pub struct GithubConfig {
@@ -32,8 +21,6 @@ pub struct Config {
 	/// The URL to the Discord server's invitation.
 	pub discord_invite: String,
 
-	/// s3 configuration.
-	pub s3: S3Config,
 	/// Github configuration.
 	pub github: GithubConfig,
 }
