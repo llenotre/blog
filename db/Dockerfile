@@ -1,5 +1,7 @@
 FROM bitnami/postgresql:16.0.0
 
+USER root
+
 # Set cron timezone
 ENV CRON_TZ=UTC
 
@@ -10,5 +12,5 @@ RUN pip3 install awscli awscli-plugin-endpoint
 
 # Setup cron task
 COPY backup.sh /usr/bin/backup.sh
-CMD chmod +x /usr/bin/backup.sh
+RUN chmod +x /usr/bin/backup.sh
 RUN echo '0 7 * * 0 root /usr/bin/backup.sh' >>/etc/crontab
