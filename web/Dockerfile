@@ -1,23 +1,17 @@
-FROM rust:1.70 AS base
+FROM rust:1.73 AS base
 RUN cargo install cargo-chef --locked
-WORKDIR /usr/src/blog
 
 # Prepare
 FROM base AS prepare
-COPY src src/
-COPY macros macros/
-COPY pages pages/
-COPY analytics analytics/
-ADD Cargo.toml .
+WORKDIR /usr/src/blog
+COPY .. .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Build
 FROM base as build
+WORKDIR /usr/src/blog
+COPY .. .
 COPY --from=prepare /usr/src/blog/recipe.json recipe.json
-COPY macros macros/
-COPY src src/
-COPY pages pages/
-ADD Cargo.toml .
 RUN cargo chef cook --release --recipe-path recipe.json
 RUN cargo build --release
 
@@ -26,8 +20,8 @@ FROM debian:bullseye-slim AS runtime
 RUN apt-get update
 RUN apt-get install -y libssl-dev ca-certificates
 WORKDIR /usr/src/blog
-COPY --from=build /usr/src/blog/target/release/blog /usr/local/bin
+COPY --from=build /usr/src/blog/target/release/blog /usr/local/bin/
 COPY assets assets/
 COPY analytics analytics/
-ADD config.toml .
+COPY config.toml .
 ENTRYPOINT ["/usr/local/bin/blog"]
