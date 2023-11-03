@@ -16,7 +16,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 RUN cargo build --release
 
 # Prepare runtime
-FROM debian:bullseye-slim AS runtime
+FROM debian:bookworm-slim AS runtime
 RUN apt-get update
 RUN apt-get install -y libssl-dev ca-certificates
 WORKDIR /usr/src/blog
