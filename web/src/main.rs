@@ -25,7 +25,7 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::time;
 use tokio_postgres::NoTls;
-use tracing::info;
+use tracing::{error, info};
 
 /// Structure shared across the server.
 pub struct GlobalData {
@@ -82,11 +82,11 @@ async fn main() -> io::Result<()> {
 
 	// Read configuration
 	let config = fs::read_to_string("config.toml").unwrap_or_else(|error| {
-		tracing::error!(%error, "cannot read configuration file");
+		error!(%error, "cannot read configuration file");
 		exit(1);
 	});
 	let config: Config = toml::from_str(&config).unwrap_or_else(|error| {
-		tracing::error!(%error, "invalid configuration file");
+		error!(%error, "invalid configuration file");
 		exit(1);
 	});
 	let session_secret_key = base64::engine::general_purpose::STANDARD
@@ -100,21 +100,49 @@ async fn main() -> io::Result<()> {
 	let (client, connection) = tokio_postgres::connect(&config.db, NoTls)
 		.await
 		.unwrap_or_else(|error| {
-			tracing::error!(%error, "postgres: connection");
+			error!(%error, "postgres: connection");
 			exit(1);
 		});
-	// TODO re-open on error
-	tokio::spawn(async move {
-		if let Err(error) = connection.await {
-			tracing::error!(%error, "postgres: connection");
-		}
-	});
 
 	let data = web::Data::new(GlobalData {
 		db: RwLock::new(client),
 
 		github_config: config.github,
 		discord_invite: config.discord_invite,
+	});
+
+	// Handle connection errors
+	let data_clone = data.clone();
+	tokio::spawn(async move {
+		let data = data_clone;
+		let mut connection = connection;
+		loop {
+			// Wait for the connection to close
+			if let Err(error) = connection.await {
+				error!(%error, "postgres: connection");
+			}
+
+			// Try to reconnect
+			let mut interval = time::interval(Duration::from_secs(10));
+			loop {
+				interval.tick().await;
+
+				info!("postgres: attempting to reconnect");
+				// TODO tls
+				let res = tokio_postgres::connect(&config.db, NoTls).await;
+				match res {
+					Ok((client, c)) => {
+						*data.db.write().await = client;
+						connection = c;
+						break;
+					}
+					Err(error) => {
+						error!(%error, "postgres: connection");
+						continue;
+					}
+				}
+			}
+		}
 	});
 
 	info!("start worker");

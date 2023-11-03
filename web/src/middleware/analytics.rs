@@ -26,11 +26,11 @@ where
 	S::Future: 'static,
 	B: 'static,
 {
-	type Response = ServiceResponse<B>;
 	type Error = Error;
-	type Transform = AnalyticsMiddleware<S>;
-	type InitError = ();
 	type Future = Ready<Result<Self::Transform, Self::InitError>>;
+	type InitError = ();
+	type Response = ServiceResponse<B>;
+	type Transform = AnalyticsMiddleware<S>;
 
 	fn new_transform(&self, service: S) -> Self::Future {
 		ready(Ok(AnalyticsMiddleware {
@@ -51,9 +51,9 @@ where
 	S::Future: 'static,
 	B: 'static,
 {
-	type Response = ServiceResponse<B>;
 	type Error = Error;
 	type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+	type Response = ServiceResponse<B>;
 
 	forward_ready!(service);
 
