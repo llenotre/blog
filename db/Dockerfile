@@ -1,4 +1,4 @@
-FROM bitnami/postgresql:16.0.0
+FROM postgres:12.16-bullseye
 
 USER root
 

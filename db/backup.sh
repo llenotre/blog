@@ -9,8 +9,7 @@ cd backup/
 
 echo "Perform backup $TIMESTAMP..."
 
-pg_dump -U blog -F c blog >$TIMESTAMP.tar
-gzip $TIMESTAMP.tar
+PGPASSWORD="$(cat /run/secrets/dbpass)" pg_dump -U blog -F c blog | gzip >$TIMESTAMP.tar.gz
 
 echo "Dump: OK"
 
