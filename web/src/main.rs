@@ -132,6 +132,7 @@ async fn main() -> io::Result<()> {
 				let res = tokio_postgres::connect(&config.db, NoTls).await;
 				match res {
 					Ok((client, c)) => {
+						info!("postgres: reconnected successfully");
 						*data.db.write().await = client;
 						connection = c;
 						break;
