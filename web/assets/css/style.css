@@ -47,37 +47,43 @@ div.content {
 }
 
 h1 {
-	margin: 50px 0 50px 0;
+	margin: 50px 0 30px 0;
 	font-size: 35pt;
+	font-weight: 900;
 }
 
 h2 {
-	margin: 40px 0 40px 0;
+	margin: 40px 0 30px 0;
 	font-size: 30pt;
+	font-weight: 900;
 }
 
 h3 {
 	margin: 30px 0 30px 0;
 	font-size: 25pt;
+	font-weight: 900;
 }
 
 h4 {
-	margin: 20px 0 20px 0;
+	margin: 30px 0 30px 0;
 	font-size: 20pt;
+	font-weight: 900;
 }
 
 h5 {
-	margin: 10px 0 10px 0;
+	margin: 30px 0 30px 0;
 	font-size: 15pt;
+	font-weight: 900;
 }
 
 h6 {
-	margin: 10px 0 10px 0;
+	margin: 30px 0 30px 0;
 	font-size: 10pt;
+	font-weight: 900;
 }
 
 a {
-	color: white;
+	color: #1abc9c;
 }
 
 p {
@@ -87,10 +93,6 @@ p {
 
 li {
 	font-size: 20pt;
-}
-
-.highlight {
-	color: #1abc9c;
 }
 
 div.inline {
@@ -104,6 +106,7 @@ div.inline {
 
 a.logo-button {
 	background: #4f4f4f;
+	color: #fff;
 	border-radius: 20px;
 	padding: 5px;
 	width: 50px;
@@ -311,6 +314,10 @@ ul.share li:hover {
 	opacity: 0.5;
 }
 
+ul.share a {
+	color: #fff;
+}
+
 div.article-section {
 	margin: 0;
 	padding: 0 10px 0 10px;
@@ -344,6 +351,7 @@ code {
 	background: #0d1117;
 	color: #ffffff;
 	padding: 3px;
+	font-size: 20pt;
 }
 
 pre code {
@@ -530,6 +538,7 @@ div.comment-header {
 }
 
 div.comment-header * {
+	color: #fff;
 	margin: 0;
 	flex-grow: 0;
 }
@@ -542,6 +551,7 @@ img.comment-avatar {
 }
 
 div.comment-buttons {
+	color: #fff;
 	flex-direction: row;
 	gap: 10px;
 	display: flex;
