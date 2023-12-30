@@ -1,16 +1,25 @@
 //! This module handles articles.
 
 use crate::util;
+use crate::util::now;
+use anyhow::bail;
+use anyhow::Result;
 use chrono::{DateTime, Utc};
+use pulldown_cmark::{html, Options, Parser};
 use serde::Deserialize;
-use std::fmt;
 use std::fmt::{Display, Formatter, Write};
+use std::fs::DirEntry;
+use std::{fmt, fs, io};
+
+/// The path to the articles's sources.
+const ARTICLES_PATH: &str = "articles/";
 
 /// Structure representing an article.
 #[derive(Deserialize)]
 pub struct Article {
-	/// The article's title in the page's URL.
-	pub url_title: String,
+	/// The article's slug.
+	#[serde(default)]
+	pub slug: String,
 	/// The article's title.
 	pub title: String,
 	/// Timestamp at which the article has been posted.
@@ -20,22 +29,73 @@ pub struct Article {
 	pub description: String,
 	/// The URL to the cover image of the article.
 	pub cover_url: String,
-	/// The content of the article in markdown.
-	pub content: String,
 	/// The list of tags on the article.
+	#[serde(default)]
 	pub tags: Vec<String>,
 	/// Tells whether the article is public.
+	#[serde(default)]
 	pub public: bool,
 	/// Tells whether the article is reserved for sponsors.
+	#[serde(default)]
 	pub sponsor: bool,
 	/// Tells whether comments are locked on the article.
+	#[serde(default)]
 	pub comments_locked: bool,
 }
 
 impl Article {
+	/// Compiles all articles and returns them along with the resulting HTML, sorted by decreasing
+	/// post date.
+	pub fn compile_all() -> Result<Vec<(Article, String)>> {
+		let is_dir = |e: io::Result<DirEntry>| {
+			let e = e?;
+			if e.file_type()?.is_dir() {
+				Ok(Some(e))
+			} else {
+				Ok(None)
+			}
+		};
+		let articles: Result<Vec<(Self, String)>> = fs::read_dir(ARTICLES_PATH)?
+			.filter_map(|e| is_dir(e).transpose())
+			.map(|e: io::Result<DirEntry>| {
+				let e = e?;
+				// Read metadata
+				let manifest_path = e.path().join("manifest.toml");
+				let manifest = fs::read_to_string(manifest_path)?;
+				let mut manifest: Self = match toml::from_str(&manifest) {
+					Ok(m) => m,
+					Err(err) => bail!(
+						"failed to read article {name}: {err}",
+						name = e.file_name().to_string_lossy()
+					),
+				};
+				if manifest.slug.is_empty() {
+					manifest.slug = e.file_name().to_string_lossy().into_owned();
+				}
+
+				// Read and compile content
+				let content_path = e.path().join("content.md");
+				let content = fs::read_to_string(content_path)?;
+				let parser = Parser::new_ext(&content, Options::all());
+				let mut content = String::new();
+				html::push_html(&mut content, parser);
+
+				Ok((manifest, content))
+			})
+			.collect();
+		let mut articles = articles?;
+		articles.sort_unstable_by(|(a1, _), (a2, _)| a1.post_date.cmp(&a2.post_date).reverse());
+		Ok(articles)
+	}
+
 	/// Returns the URL of the article.
 	pub fn get_url(&self) -> String {
-		format!("https://blog.lenot.re/{}", self.url_title)
+		format!("https://blog.lenot.re/{}", self.slug)
+	}
+
+	/// Tells whether the article is public.
+	pub fn is_public(&self) -> bool {
+		self.public && self.post_date <= now().and_utc()
 	}
 
 	/// Display the article in the list on the main page.
@@ -113,7 +173,7 @@ impl<'a> Display for ArticleListHtml<'a> {
 					</div>
 				</div>
 			</a>"#,
-			url_title = self.article.url_title,
+			url_title = self.article.slug,
 			cover_url = self.article.cover_url,
 			title = self.article.title,
 			post_date = self.article.post_date.to_rfc3339(),
@@ -133,7 +193,7 @@ impl<'a> Display for ArticleSitemap<'a> {
 		let date = self.article.post_date.format("%Y-%m-%d");
 		write!(
 			f,
-			"\t\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>"
+			"\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>\n"
 		)
 	}
 }

@@ -5,12 +5,9 @@ edition = "2021"
 
 [dependencies]
 actix-files = "0.6.2"
-actix-multipart = "0.6.0"
 actix-session = { version = "0.8.0", features = ["cookie-session"] }
 actix-web = { version = "4.3.1", features = ["cookies"] }
-ammonia = "3.3.0"
 anyhow = "1.0.72"
-async-recursion = "1.0.4"
 base64 = "0.21.2"
 chrono = "0.4.24"
 env_logger = "0.10.0"
@@ -29,4 +26,3 @@ tokio-util = "0.7.8"
 toml = "0.8.2"
 tracing = "*"
 uaparser = "0.6.1"
-uuid = { version = "1.5.0", features = ["v4"] }

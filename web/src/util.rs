@@ -2,7 +2,6 @@
 
 use chrono::{NaiveDateTime, Utc};
 use lazy_static::lazy_static;
-use pulldown_cmark::{html, Options, Parser};
 use regex::Regex;
 use tokio_postgres::Row;
 
@@ -50,24 +49,5 @@ pub mod date_format {
 		let s = String::deserialize(deserializer)?;
 		let dt = NaiveDateTime::parse_from_str(&s, FORMAT).map_err(serde::de::Error::custom)?;
 		Ok(DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc))
-	}
-}
-
-/// Converts the given Markdown to HTML.
-///
-/// Arguments:
-/// - `md` is the Markdown content.
-/// - `escape` tells whether unsafe HTML must be sanitized.
-pub fn markdown_to_html(md: &str, escape: bool) -> String {
-	let options = Options::all();
-	let parser = Parser::new_ext(md, options);
-
-	let mut html_output = String::new();
-	html::push_html(&mut html_output, parser);
-
-	if escape {
-		ammonia::clean(&html_output)
-	} else {
-		html_output
 	}
 }

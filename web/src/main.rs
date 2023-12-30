@@ -1,3 +1,5 @@
+#![feature(iter_intersperse)]
+
 mod config;
 mod middleware;
 mod route;
@@ -31,29 +33,30 @@ use tracing::{error, info};
 
 /// Structure shared across the server.
 pub struct GlobalData {
-	/// The connection to the database.
-	pub db: RwLock<tokio_postgres::Client>,
-
 	/// Github configuration.
 	pub github_config: GithubConfig,
 	/// The URL to the Discord server's invitation.
 	pub discord_invite: String,
 
-	/// The list of all articles.
-	/// - Key: URL title of the article
-	/// - Value: a tuple with the article and its compiled content
-	pub articles: HashMap<String, (Article, String)>,
+	/// Articles along with their respective compiled content, ordered by post date.
+	pub articles: Vec<(Article, String)>,
+	/// An map to find an article index from its slug.
+	pub articles_index: HashMap<String, usize>,
+
+	/// The connection to the database.
+	pub db: RwLock<tokio_postgres::Client>,
 }
 
 impl GlobalData {
-	/// Returns the article and compiled content with the given URL title.
-	pub fn get_article(&self, url_title: &str) -> Option<&(Article, String)> {
-		self.articles.get(url_title)
+	/// Returns the article and compiled content with the given slug.
+	pub fn get_article(&self, slug: &str) -> Option<&(Article, String)> {
+		let index = *self.articles_index.get(slug)?;
+		Some(&self.articles[index])
 	}
 
-	/// Returns the list of articles.
+	/// Returns the list of articles without their content.
 	pub fn list_articles(&self) -> impl Iterator<Item = &Article> {
-		self.articles.values().map(|(a, _)| a)
+		self.articles.iter().map(|(a, _)| a)
 	}
 }
 
@@ -93,13 +96,10 @@ fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerRe
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
-	// Enable logging
 	env::set_var("RUST_LOG", "info");
 	env_logger::init();
 
 	info!("read configuration");
-
-	// Read configuration
 	let config = fs::read_to_string("config.toml").unwrap_or_else(|error| {
 		error!(%error, "cannot read configuration file");
 		exit(1);
@@ -112,9 +112,19 @@ async fn main() -> io::Result<()> {
 		.decode(config.session_secret_key)
 		.unwrap();
 
-	info!("connect to database");
+	info!("compile all articles");
+	let articles = Article::compile_all().unwrap_or_else(|error| {
+		error!(%error, "could not compile articles");
+		exit(1);
+	});
+	let articles_index = articles
+		.iter()
+		.enumerate()
+		.map(|(i, (a, _))| (a.slug.clone(), i))
+		.collect();
+	info!("{} articles found", articles.len());
 
-	// Open database connection
+	info!("connect to database");
 	// TODO tls
 	let (client, connection) = tokio_postgres::connect(&config.db, NoTls)
 		.await
@@ -124,12 +134,13 @@ async fn main() -> io::Result<()> {
 		});
 
 	let data = web::Data::new(GlobalData {
-		db: RwLock::new(client),
+		articles,
+		articles_index,
 
 		github_config: config.github,
 		discord_invite: config.discord_invite,
 
-		articles: HashMap::new(), // TODO read/parse/compile
+		db: RwLock::new(client),
 	});
 
 	// Handle connection errors
@@ -168,8 +179,6 @@ async fn main() -> io::Result<()> {
 	});
 
 	info!("start worker");
-
-	// Worker task
 	let data_clone = data.clone();
 	tokio::spawn(async move {
 		let data = data_clone.into_inner();
@@ -181,7 +190,6 @@ async fn main() -> io::Result<()> {
 	});
 
 	info!("start http server");
-
 	HttpServer::new(move || {
 		App::new()
 			.service(Files::new("/assets", "./assets"))

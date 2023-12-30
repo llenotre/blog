@@ -5,16 +5,16 @@ use actix_web::http::header::ContentType;
 use actix_web::{error, get, web, HttpResponse, Responder};
 use tracing::error;
 
-#[get("/a/{url_title}")]
+#[get("/a/{slug}")]
 pub async fn get(
 	data: web::Data<GlobalData>,
 	path: web::Path<String>,
 	session: Session,
 ) -> actix_web::Result<impl Responder> {
-	let url_title = path.into_inner();
+	let slug = path.into_inner();
 
 	// Get article
-	let article = data.get_article(&url_title);
+	let article = data.get_article(&slug);
 	let Some((article, content)) = article else {
 		return Err(error::ErrorNotFound(""));
 	};
@@ -48,7 +48,7 @@ pub async fn get(
 	let html = html.replace("{article.cover_url}", &article.cover_url);
 	let html = html.replace("{article.content}", &content);
 
-	session.insert("last_article", url_title)?;
+	session.insert("last_article", slug)?;
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::html())
 		.body(html))
