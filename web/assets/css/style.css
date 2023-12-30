@@ -385,7 +385,7 @@ blockquote {
 	padding-left: 20px;
 }
 
-input, textarea, button {
+input, button {
 	background: #4f4f4fc0;
 	color: white;
 	border: 0;
@@ -440,33 +440,21 @@ div.newsletter div.newsletter-button * {
 	flex: 1;
 }
 
-input[type = "checkbox"] {
-	width: auto;
-}
-
-input[type = "submit"], button {
+button {
 	padding-left: 20px;
 	padding-right: 20px;
 	width: auto;
 	cursor: pointer;
 }
 
-input[type = "submit"].highlight, button.highlight {
+button.highlight {
 	background: #1abc9c;
 	color: #000;
 	font-weight: bold;
 }
 
-input[type = "submit"].highlight:hover, button.highlight:hover {
+button.highlight:hover {
 	color: #fff;
-}
-
-input[type = "submit"]:not([disabled]):hover, button:not([disabled]):hover {
-	background: #0f0f0fc0;
-}
-
-input[type = "submit"]:disabled:hover, button:disabled:hover {
-	cursor: auto;
 }
 
 ::placeholder {
@@ -477,108 +465,6 @@ input[type = "submit"]:disabled:hover, button:disabled:hover {
 
 *:focus {
     outline: none;
-}
-
-textarea {
-	width: 100%;
-	resize: none;
-}
-
-div.comments {
-	background: #5f5f5f7f;
-	/* FIXME: perf issues on firefox mobile: backdrop-filter: blur(10px);*/
-	color: #fff;
-	padding: 20px;
-	top: 0;
-	right: 0;
-	width: 100vw;
-	height: 100vh;
-	position: fixed;
-	box-sizing: border-box;
-	flex-direction: column;
-	gap: 30px;
-	display: none;
-}
-
-div.comments-header {
-	flex-direction: row;
-	flex-wrap: wrap;
-	gap: 20px;
-	display: flex;
-}
-
-div.comments-header * {
-	vertical-align: middle;
-}
-
-div.comments-header h3 {
-	margin-top: auto;
-	margin-bottom: auto;
-}
-
-div.comments-list {
-	border-radius: 20px;
-	overflow-y: scroll;
-	flex-grow: 1;
-}
-
-div.comment {
-	background: #2f2f2fc0;
-	border-radius: 20px;
-	margin-bottom: 10px;
-	padding: 20px;
-}
-
-div.comment-header {
-	flex-direction: row;
-	flex-basis: 10px;
-	flex-wrap: wrap;
-	gap: 20px;
-	display: flex;
-}
-
-div.comment-header * {
-	color: #fff;
-	margin: 0;
-	flex-grow: 0;
-}
-
-img.comment-avatar {
-	border-radius: 100%;
-	margin: auto;
-	margin-top: 0;
-	width: 50px;
-}
-
-div.comment-buttons {
-	color: #fff;
-	flex-direction: row;
-	gap: 10px;
-	display: flex;
-}
-
-a.comment-button {
-	background: #4f4f4f;
-	border: 3px solid #7f7f7f;
-	border-radius: 50%;
-	padding: 5px;
-	width: 20px;
-	height: 20px;
-	text-align: center;
-	cursor: pointer;
-	display: block;
-}
-
-a.comment-button:hover {
-	border: 3px solid #9f9f9f;
-}
-
-a.comment-button.active {
-	border-color: #1abc9c;
-}
-
-div.comment-content {
-	overflow-wrap: break-word;
 }
 
 a.login-button {
@@ -596,15 +482,6 @@ a.login-button {
 
 a.login-button:hover {
 	background: #0f0f0f;
-}
-
-div.comment-editor {
-	padding-bottom: 20px;
-	bottom: 0;
-	width: 100%;
-	flex-direction: row;
-	gap: 10px;
-	display: flex;
 }
 
 @media(max-width: 1200px) {

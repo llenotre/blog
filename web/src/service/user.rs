@@ -5,7 +5,6 @@ use crate::util::Oid;
 use crate::util::{FromRow, PgResult};
 use actix_session::Session;
 use actix_web::web::Redirect;
-use chrono::NaiveDateTime;
 use macros::FromRow;
 use serde::Deserialize;
 use serde::Serialize;
@@ -44,7 +43,7 @@ pub fn redirect_to_last_article(session: &Session) -> Redirect {
 		.get::<String>("last_article")
 		.ok()
 		.flatten()
-		.map(|id| format!("/a/{id}/redirect"))
+		.map(|title| format!("/a/{title}"))
 		.unwrap_or_else(|| "/".to_owned());
 	Redirect::to(uri).see_other()
 }
@@ -79,18 +78,8 @@ pub struct User {
 	pub github_login: String,
 	/// The user's ID.
 	pub github_id: i64,
-	/// The URL to the user's profile.
-	pub github_html_url: String,
-
 	/// Tells whether the user is admin.
 	pub admin: bool,
-	/// Tells whether the user has been banned.
-	pub banned: bool,
-
-	/// The date/time at which the user registered.
-	pub register_date: NaiveDateTime,
-	/// The date/time of the last post, used for cooldown.
-	pub last_post: NaiveDateTime,
 }
 
 impl User {
@@ -167,44 +156,18 @@ impl User {
 			access_token,
 			github_login,
 			github_id,
-			github_html_url,
 			admin,
-			banned,
-			register_date,
-			last_post
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id"#,
 				&[
 					&self.access_token,
 					&self.github_login,
 					&self.github_id,
-					&self.github_html_url,
 					&self.admin,
-					&self.banned,
-					&self.register_date,
-					&self.last_post,
 				],
 			)
 			.await?;
 		self.id = row.get("id");
-		Ok(())
-	}
-
-	/// Updates the user's cooldown.
-	///
-	/// Arguments:
-	/// - `id` is the ID of the user whose cooldown is to be updated.
-	/// - `last_post` is the date/time of the last post from the user.
-	pub async fn update_cooldown(
-		db: &tokio_postgres::Client,
-		id: &Oid,
-		last_post: &NaiveDateTime,
-	) -> PgResult<()> {
-		db.execute(
-			"UPDATE \"user\" SET last_post = $1 WHERE id = $2",
-			&[last_post, id],
-		)
-		.await?;
 		Ok(())
 	}
 

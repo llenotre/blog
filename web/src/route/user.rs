@@ -1,6 +1,5 @@
 use crate::service::user;
 use crate::service::user::User;
-use crate::util::now;
 use crate::GlobalData;
 use actix_session::Session;
 use actix_web::http::StatusCode;
@@ -68,13 +67,8 @@ pub async fn oauth(
 				access_token,
 				github_id: github_user.id,
 				github_login: github_user.login,
-				github_html_url: github_user.html_url,
 
 				admin: false,
-				banned: false,
-
-				register_date: now(),
-				last_post: Default::default(),
 			};
 			user.insert(&db).await.map_err(|error| {
 				error!(%error, "postgres: cannot insert user");

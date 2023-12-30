@@ -36,6 +36,23 @@ pub fn validate_email(email: &str) -> bool {
 	EMAIL_VALIDATION.is_match(email)
 }
 
+/// Date deserialization.
+pub mod date_format {
+	use chrono::{DateTime, NaiveDateTime, Utc};
+	use serde::{self, Deserialize, Deserializer};
+
+	const FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
+
+	pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		let s = String::deserialize(deserializer)?;
+		let dt = NaiveDateTime::parse_from_str(&s, FORMAT).map_err(serde::de::Error::custom)?;
+		Ok(DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc))
+	}
+}
+
 /// Converts the given Markdown to HTML.
 ///
 /// Arguments:

@@ -4,6 +4,7 @@ mod route;
 mod service;
 mod util;
 
+use std::collections::HashMap;
 use crate::middleware::analytics::Analytics;
 use crate::service::analytics::AnalyticsEntry;
 use actix_files::Files;
@@ -26,6 +27,7 @@ use tokio::sync::RwLock;
 use tokio::time;
 use tokio_postgres::NoTls;
 use tracing::{error, info};
+use crate::service::article::Article;
 
 /// Structure shared across the server.
 pub struct GlobalData {
@@ -36,6 +38,23 @@ pub struct GlobalData {
 	pub github_config: GithubConfig,
 	/// The URL to the Discord server's invitation.
 	pub discord_invite: String,
+
+	/// The list of all articles.
+	/// - Key: URL title of the article
+	/// - Value: a tuple with the article and its compiled content
+	pub articles: HashMap<String, (Article, String)>,
+}
+
+impl GlobalData {
+	/// Returns the article and compiled content with the given URL title.
+	pub fn get_article(&self, url_title: &str) -> Option<&(Article, String)> {
+		self.articles.get(url_title)
+	}
+
+	/// Returns the list of articles.
+	pub fn list_articles(&self) -> impl Iterator<Item = &Article> {
+		self.articles.values().map(|(a, _)| a)
+	}
 }
 
 fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
@@ -109,6 +128,8 @@ async fn main() -> io::Result<()> {
 
 		github_config: config.github,
 		discord_invite: config.discord_invite,
+
+		articles: HashMap::new(), // TODO read/parse/compile
 	});
 
 	// Handle connection errors
@@ -164,14 +185,8 @@ async fn main() -> io::Result<()> {
 	HttpServer::new(move || {
 		App::new()
 			.service(Files::new("/assets", "./assets"))
-			.service(route::article::editor)
 			.service(route::article::get)
-			.service(route::article::post)
-			.service(route::comment::get)
 			.service(route::bio)
-			.service(route::comment::delete)
-			.service(route::comment::edit)
-			.service(route::comment::post)
 			.service(route::legal)
 			.service(route::newsletter::subscribe)
 			.service(route::newsletter::unsubscribe)
