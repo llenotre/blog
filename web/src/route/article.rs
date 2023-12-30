@@ -47,6 +47,7 @@ pub async fn get(
 	let html = html.replace("{article.description}", &article.description);
 	let html = html.replace("{article.cover_url}", &article.cover_url);
 	let html = html.replace("{article.content}", &content);
+	let html = html.replace("{discord}", &data.discord_invite);
 
 	session.insert("last_article", slug)?;
 	Ok(HttpResponse::Ok()

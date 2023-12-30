@@ -385,6 +385,23 @@ blockquote {
 	padding-left: 20px;
 }
 
+a.button {
+	background: #1abc9c;
+	color: #fff;
+	border: 0;
+	border-radius: 50px;
+	margin: 20px;
+	padding: 20px;
+	width: fit-content;
+	text-decoration: none;
+	font-size: 15pt;
+	display: block;
+}
+
+a.button:hover {
+	background: #0f0f0f;
+}
+
 input, button {
 	background: #4f4f4fc0;
 	color: white;
@@ -398,17 +415,6 @@ input, button {
 input[type = "text"] {
 	padding: 20px;
 	height: 50px;
-}
-
-textarea {
-	padding-top: 10px;
-	padding-left: 20px;
-	height: 50px;
-}
-
-textarea.expanded {
-	padding: 20px;
-	height: 300px;
 }
 
 div.newsletter {
@@ -465,23 +471,6 @@ button.highlight:hover {
 
 *:focus {
     outline: none;
-}
-
-a.login-button {
-	background: #1f1f1f;
-	color: #fff;
-	border: 0;
-	border-radius: 50px;
-	margin: 20px;
-	padding: 20px;
-	width: fit-content;
-	text-decoration: none;
-	font-size: 15pt;
-	display: block;
-}
-
-a.login-button:hover {
-	background: #0f0f0f;
 }
 
 @media(max-width: 1200px) {

@@ -27,7 +27,7 @@ pub async fn root(
 		.collect();
 
 	let html = include_str!("../../pages/index.html");
-	let html = html.replace("{discord.invite}", &data.discord_invite);
+	let html = html.replace("{discord}", &data.discord_invite);
 	let html = html.replace("{articles}", &articles);
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::html())
