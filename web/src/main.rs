@@ -4,9 +4,9 @@ mod route;
 mod service;
 mod util;
 
-use std::collections::HashMap;
 use crate::middleware::analytics::Analytics;
 use crate::service::analytics::AnalyticsEntry;
+use crate::service::article::Article;
 use actix_files::Files;
 use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
@@ -18,6 +18,7 @@ use actix_web::{
 };
 use base64::Engine;
 use config::{Config, GithubConfig};
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io;
@@ -27,7 +28,6 @@ use tokio::sync::RwLock;
 use tokio::time;
 use tokio_postgres::NoTls;
 use tracing::{error, info};
-use crate::service::article::Article;
 
 /// Structure shared across the server.
 pub struct GlobalData {

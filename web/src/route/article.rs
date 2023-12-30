@@ -1,5 +1,5 @@
 use crate::service::user::User;
-use crate::{GlobalData};
+use crate::GlobalData;
 use actix_session::Session;
 use actix_web::http::header::ContentType;
 use actix_web::{error, get, web, HttpResponse, Responder};
@@ -31,7 +31,12 @@ pub async fn get(
 		return Err(error::ErrorNotFound(""));
 	}
 
-	let tags: String = article.tags.iter().map(|s| s.as_ref()).intersperse(",").collect();
+	let tags: String = article
+		.tags
+		.iter()
+		.map(|s| s.as_ref())
+		.intersperse(",")
+		.collect();
 	let post_date = article.post_date.to_rfc3339();
 
 	let html = include_str!("../../pages/article.html");
@@ -46,6 +51,5 @@ pub async fn get(
 	session.insert("last_article", url_title)?;
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::html())
-		.body(html),
-	)
+		.body(html))
 }

@@ -20,11 +20,11 @@ pub async fn root(
 	})?;
 
 	// Get articles
-	let articles: String =
-		data.list_articles()
-			.filter(|a| admin || a.public)
-			.map(|a| a.display_list_html(admin).to_string())
-			.collect();
+	let articles: String = data
+		.list_articles()
+		.filter(|a| admin || a.public)
+		.map(|a| a.display_list_html(admin).to_string())
+		.collect();
 
 	let html = include_str!("../../pages/index.html");
 	let html = html.replace("{discord.invite}", &data.discord_invite);
@@ -59,11 +59,11 @@ Sitemap: https://blog.lenot.re/sitemap.xml"#
 
 #[get("/sitemap.xml")]
 pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
-	let articles: String =
-		data.list_articles()
-			.filter(|a| a.public)
-			.map(|a| a.display_sitemap().to_string())
-			.collect();
+	let articles: String = data
+		.list_articles()
+		.filter(|a| a.public)
+		.map(|a| a.display_sitemap().to_string())
+		.collect();
 	let body = format!(
 		r#"<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -81,11 +81,11 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 
 #[get("/rss")]
 pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
-	let articles: String =
-		data.list_articles()
-			.filter(|a| a.public)
-			.map(|a| a.display_rss().to_string())
-			.collect();
+	let articles: String = data
+		.list_articles()
+		.filter(|a| a.public)
+		.map(|a| a.display_rss().to_string())
+		.collect();
 	let body = format!(
 		r#"<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><atom:link href="https://blog.lenot.re/rss" rel="self" type="application/rss+xml" /><title>Maestro</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{articles}</channel></rss>"#
 	);
