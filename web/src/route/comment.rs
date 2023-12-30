@@ -127,6 +127,16 @@ pub async fn post(
 	let Some(article) = article else {
 		return Err(error::ErrorNotFound("article not found"));
 	};
+	// Check the replied comment exists
+	if let Some(reply_to) = &info.reply_to {
+		let exists = Comment::from_id(&db, reply_to)
+			.await
+			.map_err(|_| error::ErrorInternalServerError(""))?
+			.is_some();
+		if !exists {
+			return Err(error::ErrorNotFound("comment not found"));
+		}
+	}
 
 	// Get user
 	let user = User::current_user(&db, &session)

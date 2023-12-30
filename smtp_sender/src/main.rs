@@ -1,16 +1,16 @@
-use lettre::message::{Mailbox, MultiPart};
-use std::pin::pin;
 use futures_util::stream::StreamExt;
+use lettre::message::{Mailbox, MultiPart};
 use lettre::transport::smtp::{
 	authentication::{Credentials, Mechanism},
 	PoolConfig,
 };
 use lettre::{Message, SmtpTransport, Transport};
 use serde::Deserialize;
+use std::pin::pin;
 use std::{fs, iter};
+use tokio_postgres::NoTls;
 use tracing::info;
 use tracing::warn;
-use tokio_postgres::NoTls;
 
 #[derive(Deserialize)]
 struct Config {
@@ -58,7 +58,13 @@ async fn main() {
 	let body = MultiPart::alternative_plain_html(html, plain);
 
 	info!("fetch recipients");
-	let mut emails = pin!(client.query_raw("SELECT DISTINCT email FROM newsletter_subscriber WHERE email IS NOT NULL", iter::empty::<i32>()).await.unwrap());
+	let mut emails = pin!(client
+		.query_raw(
+			"SELECT DISTINCT email FROM newsletter_subscriber WHERE email IS NOT NULL",
+			iter::empty::<i32>()
+		)
+		.await
+		.unwrap());
 
 	info!("send emails");
 	let mut count = 0;

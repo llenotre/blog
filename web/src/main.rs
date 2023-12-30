@@ -74,7 +74,7 @@ fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerRe
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
-	// Enabling logging
+	// Enable logging
 	env::set_var("RUST_LOG", "info");
 	env_logger::init();
 

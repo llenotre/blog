@@ -125,7 +125,6 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 				let date = date.format("%Y-%m-%d");
 				format!("\t\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>")
 			}
-
 			None => format!("\t\t<url><loc>{url}</loc></url>"),
 		})
 		.collect();
@@ -158,17 +157,17 @@ pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 		let url = a.content.get_url();
 
 		items_str.push_str(&format!(
-			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{post_date}</pubDate><description>{desc}</description><author>llenotre</author></item>",
+			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{post_date}</pubDate><description>{desc}</description></item>",
 			title = a.content.title,
 			desc = a.content.description
 		));
 	}
 
 	let body = format!(
-		r#"<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><atom:link href="https://blog.lenot.re/rss" rel="self" type="application/rss+xml" /><title>Luc Lenôtre</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{items_str}</channel></rss>"#
+		r#"<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><atom:link href="https://blog.lenot.re/rss" rel="self" type="application/rss+xml" /><title>Maestro</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{items_str}</channel></rss>"#
 	);
 
 	Ok(HttpResponse::Ok()
-		.content_type(ContentType::xml())
+		.content_type("application/rss+xml")
 		.body(body))
 }

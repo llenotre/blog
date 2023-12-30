@@ -4,7 +4,9 @@ use crate::util::Oid;
 use crate::util::{FromRow, PgResult};
 use chrono::NaiveDateTime;
 use futures_util::{Stream, StreamExt};
+use std::collections::HashMap;
 use std::fmt::Write;
+use std::sync::RwLock;
 use std::{fmt, iter};
 use tokio_postgres::Row;
 
