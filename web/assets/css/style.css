@@ -290,13 +290,16 @@ a.fixed-button:hover {
 }
 
 div.share {
-	margin: 20px 0 20px 0;
 	text-align: right;
 	float: right;
 }
 
-div.share p,ul {
-	margin: 5px;
+div.share p, ul {
+	margin: 0;
+}
+
+div.share p, li {
+	margin: 0 5px 0 5px;
 }
 
 ul.share {
@@ -390,8 +393,7 @@ a.button {
 	color: #fff;
 	border: 0;
 	border-radius: 50px;
-	margin: 20px;
-	padding: 20px;
+	padding: 20px 40px 20px 40px;
 	width: fit-content;
 	text-decoration: none;
 	font-size: 15pt;

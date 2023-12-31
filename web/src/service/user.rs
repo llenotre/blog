@@ -39,13 +39,12 @@ pub fn create_session(session: &Session, user: &User) -> actix_web::Result<()> {
 
 /// Returns a redirection to the last article consulted by the session's user.
 pub fn redirect_to_last_article(session: &Session) -> Redirect {
-	let uri = session
-		.get::<String>("last_article")
-		.ok()
-		.flatten()
-		.map(|title| format!("/a/{title}"))
-		.unwrap_or_else(|| "/".to_owned());
-	Redirect::to(uri).see_other()
+	let last_article = session.get::<String>("last_article").ok().flatten();
+	match last_article {
+		Some(slug) => Redirect::to(format!("/a/{slug}")),
+		None => Redirect::to("/"),
+	}
+	.see_other()
 }
 
 /// Payload describing the Github access token for a user.

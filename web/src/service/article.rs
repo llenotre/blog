@@ -88,9 +88,14 @@ impl Article {
 		Ok(articles)
 	}
 
+	/// Returns the path to the article.
+	pub fn get_path(&self) -> String {
+		format!("/a/{}", self.slug)
+	}
+
 	/// Returns the URL of the article.
 	pub fn get_url(&self) -> String {
-		format!("https://blog.lenot.re/{}", self.slug)
+		format!("https://blog.lenot.re/a/{}", self.slug)
 	}
 
 	/// Tells whether the article is public.
@@ -158,7 +163,7 @@ impl<'a> Display for ArticleListHtml<'a> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		write!(
 			f,
-			r#"<a href="/{url_title}">
+			r#"<a href="{path}">
 				<div class="article-element">
 					<img class="article-cover" src="{cover_url}"></img>
 					<div class="article-element-content">
@@ -173,7 +178,7 @@ impl<'a> Display for ArticleListHtml<'a> {
 					</div>
 				</div>
 			</a>"#,
-			url_title = self.article.slug,
+			path = self.article.get_path(),
 			cover_url = self.article.cover_url,
 			title = self.article.title,
 			post_date = self.article.post_date.to_rfc3339(),

@@ -20,22 +20,24 @@ pub async fn get(
 	};
 
 	// If article is not public, the user must be admin to see it
-	let admin = {
-		let db = data.db.read().await;
-		User::check_admin(&db, &session).await.map_err(|e| {
-			error!(error = %e, "postgres: check admin");
-			error::ErrorInternalServerError("")
-		})?
-	};
-	if !article.is_public() && !admin {
-		return Err(error::ErrorNotFound(""));
+	if !article.is_public() {
+		let admin = {
+			let db = data.db.read().await;
+			User::check_admin(&db, &session).await.map_err(|e| {
+				error!(error = %e, "postgres: check admin");
+				error::ErrorInternalServerError("")
+			})?
+		};
+		if !admin {
+			return Err(error::ErrorNotFound(""));
+		}
 	}
 
 	let tags: String = article
 		.tags
 		.iter()
 		.map(|s| s.as_ref())
-		.fold(String::new(), |n1, n2: &str| n1 + n2);
+		.fold(String::new(), |n1, n2: &str| n1 + "," + n2);
 	let post_date = article.post_date.to_rfc3339();
 
 	let html = include_str!("../../pages/article.html");
