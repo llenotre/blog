@@ -1,8 +1,8 @@
 //! Module implementing utilities.
 
 use chrono::{NaiveDateTime, Utc};
-use lazy_static::lazy_static;
 use regex::Regex;
+use std::sync::OnceLock;
 use tokio_postgres::Row;
 
 /// Result with PostgreSQL error.
@@ -25,14 +25,13 @@ pub fn now() -> NaiveDateTime {
 	Utc::now().naive_utc()
 }
 
-lazy_static! {
-	/// Email validation regex.
-	static ref EMAIL_VALIDATION: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
-}
-
 /// Tells whether the given email is valid.
 pub fn validate_email(email: &str) -> bool {
-	EMAIL_VALIDATION.is_match(email)
+	static EMAIL_VALIDATION: OnceLock<Regex> = OnceLock::new();
+	let regex = EMAIL_VALIDATION.get_or_init(|| {
+		Regex::new(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap()
+	});
+	regex.is_match(email)
 }
 
 /// Date deserialization.
