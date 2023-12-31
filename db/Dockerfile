@@ -1,6 +1,10 @@
-FROM postgres:12.16-bullseye
+FROM postgres:16.1-bullseye
 
 USER root
+
+# Init schema
+COPY schema.sql /
+COPY init.sh /docker-entrypoint-initdb.d/init.sh
 
 # Set cron timezone
 ENV CRON_TZ=UTC

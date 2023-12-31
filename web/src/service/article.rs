@@ -47,16 +47,16 @@ impl Article {
 	/// Compiles all articles and returns them along with the resulting HTML, sorted by decreasing
 	/// post date.
 	pub fn compile_all() -> Result<Vec<(Article, String)>> {
-		let is_dir = |e: io::Result<DirEntry>| {
+		let filter = |e: io::Result<DirEntry>| {
 			let e = e?;
-			if e.file_type()?.is_dir() {
+			if e.file_type()?.is_dir() && e.file_name() != ".git" {
 				Ok(Some(e))
 			} else {
 				Ok(None)
 			}
 		};
 		let articles: Result<Vec<(Self, String)>> = fs::read_dir(ARTICLES_PATH)?
-			.filter_map(|e| is_dir(e).transpose())
+			.filter_map(|e| filter(e).transpose())
 			.map(|e: io::Result<DirEntry>| {
 				let e = e?;
 				// Read metadata

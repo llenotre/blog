@@ -27,7 +27,7 @@ pub async fn get(
 			error::ErrorInternalServerError("")
 		})?
 	};
-	if !article.public && !admin {
+	if !article.is_public() && !admin {
 		return Err(error::ErrorNotFound(""));
 	}
 
@@ -35,8 +35,7 @@ pub async fn get(
 		.tags
 		.iter()
 		.map(|s| s.as_ref())
-		.intersperse(",")
-		.collect();
+		.fold(String::new(), |n1, n2: &str| n1 + n2);
 	let post_date = article.post_date.to_rfc3339();
 
 	let html = include_str!("../../pages/article.html");

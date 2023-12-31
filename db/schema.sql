@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS analytics (
     date TIMESTAMP NOT NULL,
-    peer_addr INET NOT NULL,
-    user_agent TEXT NOT NULL,
+    peer_addr INET,
+    user_agent TEXT,
     geolocation JSON,
     device JSON,
     method TEXT NOT NULL,
@@ -20,5 +20,5 @@ CREATE TABLE IF NOT EXISTS "user" (
     access_token TEXT NOT NULL,
     github_login TEXT NOT NULL,
     github_id BIGINT NOT NULL,
-    admin BOOLEAN NOT NULL,
+    admin BOOLEAN NOT NULL
 );

@@ -22,7 +22,7 @@ pub async fn root(
 	// Get articles
 	let articles: String = data
 		.list_articles()
-		.filter(|a| admin || a.public)
+		.filter(|a| a.is_public())
 		.map(|a| a.display_list_html(admin).to_string())
 		.collect();
 
