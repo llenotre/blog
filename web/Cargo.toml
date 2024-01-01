@@ -12,6 +12,7 @@ base64 = "0.21.5"
 chrono = "0.4.31"
 env_logger = "0.10.1"
 futures-util = "0.3.30"
+lol_html = "1.2.0"
 macros = { path = "macros" }
 maxminddb = "0.23.0"
 pulldown-cmark = "0.9.3"

@@ -5,6 +5,7 @@ use crate::util::now;
 use anyhow::bail;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use lol_html::{element, HtmlRewriter};
 use pulldown_cmark::{html, Options, Parser};
 use serde::Deserialize;
 use std::fmt::{Display, Formatter, Write};
@@ -77,9 +78,7 @@ impl Article {
 				// Read and compile content
 				let content_path = e.path().join("content.md");
 				let content = fs::read_to_string(content_path)?;
-				let parser = Parser::new_ext(&content, Options::all());
-				let mut content = String::new();
-				html::push_html(&mut content, parser);
+				let content = compile_content(&content);
 				info!(
 					title = manifest.title,
 					public = manifest.is_public(),
@@ -224,4 +223,43 @@ impl<'a> Display for ArticleRss<'a> {
 			desc = self.article.description
 		)
 	}
+}
+
+/// Compiles the given content from Markdown into HTML.
+fn compile_content(content: &str) -> String {
+	// Compile to HTML
+	let parser = Parser::new_ext(&content, Options::all());
+	let mut content = String::new();
+	html::push_html(&mut content, parser);
+
+	// Rewrite HTML
+	let mut output = vec![];
+	let mut rewriter = HtmlRewriter::new(
+		lol_html::Settings {
+			element_content_handlers: vec![
+				// TODO article summary
+				// TODO enlarge image when clicking on it
+				// Lazy loading assets
+				element!("img,video", |e| {
+					e.set_attribute("loading", "lazy").unwrap();
+					Ok(())
+				}),
+				// Add target="_blank" to links that require it
+				element!("a[href]", |e| {
+					let href = e.get_attribute("href").unwrap();
+					if let Some(href) = href.strip_prefix("_") {
+						e.set_attribute("href", href).unwrap();
+						e.set_attribute("target", "_blank").unwrap();
+					}
+					Ok(())
+				}),
+			],
+			..lol_html::Settings::default()
+		},
+		|c: &[u8]| output.extend_from_slice(c),
+	);
+	rewriter.write(content.as_bytes()).unwrap();
+	rewriter.end().unwrap();
+
+	String::from_utf8(output).unwrap()
 }
