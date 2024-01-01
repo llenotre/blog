@@ -22,7 +22,7 @@ pub async fn root(
 	// Get articles
 	let articles: String = data
 		.list_articles()
-		.filter(|a| a.is_public())
+		.filter(|a| a.is_public() || admin)
 		.map(|a| a.display_list_html(admin).to_string())
 		.collect();
 
@@ -61,7 +61,7 @@ Sitemap: https://blog.lenot.re/sitemap.xml"#
 pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 	let articles: String = data
 		.list_articles()
-		.filter(|a| a.public)
+		.filter(|a| a.is_public())
 		.map(|a| a.display_sitemap().to_string())
 		.collect();
 	let body = format!(
@@ -83,7 +83,7 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
 	let articles: String = data
 		.list_articles()
-		.filter(|a| a.public)
+		.filter(|a| a.is_public())
 		.map(|a| a.display_rss().to_string())
 		.collect();
 	let body = format!(

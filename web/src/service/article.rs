@@ -10,6 +10,7 @@ use serde::Deserialize;
 use std::fmt::{Display, Formatter, Write};
 use std::fs::DirEntry;
 use std::{fmt, fs, io};
+use tracing::info;
 
 /// The path to the articles's sources.
 const ARTICLES_PATH: &str = "articles/";
@@ -79,6 +80,11 @@ impl Article {
 				let parser = Parser::new_ext(&content, Options::all());
 				let mut content = String::new();
 				html::push_html(&mut content, parser);
+				info!(
+					title = manifest.title,
+					public = manifest.is_public(),
+					"compiled article"
+				);
 
 				Ok((manifest, content))
 			})
