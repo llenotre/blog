@@ -319,6 +319,7 @@ ul.share li:hover {
 
 ul.share a {
 	color: #fff;
+	cursor: pointer;
 }
 
 div.article-section {
