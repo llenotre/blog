@@ -155,7 +155,7 @@ impl User {
 			access_token,
 			github_login,
 			github_id,
-			admin,
+			admin
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id"#,
 				&[
