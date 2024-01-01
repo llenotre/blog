@@ -156,7 +156,7 @@ impl User {
 			github_login,
 			github_id,
 			admin
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		) VALUES ($1, $2, $3, $4)
 		RETURNING id"#,
 				&[
 					&self.access_token,
