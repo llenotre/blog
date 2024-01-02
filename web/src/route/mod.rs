@@ -67,10 +67,10 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 	let body = format!(
 		r#"<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-	<url><loc>/</loc></url>
-	<url><loc>/bio</loc></url>
-	<url><loc>/legal</loc></url>
-	{articles}
+	<url><loc>https://blog.lenot.re/</loc></url>
+	<url><loc>https://blog.lenot.re/bio</loc></url>
+	<url><loc>https://blog.lenot.re/legal</loc></url>
+{articles}
 </urlset>"#
 	);
 

@@ -200,7 +200,7 @@ impl<'a> Display for ArticleSitemap<'a> {
 		let date = self.article.post_date.format("%Y-%m-%d");
 		write!(
 			f,
-			"\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>\n"
+			"\n\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>"
 		)
 	}
 }
