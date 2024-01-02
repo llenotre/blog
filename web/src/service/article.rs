@@ -40,9 +40,6 @@ pub struct Article {
 	/// Tells whether the article is reserved for sponsors.
 	#[serde(default)]
 	pub sponsor: bool,
-	/// Tells whether comments are locked on the article.
-	#[serde(default)]
-	pub comments_locked: bool,
 }
 
 impl Article {
