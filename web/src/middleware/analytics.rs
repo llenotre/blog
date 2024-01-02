@@ -75,15 +75,13 @@ where
 		let method = req.method().to_string();
 		let uri = req.uri().to_string();
 
-		if !uri.starts_with("/assets") {
-			let entry = AnalyticsEntry::new(peer_addr, user_agent, method, uri);
-			let global = self.global.clone();
-			tokio::spawn(async move {
-				if let Err(e) = entry.insert(&*global.db.read().await).await {
-					tracing::error!(error = %e, "cannot log analytics");
-				}
-			});
-		}
+		let entry = AnalyticsEntry::new(peer_addr, user_agent, method, uri);
+		let global = self.global.clone();
+		tokio::spawn(async move {
+			if let Err(e) = entry.insert(&*global.db.read().await).await {
+				tracing::error!(error = %e, "cannot log analytics");
+			}
+		});
 
 		let req = ServiceRequest::from_parts(req, payload);
 		Box::pin(self.service.call(req))
