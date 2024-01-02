@@ -141,7 +141,7 @@ impl<'a> ArticleListHtml<'a> {
 	fn get_tags_html(&self) -> Result<String, fmt::Error> {
 		let mut html = String::new();
 		if self.admin {
-			if self.article.public {
+			if self.article.is_public() {
 				write!(html, r#"<li class="tag">Public</li>"#)?;
 			} else {
 				write!(html, r#"<li class="tag">Private</li>"#)?;
