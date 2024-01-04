@@ -233,8 +233,6 @@ ul.tags h6 {
 }
 
 div.fixed-buttons {
-	position: fixed;
-	z-index: 0;
 	flex-direction: row;
 	display: flex;
 }
@@ -244,14 +242,12 @@ div.fixed-buttons {
 		margin-left: 30vw;
 		transform: translateX(-130px);
 		gap: 40vw;
+		position: fixed;
+		z-index: 0;
 	}
 }
 
 @media(max-width: 1200px) {
-	body.article {
-		overflow: hidden;
-	}
-
 	div.fixed-buttons {
 		padding: 0;
 		width: 100%;
@@ -268,7 +264,6 @@ div.fixed-buttons {
 	div.content {
 		padding-top: 0;
 		width: 100%;
-		overflow-y: scroll;
 	}
 }
 
