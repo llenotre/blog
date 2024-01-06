@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS analytics (
     method TEXT NOT NULL,
     uri TEXT NOT NULL
 );
+CREATE INDEX date ON analytics(date);
+CREATE UNIQUE INDEX raw_info ON analytics(peer_addr, user_agent, method, uri);
 
 CREATE TABLE IF NOT EXISTS newsletter_subscriber (
     email TEXT PRIMARY KEY,

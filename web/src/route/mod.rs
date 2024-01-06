@@ -73,7 +73,6 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 {articles}
 </urlset>"#
 	);
-
 	Ok(HttpResponse::Ok()
 		.content_type(ContentType::xml())
 		.body(body))

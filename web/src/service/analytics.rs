@@ -219,7 +219,7 @@ impl AnalyticsEntry {
 		// The end of the date range in which entries are going to be anonymized
 		let end = now() - Duration::hours(24);
 		db.execute(
-			"UPDATE analytics SET peer_addr = NULL, user_agent = NULL WHERE date <= $1",
+			"UPDATE analytics SET peer_addr = NULL, user_agent = NULL WHERE date <= $1 AND (peer_addr IS NOT NULL OR user_agent IS NOT NULL)",
 			&[&end],
 		)
 		.await?;
