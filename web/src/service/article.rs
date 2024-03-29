@@ -13,7 +13,7 @@ use std::fs::DirEntry;
 use std::{fmt, fs, io};
 use tracing::info;
 
-/// The path to the articles's sources.
+/// The path to the article's sources.
 const ARTICLES_PATH: &str = "articles/";
 
 /// Structure representing an article.
@@ -186,6 +186,7 @@ impl<'a> Display for ArticleListHtml<'a> {
 	}
 }
 
+/// Display an article as a sitemap element.
 pub struct ArticleSitemap<'a> {
 	article: &'a Article,
 }
@@ -201,6 +202,7 @@ impl<'a> Display for ArticleSitemap<'a> {
 	}
 }
 
+/// Display an article as an RSS element.
 pub struct ArticleRss<'a> {
 	article: &'a Article,
 }
