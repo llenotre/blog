@@ -13,7 +13,7 @@ pub async fn auth(data: web::Data<GlobalData>) -> impl Responder {
 	Redirect::to(user::get_auth_url(&data.github_config.client_id)).see_other()
 }
 
-/// The query containing informations returned by Github for OAuth.
+/// The query containing information returned by GitHub for OAuth.
 #[derive(Deserialize)]
 pub struct OauthQuery {
 	/// The code allowing to retrieve the user's token.
@@ -44,7 +44,7 @@ pub async fn oauth(
 
 	// Get user ID
 	let github_user = User::query_info(&access_token).await.map_err(|error| {
-		error!(%error, access_token, "could not retrieve user's informations from Github");
+		error!(%error, access_token, "could not retrieve user's information from Github");
 		error::ErrorInternalServerError("")
 	})?;
 
@@ -108,7 +108,7 @@ pub async fn avatar(user: web::Path<String>) -> actix_web::Result<impl Responder
 	let mut builder = HttpResponseBuilder::new(status);
 	if let Some(content_type) = response.headers().get("Content-Type") {
 		Ok(builder
-			.content_type(content_type)
+			.content_type(content_type.as_bytes())
 			.insert_header(("Cache-Control", "max-age=604800"))
 			.streaming(response.bytes_stream()))
 	} else {
