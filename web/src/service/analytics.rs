@@ -1,4 +1,4 @@
-//! Insertion and aggregtion of analytics.
+//! Insertion and aggregation of analytics.
 //!
 //! Some data that are collected on users are sensitive and need to be removed past a certain delay
 //! to comply with the GDPR.
@@ -15,7 +15,7 @@ use std::sync::Mutex;
 use tracing::warn;
 use uaparser::{Parser, UserAgentParser};
 
-/// Informations about a user's geolocation.
+/// Information about a user's geolocation.
 #[derive(Serialize)]
 pub struct UserGeolocation {
 	city: Option<String>,
@@ -133,12 +133,14 @@ pub struct AnalyticsEntry {
 	///
 	/// If unknown or removed, the value is `None`
 	user_agent: Option<String>,
+	/// The referer URL given by the client.
+	referer: Option<String>,
 
-	/// Informations about the user's geolocation.
+	/// Information about the user's geolocation.
 	///
 	/// If unknown, the value is `None`.
 	geolocation: Option<UserGeolocation>,
-	/// Informations about the user's device.
+	/// Information about the user's device.
 	///
 	/// If unknown, the value is `None`.
 	device: Option<UserDevice>,
@@ -153,6 +155,7 @@ impl AnalyticsEntry {
 	pub fn new(
 		peer_addr: Option<IpAddr>,
 		user_agent: Option<String>,
+		referer: Option<String>,
 		method: String,
 		uri: String,
 	) -> Self {
@@ -172,7 +175,7 @@ impl AnalyticsEntry {
 				.and_then(|user_agent| match UserDevice::try_from(user_agent) {
 					Ok(l) => Some(l),
 					Err(e) => {
-						warn!(user_agent, error = %e, "could not retrieve informations about user's device");
+						warn!(user_agent, error = %e, "could not retrieve information about user's device");
 						None
 					}
 				});
@@ -182,6 +185,7 @@ impl AnalyticsEntry {
 
 			peer_addr,
 			user_agent,
+			referer,
 
 			geolocation,
 			device,
@@ -194,12 +198,13 @@ impl AnalyticsEntry {
 	/// Inserts the analytics entry in the database.
 	pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
 		db.execute(
-			r#"INSERT INTO analytics (date, peer_addr, user_agent, geolocation, device, method, uri)
-				SELECT $1, $2, $3, $4, $5, $6, $7 WHERE NOT EXISTS (SELECT 1 FROM analytics WHERE peer_addr = $2 AND method = $6 AND uri = $7)"#,
+			"INSERT INTO analytics (date, peer_addr, user_agent, referer, geolocation, device, method, uri)\
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING",
 			&[
 				&self.date,
 				&self.peer_addr,
 				&self.user_agent,
+				&self.referer,
 				&self
 					.geolocation
 					.as_ref()

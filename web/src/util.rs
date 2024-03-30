@@ -37,7 +37,7 @@ pub fn validate_email(email: &str) -> bool {
 /// Date deserialization.
 pub mod date_format {
 	use chrono::{DateTime, NaiveDateTime, Utc};
-	use serde::{self, Deserialize, Deserializer};
+	use serde::{Deserialize, Deserializer};
 
 	const FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 
