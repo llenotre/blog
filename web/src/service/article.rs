@@ -117,12 +117,16 @@ impl Article {
 
 	/// Display the article as a sitemap element.
 	pub fn display_sitemap(&self) -> ArticleSitemap {
-		ArticleSitemap { article: self }
+		ArticleSitemap {
+			article: self,
+		}
 	}
 
 	/// Display the article as a RSS feed element.
 	pub fn display_rss(&self) -> ArticleRss {
-		ArticleRss { article: self }
+		ArticleRss {
+			article: self,
+		}
 	}
 }
 
