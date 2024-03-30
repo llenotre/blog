@@ -13,7 +13,7 @@ use std::fs::DirEntry;
 use std::{fmt, fs, io};
 use tracing::info;
 
-/// The path to the article's sources.
+/// The path to the articles' sources.
 const ARTICLES_PATH: &str = "articles/";
 
 /// Structure representing an article.
