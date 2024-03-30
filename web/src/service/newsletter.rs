@@ -18,8 +18,8 @@ impl<'s> NewsletterEmail<'s> {
 	pub async fn insert(db: &tokio_postgres::Client, email: &str) -> PgResult<()> {
 		let now = now();
 		db.execute(
-			r#"INSERT INTO newsletter_subscriber (email, subscribe_date) SELECT $1, $2
-				WHERE NOT EXISTS (SELECT email FROM newsletter_subscriber WHERE email = $1)"#,
+			"INSERT INTO newsletter_subscriber (email, subscribe_date)\
+				VALUES ($1, $2) ON CONFLICT DO NOTHING",
 			&[&email, &now],
 		)
 		.await?;

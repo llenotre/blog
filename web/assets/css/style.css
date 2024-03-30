@@ -31,12 +31,17 @@ div.background {
 div.blob {
 	background: #1abc9c7f;
 	border-radius: 50%;
-	top: -25%;
+	top: 10%;
 	left: -25%;
-	width: 50%;
+	width: 40%;
 	height: 50%;
 	position: absolute;
 	z-index: -1;
+}
+
+div.blob-right {
+	top: 80%;
+	left: 90%;
 }
 
 div.content {
@@ -457,6 +462,7 @@ button.highlight {
 }
 
 button.highlight:hover {
+	background: #0f0f0f;
 	color: #fff;
 }
 

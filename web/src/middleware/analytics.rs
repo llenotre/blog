@@ -72,10 +72,15 @@ where
 			.get("User-Agent")
 			.and_then(|h| h.to_str().ok())
 			.map(str::to_owned);
+		let referer = req
+			.headers()
+			.get("Referer")
+			.and_then(|h| h.to_str().ok())
+			.map(str::to_owned);
 		let method = req.method().to_string();
 		let uri = req.uri().to_string();
 
-		let entry = AnalyticsEntry::new(peer_addr, user_agent, method, uri);
+		let entry = AnalyticsEntry::new(peer_addr, user_agent, referer, method, uri);
 		let global = self.global.clone();
 		tokio::spawn(async move {
 			if let Err(e) = entry.insert(&*global.db.read().await).await {

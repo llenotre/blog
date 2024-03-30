@@ -1,4 +1,3 @@
-target/
 .env
 .dbpass
 db/.aws/credentials

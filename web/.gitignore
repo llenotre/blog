@@ -2,3 +2,4 @@ config.toml
 articles/
 analytics/
 assets/article/
+target/
