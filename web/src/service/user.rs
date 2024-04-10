@@ -54,7 +54,7 @@ pub struct GithubToken {
 	access_token: Option<String>,
 }
 
-/// Payload describing a user on Github.
+/// Payload describing a user on GitHub.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct GithubUser {
 	/// The user's login.
@@ -65,13 +65,13 @@ pub struct GithubUser {
 	pub html_url: String,
 }
 
-/// A user, who can post comments, or if admin, administrate the website.
+/// A user from GitHub.
 #[derive(Clone, FromRow)]
 pub struct User {
 	/// The user's id.
 	pub id: Oid,
 
-	/// The user's Github access token.
+	/// The user's GitHub access token.
 	pub access_token: String,
 	/// The user's login.
 	pub github_login: String,

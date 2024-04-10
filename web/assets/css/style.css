@@ -94,6 +94,7 @@ a {
 p {
 	margin: 10px 0 10px 0;
 	font-size: 20pt;
+	font-weight: 400;
 }
 
 li {
@@ -207,8 +208,7 @@ div.article-element-content {
 }
 
 div.article-element-content h3 {
-	margin: 0;
-	margin-bottom: 10px;
+	margin: 0 0 10px;
 }
 
 ul.tags {
@@ -244,7 +244,7 @@ div.fixed-buttons {
 
 @media(min-width: 1200px) {
 	div.fixed-buttons {
-		margin-left: 30vw;
+		margin-left: 20vw;
 		transform: translateX(-130px);
 		gap: 40vw;
 		position: fixed;
@@ -493,8 +493,8 @@ button.highlight:hover {
 	}
 
 	div.article-section {
-		padding-left: 30vw;
-		padding-right: 30vw;
+		padding-left: 20vw;
+		padding-right: 20vw;
 	}
 
 	div.split {
@@ -503,11 +503,6 @@ button.highlight:hover {
 
 	div.split-half {
 		flex-basis: 50%;
-	}
-
-	div.comments {
-		border-radius: 30px 0 0 30px;
-		width: 30vw;
 	}
 
 	footer {
