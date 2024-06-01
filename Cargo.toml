@@ -1,0 +1,34 @@
+[package]
+name = "blog"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-files = "0.6.5"
+actix-session = { version = "0.9.0", features = ["cookie-session"] }
+actix-web = { version = "4.6.0", features = ["cookies"] }
+anyhow = "1.0.86"
+base64 = "0.22.1"
+chrono = "0.4.38"
+env_logger = "0.11.3"
+envy = "0.4.2"
+futures-util = "0.3.30"
+lol_html = "1.2.1"
+macros = { path = "macros" }
+maxminddb = "0.24.0"
+pulldown-cmark = "0.11.0"
+regex = "1.10.4"
+reqwest = { version = "0.12.4", features = ["json", "stream"] }
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "*"
+serde_with = "3.8.1"
+tokio = "*"
+tokio-postgres = { version = "*", features = ["with-chrono-0_4", "with-serde_json-1", "with-uuid-1"] }
+tokio-util = "*"
+toml = "0.8.13"
+tracing = "*"
+uaparser = "0.6.3"
+
+[profile.release]
+lto = true
+strip = true

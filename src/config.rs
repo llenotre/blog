@@ -1,5 +1,7 @@
 use serde::Deserialize;
 
+serde_with::with_prefix!(github_prefix "github_");
+
 /// Github configuration.
 #[derive(Deserialize)]
 pub struct GithubConfig {
@@ -22,5 +24,6 @@ pub struct Config {
 	pub discord_invite: String,
 
 	/// Github configuration.
+	#[serde(flatten, with = "github_prefix")]
 	pub github: GithubConfig,
 }

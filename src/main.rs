@@ -20,7 +20,6 @@ use base64::Engine;
 use config::{Config, GithubConfig};
 use std::collections::HashMap;
 use std::env;
-use std::fs;
 use std::io;
 use std::process::exit;
 use std::time::Duration;
@@ -94,22 +93,17 @@ fn error_handler<B>(res: ServiceResponse<B>) -> actix_web::Result<ErrorHandlerRe
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
+	// Init logging
 	env::set_var("RUST_LOG", "info");
 	env_logger::init();
-
-	info!("read configuration");
-	let config = fs::read_to_string("config.toml").unwrap_or_else(|error| {
-		error!(%error, "cannot read configuration file");
-		exit(1);
-	});
-	let config: Config = toml::from_str(&config).unwrap_or_else(|error| {
-		error!(%error, "invalid configuration file");
+	// Read config
+	let config = envy::prefixed("BLOG_").from_env::<Config>().unwrap_or_else(|error| {
+		error!(%error, "invalid configuration");
 		exit(1);
 	});
 	let session_secret_key = base64::engine::general_purpose::STANDARD
 		.decode(config.session_secret_key)
 		.unwrap();
-
 	info!("compile all articles");
 	let articles = Article::compile_all().unwrap_or_else(|error| {
 		error!(%error, "could not compile articles");
@@ -121,7 +115,6 @@ async fn main() -> io::Result<()> {
 		.map(|(i, (a, _))| (a.slug.clone(), i))
 		.collect();
 	info!("{} articles found", articles.len());
-
 	info!("connect to database");
 	// TODO tls
 	let (client, connection) = tokio_postgres::connect(&config.db, NoTls)
@@ -130,7 +123,6 @@ async fn main() -> io::Result<()> {
 			error!(%error, "postgres: connection");
 			exit(1);
 		});
-
 	let data = web::Data::new(GlobalData {
 		articles,
 		articles_index,
@@ -140,7 +132,6 @@ async fn main() -> io::Result<()> {
 
 		db: RwLock::new(client),
 	});
-
 	// Handle connection errors
 	let data_clone = data.clone();
 	tokio::spawn(async move {
@@ -151,12 +142,10 @@ async fn main() -> io::Result<()> {
 			if let Err(error) = connection.await {
 				error!(%error, "postgres: connection");
 			}
-
 			// Try to reconnect
 			let mut interval = time::interval(Duration::from_secs(10));
 			loop {
 				interval.tick().await;
-
 				info!("postgres: attempting to reconnect");
 				// TODO tls
 				let res = tokio_postgres::connect(&config.db, NoTls).await;
@@ -175,7 +164,6 @@ async fn main() -> io::Result<()> {
 			}
 		}
 	});
-
 	info!("start worker");
 	let data_clone = data.clone();
 	tokio::spawn(async move {
@@ -186,7 +174,6 @@ async fn main() -> io::Result<()> {
 			interval.tick().await;
 		}
 	});
-
 	info!("start http server");
 	HttpServer::new(move || {
 		App::new()

@@ -1,4 +1,4 @@
-use crate::service::newsletter::NewsletterEmail;
+use crate::service::newsletter;
 use crate::{util, GlobalData};
 use actix_web::http::header::ContentType;
 use actix_web::{error, get, post, web, HttpResponse, Responder};
@@ -32,7 +32,7 @@ pub async fn subscribe(
 			.body("invalid email address"));
 	}
 	// Insert in DB
-	if let Err(error) = NewsletterEmail::insert(&*data.db.read().await, &info.email).await {
+	if let Err(error) = newsletter::insert_subscriber(&*data.db.read().await, &info.email).await {
 		error!(%error, "could not insert subscriber");
 		return Ok(HttpResponse::InternalServerError()
 			.content_type("text/plain")
@@ -46,7 +46,7 @@ pub async fn unsubscribe(
 	data: web::Data<GlobalData>,
 	info: web::Json<UnsubscribePayload>,
 ) -> actix_web::Result<impl Responder> {
-	let success = NewsletterEmail::unsubscribe_from_token(&*data.db.read().await, &info.token)
+	let success = newsletter::unsubscribe_from_token(&*data.db.read().await, &info.token)
 		.await
 		.map_err(|e| {
 			error!(error = %e, "postgres: cannot unsubscribe");
