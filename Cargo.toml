@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-files = "0.6.5"
+actix-files = "0.6.6"
 actix-session = { version = "0.9.0", features = ["cookie-session"] }
-actix-web = { version = "4.6.0", features = ["cookies"] }
+actix-web = { version = "4.8.0", features = ["cookies"] }
 anyhow = "1.0.86"
 base64 = "0.22.1"
 chrono = "0.4.38"
@@ -17,17 +17,17 @@ lol_html = "1.2.1"
 macros = { path = "macros" }
 maxminddb = "0.24.0"
 pulldown-cmark = "0.11.0"
-regex = "1.10.4"
-reqwest = { version = "0.12.4", features = ["json", "stream"] }
-serde = { version = "1.0.203", features = ["derive"] }
-serde_json = "*"
-serde_with = "3.8.1"
-tokio = "*"
-tokio-postgres = { version = "*", features = ["with-chrono-0_4", "with-serde_json-1", "with-uuid-1"] }
-tokio-util = "*"
-toml = "0.8.13"
-tracing = "*"
-uaparser = "0.6.3"
+regex = "1.10.5"
+reqwest = { version = "0.12.5", features = ["json", "stream"] }
+serde = { version = "1.0.204", features = ["derive"] }
+serde_json = "1.0.120"
+serde_with = "3.9.0"
+tokio = "1.38.1"
+tokio-postgres = { version = "0.7.11", features = ["with-chrono-0_4", "with-serde_json-1", "with-uuid-1"] }
+tokio-util = "0.7.11"
+toml = "0.8.15"
+tracing = "0.1.40"
+uaparser = "0.6.4"
 
 [profile.release]
 lto = true
