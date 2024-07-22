@@ -135,6 +135,7 @@ img.main-avatar {
 	max-width: 100%;
 	width: auto;
 	height: auto;
+	aspect-ratio: 1 / 1;
 }
 
 div.section {

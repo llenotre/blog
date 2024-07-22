@@ -167,7 +167,7 @@ impl<'a> Display for ArticleListHtml<'a> {
 			f,
 			r#"<a href="{path}">
 				<div class="article-element">
-					<img class="article-cover" src="{cover_url}"></img>
+					<img class="article-cover" src="{cover_url}" alt="Article cover image"></img>
 					<div class="article-element-content">
 						<h3>{title}</h3>
 						<ul class="tags">
