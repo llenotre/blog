@@ -1,8 +1,0 @@
-port = 8080
-db = "postgresql://blog:abc@db:5432/blog"
-session_secret_key = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-discord_invite = "https://discord.gg/4JMBN3YPAk"
-
-[github]
-client_id = "..."
-client_secret = "..."
