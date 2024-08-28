@@ -1,3 +1,4 @@
+use crate::service::article::{ArticleRss, ArticleSitemap};
 use crate::service::user::User;
 use crate::GlobalData;
 use actix_session::Session;
@@ -52,9 +53,7 @@ pub async fn legal() -> impl Responder {
 
 #[get("/robots.txt")]
 pub async fn robots() -> impl Responder {
-	r#"User-agent: *
-Allow: /
-Sitemap: https://blog.lenot.re/sitemap.xml"#
+	include_str!("robots.txt")
 }
 
 #[get("/sitemap.xml")]
@@ -62,7 +61,7 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 	let articles: String = data
 		.list_articles()
 		.filter(|a| a.is_public())
-		.map(|a| a.display_sitemap().to_string())
+		.map(|a| ArticleSitemap(a).to_string())
 		.collect();
 	let body = format!(
 		r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -83,7 +82,7 @@ pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 	let articles: String = data
 		.list_articles()
 		.filter(|a| a.is_public())
-		.map(|a| a.display_rss().to_string())
+		.map(|a| ArticleRss(a).to_string())
 		.collect();
 	let body = format!(
 		r#"<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><atom:link href="https://blog.lenot.re/rss" rel="self" type="application/rss+xml" /><title>Maestro</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{articles}</channel></rss>"#

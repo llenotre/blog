@@ -114,20 +114,6 @@ impl Article {
 			admin,
 		}
 	}
-
-	/// Display the article as a sitemap element.
-	pub fn display_sitemap(&self) -> ArticleSitemap {
-		ArticleSitemap {
-			article: self,
-		}
-	}
-
-	/// Display the article as a RSS feed element.
-	pub fn display_rss(&self) -> ArticleRss {
-		ArticleRss {
-			article: self,
-		}
-	}
 }
 
 pub struct ArticleListHtml<'a> {
@@ -167,7 +153,7 @@ impl<'a> Display for ArticleListHtml<'a> {
 			f,
 			r#"<a href="{path}">
 				<div class="article-element">
-					<img class="article-cover" src="{cover_url}" alt="Article cover image"></img>
+					<img class="article-cover" src="{cover_url}" alt="{title}"></img>
 					<div class="article-element-content">
 						<h3>{title}</h3>
 						<ul class="tags">
@@ -191,14 +177,12 @@ impl<'a> Display for ArticleListHtml<'a> {
 }
 
 /// Display an article as a sitemap element.
-pub struct ArticleSitemap<'a> {
-	article: &'a Article,
-}
+pub struct ArticleSitemap<'a>(pub &'a Article);
 
 impl<'a> Display for ArticleSitemap<'a> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-		let url = self.article.get_url();
-		let date = self.article.post_date.format("%Y-%m-%d");
+		let url = self.0.get_url();
+		let date = self.0.post_date.format("%Y-%m-%d");
 		write!(
 			f,
 			"\n\t<url><loc>{url}</loc><lastmod>{date}</lastmod></url>"
@@ -207,19 +191,17 @@ impl<'a> Display for ArticleSitemap<'a> {
 }
 
 /// Display an article as an RSS element.
-pub struct ArticleRss<'a> {
-	article: &'a Article,
-}
+pub struct ArticleRss<'a>(pub &'a Article);
 
 impl<'a> Display for ArticleRss<'a> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		write!(
 			f,
 			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{post_date}</pubDate><description>{desc}</description></item>",
-			url = self.article.get_url(),
-			title = self.article.title,
-			post_date = self.article.post_date.to_rfc2822(),
-			desc = self.article.description
+			url = self.0.get_url(),
+			title = self.0.title,
+			post_date = self.0.post_date.to_rfc2822(),
+			desc = self.0.description
 		)
 	}
 }

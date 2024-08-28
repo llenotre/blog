@@ -97,10 +97,12 @@ async fn main() -> io::Result<()> {
 	env::set_var("RUST_LOG", "info");
 	env_logger::init();
 	// Read config
-	let config = envy::prefixed("BLOG_").from_env::<Config>().unwrap_or_else(|error| {
-		error!(%error, "invalid configuration");
-		exit(1);
-	});
+	let config = envy::prefixed("BLOG_")
+		.from_env::<Config>()
+		.unwrap_or_else(|error| {
+			error!(%error, "invalid configuration");
+			exit(1);
+		});
 	let session_secret_key = base64::engine::general_purpose::STANDARD
 		.decode(config.session_secret_key)
 		.unwrap();

@@ -1,0 +1,35 @@
+# Default case
+User-agent: *
+Allow: /
+
+Sitemap: https://blog.lenot.re/sitemap.xml
+
+# Various AIs
+User-agent: ChatGPT-User
+Disallow: /
+User-agent: GPTBot
+Disallow: /
+User-agent: anthropic-ai
+Disallow: /
+User-agent: ClaudeBot
+Disallow: /
+User-agent: Claude-Web
+Disallow: /
+User-agent: Google-Extended
+Disallow: /
+User-agent: Amazonbot
+Disallow: /
+User-Agent: FacebookBot
+Disallow: /
+
+# Yandex
+User-agent: Yandex
+Disallow: /
+
+# Baidu
+User-agent: Baiduspider
+Disallow: /
+
+# Huawei
+User-agent: PetalBot
+Disallow: /

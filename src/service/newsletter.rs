@@ -18,10 +18,7 @@ pub async fn insert_subscriber(db: &tokio_postgres::Client, email: &str) -> PgRe
 ///
 /// On success, the function returns `true`. If no associated token or email is found, the
 /// function returns `false`.
-pub async fn unsubscribe_from_token(
-	db: &tokio_postgres::Client,
-	token: &String,
-) -> PgResult<bool> {
+pub async fn unsubscribe_from_token(db: &tokio_postgres::Client, token: &String) -> PgResult<bool> {
 	let now = now();
 	let n = db
 		.execute(
