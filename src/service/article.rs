@@ -157,7 +157,7 @@ impl<'a> Display for ArticleListHtml<'a> {
 					<div class="article-element-content">
 						<h3>{title}</h3>
 						<ul class="tags">
-							<li><h6 style="color: gray;"><span id="date">{post_date}</span></h6></li>
+							<li class="date"><span id="date">{post_date}</span></li>
 							{tags}
 						</ul>
 						<p>

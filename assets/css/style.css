@@ -233,7 +233,12 @@ ul.tags li.tag {
 	align-self: start;
 }
 
-ul.tags h6 {
+.date {
+	font-size: 10pt;
+	font-weight: 900;
+}
+
+ul.tags .date {
 	margin: 0;
 	padding: 5px 0 5px 0;
 }

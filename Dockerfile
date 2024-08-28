@@ -15,7 +15,6 @@ RUN cargo build --release
 COPY ./analytics ./analytics
 COPY ./articles ./articles
 COPY ./assets ./assets
-COPY ./config.toml ./config.toml
 COPY ./update.sh ./update.sh
 
 ENTRYPOINT ["/usr/src/blog/target/release/blog"]
