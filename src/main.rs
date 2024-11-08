@@ -59,7 +59,7 @@ async fn main() -> io::Result<()> {
 			exit(1);
 		});
 	info!("compile all articles");
-	let articles = Article::compile_all().unwrap_or_else(|error| {
+	let articles = Article::compile_all(&config.article_path).unwrap_or_else(|error| {
 		error!(%error, "could not compile articles");
 		exit(1);
 	});
@@ -76,7 +76,7 @@ async fn main() -> io::Result<()> {
 	});
 	info!("start http server");
 	let router = Router::new()
-		.nest_service("/assets", ServeDir::new("assets"))
+		.nest_service("/assets", ServeDir::new(config.article_assets_path))
 		.route("/", get(route::root))
 		.route("/a/:slug", get(route::article::get))
 		.route("/bio", get(route::bio))

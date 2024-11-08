@@ -10,13 +10,11 @@ use pulldown_cmark::{html, Options, Parser};
 use serde::Deserialize;
 use std::fmt::{Display, Formatter, Write};
 use std::fs::DirEntry;
+use std::path::Path;
 use std::{fmt, fs, io};
 use tracing::info;
 
-/// The path to the articles' sources.
-const ARTICLES_PATH: &str = "articles/";
-
-/// Structure representing an article.
+/// An article.
 #[derive(Deserialize)]
 pub struct Article {
 	/// The article's slug.
@@ -39,7 +37,7 @@ pub struct Article {
 impl Article {
 	/// Compiles all articles and returns them along with the resulting HTML, sorted by decreasing
 	/// post date.
-	pub fn compile_all() -> Result<Vec<(Article, String)>> {
+	pub fn compile_all(articles_path: &Path) -> Result<Vec<(Article, String)>> {
 		let filter = |e: io::Result<DirEntry>| {
 			let e = e?;
 			if e.file_type()?.is_dir() && e.file_name() != ".git" {
@@ -48,7 +46,7 @@ impl Article {
 				Ok(None)
 			}
 		};
-		let articles: Result<Vec<(Self, String)>> = fs::read_dir(ARTICLES_PATH)?
+		let articles: Result<Vec<(Self, String)>> = fs::read_dir(articles_path)?
 			.filter_map(|e| filter(e).transpose())
 			.map(|e: io::Result<DirEntry>| {
 				let e = e?;
@@ -103,7 +101,7 @@ impl Article {
 /// Display an article as an element on the index page.
 pub struct ArticleListHtml<'a>(pub &'a Article);
 
-impl<'a> ArticleListHtml<'a> {
+impl ArticleListHtml<'_> {
 	/// Returns the HTML representing the article's tags.
 	fn get_tags_html(&self) -> Result<String, fmt::Error> {
 		let mut html = String::new();
@@ -115,7 +113,7 @@ impl<'a> ArticleListHtml<'a> {
 	}
 }
 
-impl<'a> Display for ArticleListHtml<'a> {
+impl Display for ArticleListHtml<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		write!(
 			f,
@@ -147,7 +145,7 @@ impl<'a> Display for ArticleListHtml<'a> {
 /// Display an article as a sitemap element.
 pub struct ArticleSitemap<'a>(pub &'a Article);
 
-impl<'a> Display for ArticleSitemap<'a> {
+impl Display for ArticleSitemap<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		let url = self.0.get_url();
 		let date = self.0.post_date.format("%Y-%m-%d");
@@ -161,7 +159,7 @@ impl<'a> Display for ArticleSitemap<'a> {
 /// Display an article as an RSS element.
 pub struct ArticleRss<'a>(pub &'a Article);
 
-impl<'a> Display for ArticleRss<'a> {
+impl Display for ArticleRss<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		write!(
 			f,
