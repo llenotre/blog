@@ -76,7 +76,8 @@ async fn main() -> io::Result<()> {
 	});
 	info!("start http server");
 	let router = Router::new()
-		.nest_service("/assets", ServeDir::new(config.article_assets_path))
+		.nest_service("/assets", ServeDir::new("assets"))
+		.nest_service("/assets/article", ServeDir::new(config.article_assets_path))
 		.route("/", get(route::root))
 		.route("/a/:slug", get(route::article::get))
 		.route("/bio", get(route::bio))
