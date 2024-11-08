@@ -1,45 +1,23 @@
-use crate::service::user::User;
-use crate::GlobalData;
-use actix_session::Session;
-use actix_web::http::header::ContentType;
-use actix_web::{error, get, web, HttpResponse, Responder};
-use tracing::error;
+use crate::Context;
+use axum::body::Body;
+use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::response::{Html, IntoResponse, Response};
+use std::sync::Arc;
 
-#[get("/a/{slug}")]
-pub async fn get(
-	data: web::Data<GlobalData>,
-	path: web::Path<String>,
-	session: Session,
-) -> actix_web::Result<impl Responder> {
-	let slug = path.into_inner();
-
-	// Get article
-	let article = data.get_article(&slug);
-	let Some((article, content)) = article else {
-		return Err(error::ErrorNotFound(""));
+pub async fn get(State(ctx): State<Arc<Context>>, Path(slug): Path<String>) -> Response {
+	let Some((article, content)) = ctx.get_article(&slug) else {
+		return (StatusCode::NOT_FOUND, Body::empty()).into_response();
 	};
-
-	// If article is not public, the user must be admin to see it
 	if !article.is_public() {
-		let admin = {
-			let db = data.db.read().await;
-			User::check_admin(&db, &session).await.map_err(|e| {
-				error!(error = %e, "postgres: check admin");
-				error::ErrorInternalServerError("")
-			})?
-		};
-		if !admin {
-			return Err(error::ErrorNotFound(""));
-		}
+		return StatusCode::NOT_FOUND.into_response();
 	}
-
 	let tags: String = article
 		.tags
 		.iter()
 		.map(|s| s.as_ref())
 		.fold(String::new(), |n1, n2: &str| n1 + "," + n2);
 	let post_date = article.post_date.to_rfc3339();
-
 	let html = include_str!("../../pages/article.html");
 	let html = html.replace("{article.tags}", &tags);
 	let html = html.replace("{article.url}", &article.get_url());
@@ -48,10 +26,6 @@ pub async fn get(
 	let html = html.replace("{article.description}", &article.description);
 	let html = html.replace("{article.cover_url}", &article.cover_url);
 	let html = html.replace("{article.content}", &content);
-	let html = html.replace("{discord}", &data.discord_invite);
-
-	session.insert("last_article", slug)?;
-	Ok(HttpResponse::Ok()
-		.content_type(ContentType::html())
-		.body(html))
+	let html = html.replace("{discord}", &ctx.discord_invite);
+	Html(html).into_response()
 }

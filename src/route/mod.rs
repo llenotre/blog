@@ -1,64 +1,40 @@
-use crate::service::article::{ArticleRss, ArticleSitemap};
-use crate::service::user::User;
-use crate::GlobalData;
-use actix_session::Session;
-use actix_web::http::header::ContentType;
-use actix_web::{error, get, web, HttpResponse, Responder};
+use crate::service::article::{ArticleListHtml, ArticleRss, ArticleSitemap};
+use crate::Context;
+use axum::extract::State;
+use axum::http::header::CONTENT_TYPE;
+use axum::response::{Html, IntoResponse, Response};
+use std::sync::Arc;
 
 pub mod article;
-pub mod newsletter;
-pub mod user;
 
-#[get("/")]
-pub async fn root(
-	data: web::Data<GlobalData>,
-	session: Session,
-) -> actix_web::Result<impl Responder> {
-	let db = data.db.read().await;
-	let admin = User::check_admin(&db, &session).await.map_err(|e| {
-		tracing::error!(error = %e, "database: user");
-		error::ErrorInternalServerError("")
-	})?;
-
-	// Get articles
-	let articles: String = data
+pub async fn root(State(ctx): State<Arc<Context>>) -> Response {
+	let articles: String = ctx
 		.list_articles()
-		.filter(|a| a.is_public() || admin)
-		.map(|a| a.display_list_html(admin).to_string())
+		.filter(|a| a.is_public())
+		.map(|a| ArticleListHtml(a).to_string())
 		.collect();
-
 	let html = include_str!("../../pages/index.html");
-	let html = html.replace("{discord}", &data.discord_invite);
+	let html = html.replace("{discord}", &ctx.discord_invite);
 	let html = html.replace("{articles}", &articles);
-	Ok(HttpResponse::Ok()
-		.content_type(ContentType::html())
-		.body(html))
+	Html(html).into_response()
 }
 
-#[get("/bio")]
-pub async fn bio() -> impl Responder {
+pub async fn bio() -> Response {
 	let html = include_str!("../../pages/bio.html");
-	HttpResponse::Ok()
-		.content_type(ContentType::html())
-		.body(html)
+	Html(html).into_response()
 }
 
-#[get("/legal")]
-pub async fn legal() -> impl Responder {
+pub async fn legal() -> Response {
 	let html = include_str!("../../pages/legal.html");
-	HttpResponse::Ok()
-		.content_type(ContentType::html())
-		.body(html)
+	Html(html).into_response()
 }
 
-#[get("/robots.txt")]
-pub async fn robots() -> impl Responder {
-	include_str!("robots.txt")
+pub async fn robots() -> &'static str {
+	gateway_api::robots("blog.lenot.re")
 }
 
-#[get("/sitemap.xml")]
-pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
-	let articles: String = data
+pub async fn sitemap(State(ctx): State<Arc<Context>>) -> Response {
+	let articles: String = ctx
 		.list_articles()
 		.filter(|a| a.is_public())
 		.map(|a| ArticleSitemap(a).to_string())
@@ -72,14 +48,11 @@ pub async fn sitemap(data: web::Data<GlobalData>) -> actix_web::Result<impl Resp
 {articles}
 </urlset>"#
 	);
-	Ok(HttpResponse::Ok()
-		.content_type(ContentType::xml())
-		.body(body))
+	([(CONTENT_TYPE, "application/xml")], body).into_response()
 }
 
-#[get("/rss")]
-pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responder> {
-	let articles: String = data
+pub async fn rss(State(ctx): State<Arc<Context>>) -> Response {
+	let articles: String = ctx
 		.list_articles()
 		.filter(|a| a.is_public())
 		.map(|a| ArticleRss(a).to_string())
@@ -87,7 +60,5 @@ pub async fn rss(data: web::Data<GlobalData>) -> actix_web::Result<impl Responde
 	let body = format!(
 		r#"<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><atom:link href="https://blog.lenot.re/rss" rel="self" type="application/rss+xml" /><title>Maestro</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{articles}</channel></rss>"#
 	);
-	Ok(HttpResponse::Ok()
-		.content_type("application/rss+xml")
-		.body(body))
+	([(CONTENT_TYPE, "application/rss+xml")], body).into_response()
 }

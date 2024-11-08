@@ -34,12 +34,6 @@ pub struct Article {
 	/// The list of tags on the article.
 	#[serde(default)]
 	pub tags: Vec<String>,
-	/// Tells whether the article is public.
-	#[serde(default)]
-	pub public: bool,
-	/// Tells whether the article is reserved for sponsors.
-	#[serde(default)]
-	pub sponsor: bool,
 }
 
 impl Article {
@@ -102,44 +96,18 @@ impl Article {
 
 	/// Tells whether the article is public.
 	pub fn is_public(&self) -> bool {
-		self.public && self.post_date <= now().and_utc()
-	}
-
-	/// Display the article in the list on the main page.
-	///
-	/// `admin` tells whether the user is admin.
-	pub fn display_list_html(&self, admin: bool) -> ArticleListHtml {
-		ArticleListHtml {
-			article: self,
-			admin,
-		}
+		self.post_date <= now().and_utc()
 	}
 }
 
-pub struct ArticleListHtml<'a> {
-	article: &'a Article,
-	/// Tells whether the client is logged as an admin.
-	admin: bool,
-}
+/// Display an article as an element on the index page.
+pub struct ArticleListHtml<'a>(pub &'a Article);
 
 impl<'a> ArticleListHtml<'a> {
 	/// Returns the HTML representing the article's tags.
 	fn get_tags_html(&self) -> Result<String, fmt::Error> {
 		let mut html = String::new();
-		if self.admin {
-			if self.article.is_public() {
-				write!(html, r#"<li class="tag">Public</li>"#)?;
-			} else {
-				write!(html, r#"<li class="tag">Private</li>"#)?;
-			}
-		}
-		if self.article.sponsor {
-			write!(
-				html,
-				r#"<li class="tag"><i>Sponsors early access</i>&nbsp;&nbsp;&nbsp;❤️</li>"#
-			)?;
-		}
-		self.article
+		self.0
 			.tags
 			.iter()
 			.try_for_each(|tag| write!(html, r#"<li class="tag">{tag}</li>"#))?;
@@ -166,12 +134,12 @@ impl<'a> Display for ArticleListHtml<'a> {
 					</div>
 				</div>
 			</a>"#,
-			path = self.article.get_path(),
-			cover_url = self.article.cover_url,
-			title = self.article.title,
-			post_date = self.article.post_date.to_rfc3339(),
+			path = self.0.get_path(),
+			cover_url = self.0.cover_url,
+			title = self.0.title,
+			post_date = self.0.post_date.to_rfc3339(),
 			tags = self.get_tags_html()?,
-			desc = self.article.description,
+			desc = self.0.description,
 		)
 	}
 }
