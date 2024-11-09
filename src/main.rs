@@ -1,7 +1,6 @@
 mod config;
 mod route;
 mod service;
-mod util;
 
 use crate::service::article::Article;
 use axum::{

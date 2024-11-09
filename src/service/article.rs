@@ -1,8 +1,8 @@
 //! This module handles articles.
 
-use crate::{util, util::now};
 use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
+use gateway_api::util::date_format;
 use lol_html::{element, HtmlRewriter};
 use pulldown_cmark::{html, Options, Parser};
 use serde::Deserialize;
@@ -25,7 +25,7 @@ pub struct Article {
 	/// The article's title.
 	pub title: String,
 	/// Timestamp at which the article has been posted.
-	#[serde(with = "util::date_format")]
+	#[serde(with = "date_format")]
 	pub post_date: DateTime<Utc>,
 	/// The article's description.
 	pub description: String,
@@ -96,7 +96,7 @@ impl Article {
 
 	/// Tells whether the article is public.
 	pub fn is_public(&self) -> bool {
-		self.post_date <= now().and_utc()
+		self.post_date <= Utc::now()
 	}
 }
 
