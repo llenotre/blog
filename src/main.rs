@@ -10,8 +10,9 @@ use axum::{
 	Router,
 };
 use config::Config;
+use gateway_api::log::LogLayer;
 use std::{collections::HashMap, io, net::SocketAddr, process::exit, sync::Arc};
-use tower_http::{services::ServeDir, trace::TraceLayer};
+use tower_http::services::ServeDir;
 use tracing::{error, info};
 
 /// Structure shared across the server.
@@ -91,7 +92,7 @@ async fn main() -> io::Result<()> {
 	#[cfg(feature = "analytics")]
 	let router = router.layer(gateway_api::analytics::AnalyticsLayer::default());
 	let router = router
-		.layer(TraceLayer::new_for_http())
+		.layer(LogLayer)
 		.with_state(data.clone())
 		.into_make_service_with_connect_info::<SocketAddr>();
 	let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port)).await?;

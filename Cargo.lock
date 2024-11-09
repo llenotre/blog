@@ -507,7 +507,7 @@ dependencies = [
 [[package]]
 name = "gateway-api"
 version = "0.1.0"
-source = "git+https://github.com/llenotre/gateway.git#5c47e19d9d117ac329d91fa7362d5d4e0b71359f"
+source = "git+https://github.com/llenotre/gateway.git#1872e12e56027f9cf4c350337304d059c051cfa2"
 dependencies = [
  "axum",
  "axum-client-ip",
