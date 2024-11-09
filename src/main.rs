@@ -79,12 +79,12 @@ async fn main() -> io::Result<()> {
 		.route("/a/:slug", get(route::article::get))
 		.route("/bio", get(route::bio))
 		.route("/legal", get(route::legal))
-		.route("/robots.txt", get(route::robots))
-		.route("/rss", get(route::rss))
+		.route("/robots.txt", get(gateway_api::robots))
 		.route("/sitemap.xml", get(route::sitemap))
+		.route("/rss", get(route::rss))
 		.fallback(handle_404);
 	#[cfg(feature = "analytics")]
-	let router = router.layer(gateway_api::analytics::AnalyticsLayer);
+	let router = router.layer(gateway_api::analytics::AnalyticsLayer::default());
 	let router = router
 		.layer(TraceLayer::new_for_http())
 		.with_state(data.clone())

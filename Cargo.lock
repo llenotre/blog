@@ -507,11 +507,12 @@ dependencies = [
 [[package]]
 name = "gateway-api"
 version = "0.1.0"
-source = "git+https://github.com/llenotre/gateway.git#e40b29251ff3fc4be5e47bcdf84028a9ed1c976c"
+source = "git+https://github.com/llenotre/gateway.git#0d4b6c10944b44cfd58b6a0435d584ad839f19a0"
 dependencies = [
  "axum",
  "axum-client-ip",
  "chrono",
+ "envy",
  "futures",
  "futures-util",
  "reqwest",

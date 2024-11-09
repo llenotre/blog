@@ -9,6 +9,5 @@ Configuration is done through environment variables. The following variables are
 - `BLOG_DISCORD_INVITE`: The URL of the invitation to the Discord server
 - `BLOG_ARTICLE_PATH`: The path to the blog article directory
 - `BLOG_ARTICLE_ASSETS_PATH`: The path to the blog article assets directory
-- `GATEWAY_URL`: The URL to the [gateway service](https://github.com/llenotre/gateway)
-- `GATEWAY_PROPERTY`: The property's UUID
-- `GATEWAY_SECRET`: The property's secret
+
+The configuration for the [Gateway API](https://github.com/llenotre/gateway) is also required.

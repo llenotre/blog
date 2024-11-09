@@ -28,17 +28,11 @@ pub async fn root(State(ctx): State<Arc<Context>>) -> Response {
 }
 
 pub async fn bio() -> Response {
-	let html = include_str!("../../pages/bio.html");
-	Html(html).into_response()
+	Html(include_str!("../../pages/bio.html")).into_response()
 }
 
 pub async fn legal() -> Response {
-	let html = include_str!("../../pages/legal.html");
-	Html(html).into_response()
-}
-
-pub async fn robots() -> &'static str {
-	gateway_api::robots("blog.lenot.re")
+	Html(include_str!("../../pages/legal.html")).into_response()
 }
 
 pub async fn sitemap(State(ctx): State<Arc<Context>>) -> Response {
