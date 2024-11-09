@@ -12,6 +12,7 @@ use config::Config;
 use gateway_api::analytics::AnalyticsLayer;
 use std::collections::HashMap;
 use std::io;
+use std::net::SocketAddr;
 use std::process::exit;
 use std::sync::Arc;
 use tower_http::services::ServeDir;
@@ -88,7 +89,8 @@ async fn main() -> io::Result<()> {
 		.fallback(handle_404)
 		.layer(AnalyticsLayer)
 		.layer(TraceLayer::new_for_http())
-		.with_state(data.clone());
+		.with_state(data.clone())
+		.into_make_service_with_connect_info::<SocketAddr>();
 	let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port)).await?;
 	axum::serve(listener, router).await
 }
