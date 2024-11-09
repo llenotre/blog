@@ -16,6 +16,9 @@ use tracing::{error, info};
 
 /// Structure shared across the server.
 pub struct Context {
+	/// Configuration of the gateway API.
+	pub gateway_config: &'static gateway_api::Config,
+
 	/// The URL to the Discord server's invitation.
 	pub discord_invite: String,
 	/// Articles along with their respective compiled content, ordered by post date.
@@ -66,6 +69,8 @@ async fn main() -> io::Result<()> {
 		.collect();
 	info!("{} articles found", articles.len());
 	let data = Arc::new(Context {
+		gateway_config: gateway_api::Config::get(),
+
 		discord_invite: config.discord_invite,
 		articles,
 		articles_index,

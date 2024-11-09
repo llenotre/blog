@@ -23,6 +23,7 @@ pub async fn root(State(ctx): State<Arc<Context>>) -> Response {
 		.collect();
 	let html = include_str!("../../pages/index.html");
 	let html = html.replace("{discord}", &ctx.discord_invite);
+	let html = html.replace("{gateway}", &ctx.gateway_config.gateway_url);
 	let html = html.replace("{articles}", &articles);
 	Html(html).into_response()
 }
