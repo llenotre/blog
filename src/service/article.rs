@@ -1,17 +1,19 @@
 //! This module handles articles.
 
-use crate::util;
-use crate::util::now;
-use anyhow::bail;
-use anyhow::Result;
+use crate::{util, util::now};
+use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
 use lol_html::{element, HtmlRewriter};
 use pulldown_cmark::{html, Options, Parser};
 use serde::Deserialize;
-use std::fmt::{Display, Formatter, Write};
-use std::fs::DirEntry;
-use std::path::Path;
-use std::{fmt, fs, io};
+use std::{
+	fmt,
+	fmt::{Display, Formatter, Write},
+	fs,
+	fs::DirEntry,
+	io,
+	path::Path,
+};
 use tracing::info;
 
 /// An article.

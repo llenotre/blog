@@ -4,19 +4,16 @@ mod service;
 mod util;
 
 use crate::service::article::Article;
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Response};
-use axum::routing::get;
-use axum::Router;
+use axum::{
+	http::StatusCode,
+	response::{Html, IntoResponse, Response},
+	routing::get,
+	Router,
+};
 use config::Config;
 use gateway_api::analytics::AnalyticsLayer;
-use std::collections::HashMap;
-use std::io;
-use std::net::SocketAddr;
-use std::process::exit;
-use std::sync::Arc;
-use tower_http::services::ServeDir;
-use tower_http::trace::TraceLayer;
+use std::{collections::HashMap, io, net::SocketAddr, process::exit, sync::Arc};
+use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::{error, info};
 
 /// Structure shared across the server.

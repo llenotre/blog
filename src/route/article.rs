@@ -1,8 +1,10 @@
 use crate::Context;
-use axum::body::Body;
-use axum::extract::{Path, State};
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Response};
+use axum::{
+	body::Body,
+	extract::{Path, State},
+	http::StatusCode,
+	response::{Html, IntoResponse, Response},
+};
 use std::sync::Arc;
 
 pub async fn get(State(ctx): State<Arc<Context>>, Path(slug): Path<String>) -> Response {

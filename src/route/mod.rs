@@ -1,8 +1,12 @@
-use crate::service::article::{ArticleListHtml, ArticleRss, ArticleSitemap};
-use crate::Context;
-use axum::extract::State;
-use axum::http::header::CONTENT_TYPE;
-use axum::response::{Html, IntoResponse, Response};
+use crate::{
+	service::article::{ArticleListHtml, ArticleRss, ArticleSitemap},
+	Context,
+};
+use axum::{
+	extract::State,
+	http::header::CONTENT_TYPE,
+	response::{Html, IntoResponse, Response},
+};
 use std::sync::Arc;
 
 pub mod article;
