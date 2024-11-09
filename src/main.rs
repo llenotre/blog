@@ -11,7 +11,6 @@ use axum::{
 	Router,
 };
 use config::Config;
-use gateway_api::analytics::AnalyticsLayer;
 use std::{collections::HashMap, io, net::SocketAddr, process::exit, sync::Arc};
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::{error, info};
@@ -83,8 +82,10 @@ async fn main() -> io::Result<()> {
 		.route("/robots.txt", get(route::robots))
 		.route("/rss", get(route::rss))
 		.route("/sitemap.xml", get(route::sitemap))
-		.fallback(handle_404)
-		.layer(AnalyticsLayer)
+		.fallback(handle_404);
+	#[cfg(feature = "analytics")]
+	let router = router.layer(gateway_api::analytics::AnalyticsLayer);
+	let router = router
 		.layer(TraceLayer::new_for_http())
 		.with_state(data.clone())
 		.into_make_service_with_connect_info::<SocketAddr>();
