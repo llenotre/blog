@@ -11,6 +11,10 @@ use std::sync::Arc;
 
 pub mod article;
 
+pub async fn health() -> &'static str {
+	"OK"
+}
+
 pub async fn root(State(ctx): State<Arc<Context>>) -> Response {
 	let articles: String = ctx
 		.list_articles()
