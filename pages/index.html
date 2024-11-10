@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>Luc Lenôtre - Blog</title>
+		<link rel="icon" href="https://gateway.maestr.org/avatar" />
+		<link href="/assets/css/style.css" rel="stylesheet" />
+		<link href="/assets/css/fontawesome.min.css" rel="stylesheet" />
+		<link href="/assets/css/brands.min.css" rel="stylesheet" />
+		<link href="/assets/css/solid.min.css" rel="stylesheet" />
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="keywords" content="rust,kernel,linux,operating system,os,blog,from scratch" />
+		<meta name="description" content="A blog talking about operating system development using the Rust language" />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://blog.lenot.re/" />
+		<meta property="og:title" content="Luc Lenôtre - Blog" />
+		<meta property="og:description" content="A blog talking about operating system development using the Rust language" />
+		<meta property="og:image" content="/avatar/llenotre" />
+		<meta property="og:image:alt" content="A blog talking about operating system development using the Rust language" />
+	</head>
+	<body>
+		<div class="background">
+			<div class="blob"></div>
+			<div class="blob blob-right"></div>
+		</div>
+		<div class="content">
+			<div class="section">
+				<div class="split reverse">
+					<div class="split-half">
+						<h1 style="margin-top: 0;">Hi I'm <b>Luc</b>. Welcome to my blog!</h1>
+						<p>
+							I am a software engineer working on my own operating system written from scratch using the Rust language: <a href="https://github.com/llenotre/maestro" target="_blank">Maestro</a>
+						</p>
+						<p>
+							This blog is mainly about my operating system, but I may talk about other subjects from time to time.</br>
+							For more information about me, read my <a href="/bio">bio</a>.
+						</p>
+						<div class="spaced">
+							<p>Subscribe to the newsletter to stay updated with my work!</p>
+							<div class="newsletter">
+								<input id="email" name="email" type="text" placeholder="Email" />
+								<div class="newsletter-button">
+									<button id="subscribe-button" class="highlight" onclick="newsletter_subscribe()">Subscribe</button>
+								</div>
+							</div>
+							<h6>No spam and you can unsubscribe at any time. By subscribing, you accept the <a href="/legal#privacy" target="_blank">Privacy Policy</a></h6>
+						</div>
+						<div class="spaced">
+							<div class="inline">
+								<div class="inline-element"><a class="logo-button" href="https://github.com/llenotre" target="_blank" title="My Github"><i class="fa-brands fa-github"></i></a></div>
+								<div class="inline-element"><a class="logo-button" href="{discord}" target="_blank" title="Discord Server"><i class="fa-brands fa-discord"></i></a></div>
+								<div class="inline-element"><a class="logo-button" href="/rss" title="RSS Feed"><i class="fa-solid fa-square-rss"></i></a></div>
+							</div>
+						</div>
+					</div>
+					<div class="split-half">
+						<center>
+							<img class="main-avatar" src="{gateway}/avatar" alt="Profile picture">
+						</center>
+					</div>
+				</div>
+			</div>
+			<div class="section">
+				<h1 style="margin-bottom: 30px;">Articles</h1>
+				<div class="articles-list">
+					{articles}
+				</div>
+			</div>
+			<div class="section">
+				<p><a href="/legal">Legal</a></p>
+			</div>
+		</div>
+		<script src="/assets/js/newsletter.js"></script>
+		<script src="/assets/js/dayjs.min.js"></script>
+		<script src="/assets/js/date.js"></script>
+	</body>
+</html>

@@ -1,3 +1,4 @@
-.env
-.dbpass
-db/.aws/credentials
+analytics/
+articles/
+assets/article/
+target/
