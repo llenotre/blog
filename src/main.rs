@@ -4,8 +4,9 @@ mod service;
 
 use crate::service::article::Article;
 use axum::{
+	extract::State,
 	http::StatusCode,
-	response::{Html, IntoResponse, Response},
+	response::{Html, IntoResponse, Redirect, Response},
 	routing::get,
 	Router,
 };
@@ -69,7 +70,7 @@ async fn main() -> io::Result<()> {
 		.map(|(i, (a, _))| (a.slug.clone(), i))
 		.collect();
 	info!("{} articles found", articles.len());
-	let data = Arc::new(Context {
+	let ctx = Arc::new(Context {
 		gateway_config: gateway_api::Config::get(),
 
 		discord_invite: config.discord_invite,
@@ -80,6 +81,14 @@ async fn main() -> io::Result<()> {
 	let router = Router::new()
 		.nest_service("/assets", ServeDir::new("assets"))
 		.nest_service("/assets/article", ServeDir::new(config.article_assets_path))
+		// deprecated route
+		.route(
+			"/avatar/llenotre",
+			get(|State(ctx): State<Arc<Context>>| async move {
+				let url = format!("{}/avatar", ctx.gateway_config.gateway_url);
+				Redirect::permanent(&url)
+			}),
+		)
 		.route("/health", get(route::health))
 		.route("/", get(route::root))
 		.route("/a/:slug", get(route::article::get))
@@ -93,7 +102,7 @@ async fn main() -> io::Result<()> {
 	let router = router.layer(gateway_api::analytics::AnalyticsLayer::default());
 	let router = router
 		.layer(LogLayer)
-		.with_state(data.clone())
+		.with_state(ctx.clone())
 		.into_make_service_with_connect_info::<SocketAddr>();
 	let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port)).await?;
 	axum::serve(listener, router).await
