@@ -388,22 +388,6 @@ blockquote {
 	padding-left: 20px;
 }
 
-a.button {
-	background: #1abc9c;
-	color: #fff;
-	border: 0;
-	border-radius: 50px;
-	padding: 20px 40px 20px 40px;
-	width: fit-content;
-	text-decoration: none;
-	font-size: 15pt;
-	display: block;
-}
-
-a.button:hover {
-	background: #0f0f0f;
-}
-
 input, button {
 	background: #4f4f4fc0;
 	color: white;
