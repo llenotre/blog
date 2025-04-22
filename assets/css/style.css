@@ -131,9 +131,9 @@ a.logo-button:hover {
 }
 
 img.main-avatar {
+	margin: auto;
 	border-radius: 50%;
-	max-width: 100%;
-	width: auto;
+	width: 60%;
 	height: auto;
 	aspect-ratio: 1 / 1;
 }
@@ -291,39 +291,33 @@ a.fixed-button:hover {
 	opacity: 0.5;
 }
 
-.right {
-	margin-left: auto;
+div.social p, li {
+	margin: 5px;
 }
 
-div.share {
+.right {
+	margin-left: auto;
 	text-align: right;
 	float: right;
 }
 
-div.share p, ul {
+ul.social {
 	margin: 0;
-}
-
-div.share p, li {
-	margin: 0 5px 0 5px;
-}
-
-ul.share {
+	padding: 0;
 	list-style-type: none;
 	white-space: nowrap;
-	float: right;
 }
 
-ul.share li {
+ul.social li {
 	font-size: 25pt;
 	display: inline;
 }
 
-ul.share li:hover {
+ul.social li:hover {
 	opacity: 0.5;
 }
 
-ul.share a {
+ul.social a {
 	color: #fff;
 	cursor: pointer;
 }

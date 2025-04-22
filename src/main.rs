@@ -4,11 +4,11 @@ mod service;
 
 use crate::service::article::Article;
 use axum::{
+	Router,
 	extract::State,
 	http::StatusCode,
 	response::{Html, IntoResponse, Redirect, Response},
 	routing::get,
-	Router,
 };
 use config::Config;
 use gateway_api::log::LogLayer;
@@ -91,7 +91,7 @@ async fn main() -> io::Result<()> {
 		)
 		.route("/health", get(route::health))
 		.route("/", get(route::root))
-		.route("/a/:slug", get(route::article::get))
+		.route("/a/{slug}", get(route::article::get))
 		.route("/bio", get(route::bio))
 		.route("/legal", get(route::legal))
 		.route("/robots.txt", get(gateway_api::robots))

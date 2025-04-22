@@ -1,10 +1,10 @@
 //! This module handles articles.
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use chrono::{DateTime, Utc};
 use gateway_api::util::date_format;
-use lol_html::{element, HtmlRewriter};
-use pulldown_cmark::{html, Options, Parser};
+use lol_html::{HtmlRewriter, element};
+use pulldown_cmark::{Options, Parser, html};
 use serde::Deserialize;
 use std::{
 	fmt,

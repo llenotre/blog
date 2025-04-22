@@ -42,16 +42,22 @@
 					{article.content}
 				</div>
 				<div class="article-section spaced split">
-					<div class="split-half">
-						<a class="button" href="{discord}" target="_blank" title="Discord Server"><i class="fa-brands fa-discord"></i>&nbsp;&nbsp;&nbsp;Discuss this article on Discord</a>
+					<div class="split-half social">
+						<p>Stay in touch! 📣</p>
+						<ul class="social">
+							<li><a href="https://github.com/llenotre" target="_blank" title="My Github"><i class="fa-brands fa-github"></i></a></li>
+							<li><a href="{discord}" target="_blank" title="Discord Server"><i class="fa-brands fa-discord"></i></a></li>
+							<li><a href="/rss" title="RSS Feed"><i class="fa-solid fa-square-rss"></i></a></li>
+						</ul>
 						<p>Contact me: <a href="mailto:blog@lenot.re"><b>blog@lenot.re</b></a></p>
 					</div>
-					<div class="split-half share">
+					<div class="split-half social right">
 						<p>Like my work? Share it! ❤️</p>
-						<ul class="share">
+						<ul class="social">
 							<li><a id="article-link" onclick="clipboard()" title="Copy link"><i class="fa-solid fa-link"></i></a></li>
-							<li><a href="https://www.linkedin.com/sharing/share-offsite/?url={article.url}" target="_blank" title="Share on LinkedIn"><i class="fa-brands fa-linkedin"></i></a></li>
+							<li><a href="https://bsky.app/intent/compose?text={article.url}" target="_blank" title="Share on Bluesky"><i class="fa-brands fa-bluesky"></i></a></li>
 							<li><a href="https://www.reddit.com/submit?title={article.title}&url={article.url}" target="_blank" title="Share on Reddit"><i class="fa-brands fa-reddit"></i></a></li>
+							<li><a href="https://www.linkedin.com/sharing/share-offsite/?url={article.url}" target="_blank" title="Share on LinkedIn"><i class="fa-brands fa-linkedin"></i></a></li>
 							<li><a href="https://www.facebook.com/sharer/sharer.php?u={article.url}" target="_blank" title="Share on Facebook"><i class="fa-brands fa-facebook"></i></a></li>
 						</ul>
 					</div>
