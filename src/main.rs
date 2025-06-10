@@ -1,4 +1,5 @@
 mod config;
+mod middleware;
 mod route;
 mod service;
 
@@ -79,6 +80,7 @@ async fn main() -> io::Result<()> {
 	});
 	info!("start http server");
 	let router = Router::new()
+		.layer(axum::middleware::from_fn(middleware::redirect))
 		.nest_service("/assets", ServeDir::new("assets"))
 		.nest_service("/assets/article", ServeDir::new(config.article_assets_path))
 		// deprecated route
