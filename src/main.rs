@@ -80,7 +80,6 @@ async fn main() -> io::Result<()> {
 	});
 	info!("start http server");
 	let router = Router::new()
-		.layer(axum::middleware::from_fn(middleware::redirect))
 		.nest_service("/assets", ServeDir::new("assets"))
 		.nest_service("/assets/article", ServeDir::new(config.article_assets_path))
 		// deprecated route
@@ -99,7 +98,8 @@ async fn main() -> io::Result<()> {
 		.route("/robots.txt", get(gateway_api::robots))
 		.route("/sitemap.xml", get(route::sitemap))
 		.route("/rss", get(route::rss))
-		.fallback(handle_404);
+		.fallback(handle_404)
+		.layer(axum::middleware::from_fn(middleware::redirect));
 	#[cfg(feature = "analytics")]
 	let router = router.layer(gateway_api::analytics::AnalyticsLayer::default());
 	let router = router
