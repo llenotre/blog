@@ -18,7 +18,7 @@ async function newsletter_subscribe() {
 	var payload = JSON.stringify({
 		"email": email.value,
 	});
-	var [status, msg] = await fetch("https://gateway.maestr.org/newsletter/subscribe", { method: "POST", headers: headers, body: payload })
+	var [status, msg] = await fetch("https://gateway.maestro-os.org/newsletter/subscribe", { method: "POST", headers: headers, body: payload })
 		.then(async function(response) {
             return [response.status, await response.text()];
 		});
