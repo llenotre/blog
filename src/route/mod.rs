@@ -42,12 +42,19 @@ pub async fn sitemap(State(ctx): State<Arc<Context>>) -> Response {
 		.filter(|a| a.is_public())
 		.map(|a| ArticleSitemap(a).to_string())
 		.collect();
+	// Use the most recent article's date as the homepage's last modification date
+	let home_lastmod = ctx
+		.list_articles()
+		.filter(|a| a.is_public())
+		.map(|a| a.post_date)
+		.max()
+		.map(|date| format!("<lastmod>{}</lastmod>", date.format("%Y-%m-%d")))
+		.unwrap_or_default();
 	let body = format!(
 		r#"<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-	<url><loc>https://blog.lenot.re/</loc></url>
+	<url><loc>https://blog.lenot.re/</loc>{home_lastmod}</url>
 	<url><loc>https://blog.lenot.re/bio</loc></url>
-	<url><loc>https://blog.lenot.re/legal</loc></url>
 {articles}
 </urlset>"#
 	);
@@ -61,7 +68,7 @@ pub async fn rss(State(ctx): State<Arc<Context>>) -> Response {
 		.map(|a| ArticleRss(a).to_string())
 		.collect();
 	let body = format!(
-		r#"<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><atom:link href="https://blog.lenot.re/rss" rel="self" type="application/rss+xml" /><title>Maestro</title><link>https:/blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{articles}</channel></rss>"#
+		r#"<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><atom:link href="https://blog.lenot.re/rss" rel="self" type="application/rss+xml" /><title>Maestro</title><link>https://blog.lenot.re/</link><description>A blog about writing an operating system from scratch in Rust.</description>{articles}</channel></rss>"#
 	);
 	([(CONTENT_TYPE, "application/rss+xml")], body).into_response()
 }

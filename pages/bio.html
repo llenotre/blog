@@ -1,31 +1,50 @@
 <!doctype html>
 <html lang="en">
 	<head>
-		<title>Luc Lenôtre - Bio</title>
-		<link rel="icon" href="https://gateway.maestro-os.org/avatar" />
-		<link href="/assets/css/style.css" rel="stylesheet" />
-		<link href="/assets/css/fontawesome.min.css" rel="stylesheet" />
-		<link href="/assets/css/solid.min.css" rel="stylesheet" />
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta property="og:type" content="website" />
-		<meta property="og:url" content="https://blog.lenot.re/" />
-		<meta property="og:title" content="Luc Lenôtre - Bio" />
+		<title>Bio - Luc Lenôtre</title>
+		<meta name="description" content="About Luc Lenôtre, a software engineer writing an operating system from scratch in Rust." />
+		<link rel="canonical" href="https://blog.lenot.re/bio" />
+		<meta name="theme-color" content="#14161b" />
+		<link rel="icon" href="https://gateway.maestro-os.org/avatar" />
+		<link rel="preconnect" href="https://gateway.maestro-os.org" crossorigin />
+		<link rel="preload" href="/assets/font/source-sans-3-300.woff2" as="font" type="font/woff2" crossorigin />
+		<link href="/assets/css/style.min.css" rel="stylesheet" />
+		<link href="/assets/css/all.min.css" rel="stylesheet" />
+		<meta property="og:type" content="profile" />
+		<meta property="og:site_name" content="Luc Lenôtre" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:url" content="https://blog.lenot.re/bio" />
+		<meta property="og:title" content="Bio - Luc Lenôtre" />
+		<meta property="og:description" content="About Luc Lenôtre, a software engineer writing an operating system from scratch in Rust." />
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "Person",
+			"name": "Luc Lenôtre",
+			"url": "https://blog.lenot.re/bio",
+			"jobTitle": "Software engineer",
+			"nationality": "French",
+			"knowsAbout": ["Operating systems", "Rust", "Kernel development"],
+			"sameAs": ["https://github.com/llenotre"]
+		}
+		</script>
 	</head>
 	<body>
 		<div class="background">
 			<div class="blob"></div>
 			<div class="blob blob-right"></div>
 		</div>
-		<div class="fixed-buttons">
-			<a class="fixed-button" href="/" title="Main page"><i class="fa-regular fa-arrow-left"></i></a>
-		</div>
-		<div class="content">
-			<div class="article-section">
+		<nav class="fixed-buttons" aria-label="Back">
+			<a class="fixed-button" href="/" title="Main page" aria-label="Back to home"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+		</nav>
+		<main class="content">
+			<div class="section">
 				<h1>Bio</h1>
 
 				<p>
-					I am Luc Lenôtre, a software engineer born in France in the year 2000.</br>
+					I am Luc Lenôtre, a software engineer born in France in the year 2000.<br>
 					I started programming when I was 10 years old. At 18, I started studying at <a href="https://42.fr/en/" target="_blank">School 42</a> in Paris, and I began writing my operating system shortly after.
 				</p>
 
@@ -51,6 +70,6 @@
 					<li>Italian 🇮🇹</li>
 				</ul>
 			</div>
-		</div>
+		</main>
 	</body>
 </html>

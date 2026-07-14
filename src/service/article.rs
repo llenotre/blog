@@ -121,11 +121,11 @@ impl Display for ArticleListHtml<'_> {
 			f,
 			r#"<a href="{path}">
 				<div class="article-element">
-					<img class="article-cover" src="{cover_url}" alt="{title}"></img>
+					<img class="article-cover" src="{cover_url}" alt="{title}" loading="lazy" decoding="async"></img>
 					<div class="article-element-content">
 						<h3>{title}</h3>
 						<ul class="tags">
-							<li class="date"><span id="date">{post_date}</span></li>
+							<li class="date"><time id="date" datetime="{post_date}">{post_date}</time></li>
 							{tags}
 						</ul>
 						<p>
@@ -163,9 +163,15 @@ pub struct ArticleRss<'a>(pub &'a Article);
 
 impl Display for ArticleRss<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		let categories: String = self
+			.0
+			.tags
+			.iter()
+			.map(|tag| format!("<category>{tag}</category>"))
+			.collect();
 		write!(
 			f,
-			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{post_date}</pubDate><description>{desc}</description></item>",
+			"<item><guid>{url}</guid><title>{title}</title><link>{url}</link><pubDate>{post_date}</pubDate>{categories}<description>{desc}</description></item>",
 			url = self.0.get_url(),
 			title = self.0.title,
 			post_date = self.0.post_date.to_rfc2822(),
