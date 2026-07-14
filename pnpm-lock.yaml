@@ -1,0 +1,56 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@fontsource/fira-code':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/source-sans-3':
+        specifier: ^5.2.9
+        version: 5.2.9
+      '@fortawesome/fontawesome-free':
+        specifier: ^7.3.0
+        version: 7.3.0
+      '@highlightjs/cdn-assets':
+        specifier: ^11.11.1
+        version: 11.11.1
+      dayjs:
+        specifier: ^1.11.21
+        version: 1.11.21
+
+packages:
+
+  '@fontsource/fira-code@5.2.7':
+    resolution: {integrity: sha512-tnB9NNund9TwIym8/7DMJe573nlPEQb+fKUV5GL8TBYXjIhDvL0D7mgmNVNQUPhXp+R7RylQeiBdkA4EbOHPGQ==}
+
+  '@fontsource/source-sans-3@5.2.9':
+    resolution: {integrity: sha512-u3ymIq4rfmCCyB9MEw/sFR5lPVJ1yTNXmIMbUz+9kVCFIHvNtfzXOEBuvkg3Tk0zhmioPeJ28ZK5smZ7TurezQ==}
+
+  '@fortawesome/fontawesome-free@7.3.0':
+    resolution: {integrity: sha512-Yw4Qa43P6e4Xwh0TwEUkHQNRJInWaqIBo73VJmns3j2AIlZPAvUcR4yGIxCPqPRCgyJ5KIVIalF/I1GxhZ/Kgw==}
+    engines: {node: '>=6'}
+
+  '@highlightjs/cdn-assets@11.11.1':
+    resolution: {integrity: sha512-VEPdHzwelZ12hEX18BHduqxMZGolcUsrbeokHYxOUIm8X2+M7nx5QPtPeQgRxR9XjhdLv4/7DD5BWOlSrJ3k7Q==}
+    engines: {node: '>=12.0.0'}
+
+  dayjs@1.11.21:
+    resolution: {integrity: sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA==}
+
+snapshots:
+
+  '@fontsource/fira-code@5.2.7': {}
+
+  '@fontsource/source-sans-3@5.2.9': {}
+
+  '@fortawesome/fontawesome-free@7.3.0': {}
+
+  '@highlightjs/cdn-assets@11.11.1': {}
+
+  dayjs@1.11.21: {}

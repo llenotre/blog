@@ -1,24 +1,57 @@
 <!doctype html>
 <html lang="en">
 	<head>
-		<title>{article.title}</title>
-		<link rel="icon" href="https://gateway.maestro-os.org/avatar" />
-		<link href="/assets/css/style.css" rel="stylesheet" />
-		<link href="/assets/css/fontawesome.min.css" rel="stylesheet" />
-		<link href="/assets/css/brands.min.css" rel="stylesheet" />
-		<link href="/assets/css/solid.min.css" rel="stylesheet" />
-		<link href="/assets/css/highlight.min.css" rel="stylesheet" />
-		<link href="/assets/css/github-dark.min.css" rel="stylesheet" />
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="keywords" content="rust,kernel,linux,operating system,os,blog,from scratch,{article.tags}" />
+		<title>{article.title} - Luc Lenôtre</title>
 		<meta name="description" content="{article.description}" />
-		<meta property="og:type" content="website" />
+		<link rel="canonical" href="{article.url}" />
+		<meta name="theme-color" content="#14161b" />
+		<link rel="icon" href="https://gateway.maestro-os.org/avatar" />
+		<link href="https://blog.lenot.re/rss" rel="alternate" type="application/rss+xml" title="Maestro blog RSS" />
+		<link rel="preconnect" href="https://gateway.maestro-os.org" crossorigin />
+		<link rel="preload" href="/assets/vendor/fonts/source-sans-3-300.woff2" as="font" type="font/woff2" crossorigin />
+		<link href="/assets/css/style.css" rel="stylesheet" />
+		<link href="/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet" />
+		<link href="/assets/vendor/css/github-dark.min.css" rel="stylesheet" />
+		<meta property="og:type" content="article" />
+		<meta property="og:site_name" content="Luc Lenôtre" />
+		<meta property="og:locale" content="en_US" />
 		<meta property="og:url" content="{article.url}" />
 		<meta property="og:title" content="{article.title}" />
 		<meta property="og:description" content="{article.description}" />
 		<meta property="og:image" content="{article.cover_url}" />
-		<meta property="og:image:alt" content="{article.description}" />
+		<meta property="og:image:alt" content="{article.title}" />
+		<meta property="article:published_time" content="{article.date}" />
+		<meta property="article:author" content="Luc Lenôtre" />
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "BlogPosting",
+			"headline": "{article.title}",
+			"description": "{article.description}",
+			"image": "{article.cover_url}",
+			"datePublished": "{article.date}",
+			"dateModified": "{article.date}",
+			"inLanguage": "en",
+			"url": "{article.url}",
+			"mainEntityOfPage": {
+				"@type": "WebPage",
+				"@id": "{article.url}"
+			},
+			"author": {
+				"@type": "Person",
+				"name": "Luc Lenôtre",
+				"url": "https://blog.lenot.re/bio",
+				"sameAs": ["https://github.com/llenotre"]
+			},
+			"publisher": {
+				"@type": "Person",
+				"name": "Luc Lenôtre",
+				"url": "https://blog.lenot.re/"
+			}
+		}
+		</script>
 	</head>
 	<body class="article">
 		<div class="background">
@@ -26,47 +59,49 @@
 			<div class="blob blob-right"></div>
 		</div>
 		<div class="article-content">
-			<div class="fixed-buttons">
-				<a class="fixed-button" href="/" title="Main page"><i class="fa-regular fa-arrow-left"></i></a>
-			</div>
-			<div class="content">
-				<div class="section article-header">
-					<h1>{article.title}</h1>
-					<p class="date"><span id="date-long">{article.date}</span></p>
-					<p>
-						{article.description}
-					</p>
-					<img class="cover" src="{article.cover_url}" alt="Article cover image">
-				</div>
-				<div class="section">
-					{article.content}
-				</div>
+			<nav class="fixed-buttons" aria-label="Back">
+				<a class="fixed-button" href="/" title="Main page" aria-label="Back to home"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+			</nav>
+			<main class="content">
+				<article>
+					<div class="section article-header">
+						<h1>{article.title}</h1>
+						<p class="date"><time id="date-long" datetime="{article.date}">{article.date}</time></p>
+						<p>
+							{article.description}
+						</p>
+						<img class="cover" src="{article.cover_url}" alt="{article.title}" fetchpriority="high" decoding="async">
+					</div>
+					<div class="section">
+						{article.content}
+					</div>
+				</article>
 				<div class="section spaced split">
 					<div class="split-half social">
 						<p>Stay in touch! 📣</p>
 						<ul class="social">
-							<li><a href="https://github.com/llenotre" target="_blank" title="My Github"><i class="fa-brands fa-github"></i></a></li>
-							<li><a href="{discord}" target="_blank" title="Discord Server"><i class="fa-brands fa-discord"></i></a></li>
-							<li><a href="/rss" title="RSS Feed"><i class="fa-solid fa-square-rss"></i></a></li>
+							<li><a href="https://github.com/llenotre" target="_blank" title="My Github" aria-label="My Github"><i class="fa-brands fa-github" aria-hidden="true"></i></a></li>
+							<li><a href="{discord}" target="_blank" title="Discord Server" aria-label="Discord Server"><i class="fa-brands fa-discord" aria-hidden="true"></i></a></li>
+							<li><a href="/rss" title="RSS Feed" aria-label="RSS Feed"><i class="fa-solid fa-square-rss" aria-hidden="true"></i></a></li>
 						</ul>
 						<p>Contact me: <a href="mailto:blog@lenot.re"><b>blog@lenot.re</b></a></p>
 					</div>
 					<div class="split-half social right">
 						<p>Like my work? Share it! ❤️</p>
 						<ul class="social">
-							<li><a id="article-link" onclick="clipboard()" title="Copy link"><i class="fa-solid fa-link"></i></a></li>
-							<li><a href="https://bsky.app/intent/compose?text={article.url}" target="_blank" title="Share on Bluesky"><i class="fa-brands fa-bluesky"></i></a></li>
-							<li><a href="https://www.reddit.com/submit?title={article.title}&url={article.url}" target="_blank" title="Share on Reddit"><i class="fa-brands fa-reddit"></i></a></li>
-							<li><a href="https://www.linkedin.com/sharing/share-offsite/?url={article.url}" target="_blank" title="Share on LinkedIn"><i class="fa-brands fa-linkedin"></i></a></li>
-							<li><a href="https://www.facebook.com/sharer/sharer.php?u={article.url}" target="_blank" title="Share on Facebook"><i class="fa-brands fa-facebook"></i></a></li>
+							<li><a id="article-link" onclick="clipboard()" title="Copy link" aria-label="Copy link"><i class="fa-solid fa-link" aria-hidden="true"></i></a></li>
+							<li><a href="https://bsky.app/intent/compose?text={article.url}" target="_blank" title="Share on Bluesky" aria-label="Share on Bluesky"><i class="fa-brands fa-bluesky" aria-hidden="true"></i></a></li>
+							<li><a href="https://www.reddit.com/submit?title={article.title}&url={article.url}" target="_blank" title="Share on Reddit" aria-label="Share on Reddit"><i class="fa-brands fa-reddit" aria-hidden="true"></i></a></li>
+							<li><a href="https://www.linkedin.com/sharing/share-offsite/?url={article.url}" target="_blank" title="Share on LinkedIn" aria-label="Share on LinkedIn"><i class="fa-brands fa-linkedin" aria-hidden="true"></i></a></li>
+							<li><a href="https://www.facebook.com/sharer/sharer.php?u={article.url}" target="_blank" title="Share on Facebook" aria-label="Share on Facebook"><i class="fa-brands fa-facebook" aria-hidden="true"></i></a></li>
 						</ul>
 					</div>
 				</div>
-			</div>
+			</main>
 		</div>
-		<script src="/assets/js/dayjs.min.js"></script>
+		<script src="/assets/vendor/js/dayjs.min.js"></script>
 		<script src="/assets/js/date.js"></script>
-		<script src="/assets/js/highlight.min.js"></script>
+		<script src="/assets/vendor/js/highlight.min.js"></script>
 		<script>hljs.highlightAll();</script>
 		<script>
 			function clipboard() {

@@ -2,3 +2,5 @@ analytics/
 articles/
 assets/article/
 target/
+node_modules/
+assets/vendor/

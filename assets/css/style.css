@@ -1,12 +1,12 @@
 @font-face {
 	font-family: 'Source Sans Pro';
-	src: url('/assets/font/SourceSansPro.ttf');
+	src: url('/assets/vendor/fonts/source-sans-3-300.woff2') format('woff2');
 	font-display: swap;
 }
 
 @font-face {
 	font-family: 'Fira Code';
-	src: url('/assets/font/FiraCode.ttf');
+	src: url('/assets/vendor/fonts/fira-code-300.woff2') format('woff2');
 	font-display: swap;
 }
 
@@ -91,7 +91,7 @@ div.blob-right {
 
 /* ---------- Layout ---------- */
 
-div.content {
+.content {
 	padding-top: 9vh;
 	padding-bottom: 12vh;
 	z-index: 0;
@@ -114,7 +114,7 @@ div.section + div.section {
 	}
 }
 
-div.spaced {
+.spaced {
 	margin-top: 40px;
 }
 
@@ -207,7 +207,7 @@ b {
 
 /* ---------- Social / icon buttons ---------- */
 
-div.inline {
+.inline {
 	margin: 0;
 	padding: 0;
 	flex-direction: row;
@@ -339,17 +339,15 @@ ul.tags li.tag {
 }
 
 .date {
-	font-family: var(--mono);
-	font-size: 0.75rem;
-	font-weight: 500;
+	font-family: 'Source Sans Pro', sans-serif;
+	font-size: 0.8rem;
+	font-weight: 400;
 	color: var(--muted);
-	letter-spacing: 0.02em;
 }
 
 ul.tags .date {
 	margin: 0;
-	padding: 3px 10px 3px 0;
-	border-right: 1px solid var(--border);
+	padding: 3px 4px 3px 0;
 }
 
 /* ---------- Newsletter ---------- */
@@ -494,13 +492,13 @@ div.article-content {
 	position: relative;
 }
 
-div.fixed-buttons {
+.fixed-buttons {
 	flex-direction: row;
 	display: flex;
 }
 
 @media (min-width: 1200px) {
-	div.fixed-buttons {
+	.fixed-buttons {
 		position: fixed;
 		top: 3vh;
 		left: calc(20vw - 80px);
@@ -509,13 +507,13 @@ div.fixed-buttons {
 }
 
 @media (max-width: 1200px) {
-	div.fixed-buttons {
+	.fixed-buttons {
 		padding: 0;
 		width: 100%;
 		position: relative;
 	}
 
-	div.content {
+	.content {
 		padding-top: 24px;
 		width: 100%;
 	}
