@@ -183,30 +183,24 @@ fn compile_content(content: &str) -> String {
 
 	// Rewrite HTML
 	let mut output = vec![];
-	let mut rewriter = HtmlRewriter::new(
-		lol_html::Settings {
-			element_content_handlers: vec![
-				// TODO article summary
-				// TODO enlarge image when clicking on it
-				// Lazy loading assets
-				element!("img,video", |e| {
-					e.set_attribute("loading", "lazy").unwrap();
-					Ok(())
-				}),
-				// Add target="_blank" to links that require it
-				element!("a[href]", |e| {
-					let href = e.get_attribute("href").unwrap();
-					if let Some(href) = href.strip_prefix("_") {
-						e.set_attribute("href", href).unwrap();
-						e.set_attribute("target", "_blank").unwrap();
-					}
-					Ok(())
-				}),
-			],
-			..lol_html::Settings::default()
-		},
-		|c: &[u8]| output.extend_from_slice(c),
-	);
+	// TODO article summary
+	// TODO enlarge image when clicking on it
+	let settings = lol_html::Settings::new()
+		// Lazy loading assets
+		.append_element_content_handler(element!("img,video", |e| {
+			e.set_attribute("loading", "lazy").unwrap();
+			Ok(())
+		}))
+		// Add target="_blank" to links that require it
+		.append_element_content_handler(element!("a[href]", |e| {
+			let href = e.get_attribute("href").unwrap();
+			if let Some(href) = href.strip_prefix("_") {
+				e.set_attribute("href", href).unwrap();
+				e.set_attribute("target", "_blank").unwrap();
+			}
+			Ok(())
+		}));
+	let mut rewriter = HtmlRewriter::new(settings, |c: &[u8]| output.extend_from_slice(c));
 	rewriter.write(content.as_bytes()).unwrap();
 	rewriter.end().unwrap();
 
