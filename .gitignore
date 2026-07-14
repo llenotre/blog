@@ -3,4 +3,9 @@ articles/
 assets/article/
 target/
 node_modules/
-assets/vendor/
+
+# Generated assets
+assets/css/*.min.css
+assets/js/*.min.js
+assets/font/*.woff2
+assets/webfonts/

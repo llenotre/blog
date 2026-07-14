@@ -3,14 +3,16 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"postinstall": "node scripts/copy-vendor.mjs",
-		"build:vendor": "node scripts/copy-vendor.mjs"
+		"postinstall": "node scripts/build-assets.mjs",
+		"build:vendor": "node scripts/build-assets.mjs"
 	},
 	"dependencies": {
 		"@fontsource/fira-code": "^5.2.7",
 		"@fontsource/source-sans-3": "^5.2.9",
 		"@fortawesome/fontawesome-free": "^7.3.0",
 		"@highlightjs/cdn-assets": "^11.11.1",
-		"dayjs": "^1.11.21"
+		"csso": "^5.0.5",
+		"dayjs": "^1.11.21",
+		"terser": "^5.49.0"
 	}
 }

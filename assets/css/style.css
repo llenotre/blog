@@ -1,12 +1,12 @@
 @font-face {
 	font-family: 'Source Sans Pro';
-	src: url('/assets/vendor/fonts/source-sans-3-300.woff2') format('woff2');
+	src: url('/assets/font/source-sans-3-300.woff2') format('woff2');
 	font-display: swap;
 }
 
 @font-face {
 	font-family: 'Fira Code';
-	src: url('/assets/vendor/fonts/fira-code-300.woff2') format('woff2');
+	src: url('/assets/font/fira-code-300.woff2') format('woff2');
 	font-display: swap;
 }
 
