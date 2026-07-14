@@ -12,17 +12,20 @@
 
 :root {
 	--bg: #14161b;
-	--bg-2: #191c22;
 	--surface: rgba(255, 255, 255, 0.035);
 	--surface-hover: rgba(255, 255, 255, 0.06);
 	--border: rgba(255, 255, 255, 0.09);
 	--border-strong: rgba(255, 255, 255, 0.16);
 	--text: #e9ebef;
+	--text-soft: #d4d8de;
 	--muted: #969ca6;
-	--accent: #22c7a9;
-	--accent-strong: #1abc9c;
+	--accent-rgb: 34, 199, 169;
+	--accent: rgb(var(--accent-rgb));
 	--accent-ink: #04110d;
+	--code-bg: #0d1117;
+	--sans: 'Source Sans Pro', system-ui, sans-serif;
 	--mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace;
+	--hairline: 1px solid var(--border);
 	--radius: 18px;
 	--radius-sm: 12px;
 	--maxw: 1120px;
@@ -45,7 +48,7 @@ body {
 	background: var(--bg);
 	margin: 0;
 	color: var(--text);
-	font-family: 'Source Sans Pro', system-ui, sans-serif;
+	font-family: var(--sans);
 	font-size: 17px;
 	line-height: 1.65;
 	-webkit-font-smoothing: antialiased;
@@ -68,7 +71,7 @@ div.background::after {
 	content: "";
 	position: absolute;
 	inset: 0;
-	background: radial-gradient(120% 80% at 50% -10%, rgba(34, 199, 169, 0.06), transparent 60%);
+	background: radial-gradient(120% 80% at 50% -10%, rgba(var(--accent-rgb), 0.06), transparent 60%);
 }
 
 div.blob {
@@ -126,7 +129,6 @@ div.split {
 
 div.split-half {
 	padding: 10px 0;
-	box-sizing: border-box;
 }
 
 /* ---------- Typography ---------- */
@@ -202,7 +204,24 @@ b {
 .lead {
 	font-size: 1.2rem;
 	line-height: 1.6;
-	color: #d4d8de;
+	color: var(--text-soft);
+}
+
+/* ---------- Flex rows ---------- */
+
+.inline,
+ul.tags,
+ul.social,
+div.articles-list {
+	display: flex;
+	flex-flow: row wrap;
+}
+
+ul.tags,
+ul.social {
+	padding: 0;
+	list-style-type: none;
+	white-space: nowrap;
 }
 
 /* ---------- Social / icon buttons ---------- */
@@ -210,29 +229,35 @@ b {
 .inline {
 	margin: 0;
 	padding: 0;
-	flex-direction: row;
-	flex-wrap: wrap;
 	gap: 14px;
-	display: flex;
 }
 
-a.logo-button {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	color: var(--text);
-	border-radius: 14px;
-	width: 52px;
-	height: 52px;
+a.logo-button,
+a.fixed-button {
 	display: grid;
 	place-items: center;
-	font-size: 1.4rem;
+	color: var(--text);
+	background: var(--surface);
+	border: var(--hairline);
+	text-align: center;
 	transition: 0.2s;
 }
 
-a.logo-button:hover {
+a.logo-button {
+	width: 52px;
+	height: 52px;
+	border-radius: 14px;
+	font-size: 1.4rem;
+}
+
+a.logo-button:hover,
+a.fixed-button:hover {
 	background: var(--surface-hover);
 	border-color: var(--accent);
 	color: var(--accent);
+}
+
+a.logo-button:hover {
 	transform: translateY(-2px);
 }
 
@@ -243,16 +268,13 @@ img.main-avatar {
 	max-width: 320px;
 	height: auto;
 	aspect-ratio: 1 / 1;
-	box-shadow: 0 0 0 1px var(--border), 0 30px 80px -30px rgba(34, 199, 169, 0.35);
+	box-shadow: 0 0 0 1px var(--border), 0 30px 80px -30px rgba(var(--accent-rgb), 0.35);
 }
 
 /* ---------- Articles grid ---------- */
 
 div.articles-list {
-	flex-direction: row;
-	flex-wrap: wrap;
 	gap: 24px;
-	display: flex;
 }
 
 div.articles-list a {
@@ -270,13 +292,12 @@ div.articles-list a {
 
 div.article-element {
 	background: var(--surface);
-	border: 1px solid var(--border);
+	border: var(--hairline);
 	border-radius: var(--radius);
 	color: var(--text);
 	text-decoration: none;
 	min-height: 240px;
 	height: 100%;
-	box-sizing: border-box;
 	overflow: hidden;
 	overflow-wrap: break-word;
 	transition: 0.25s;
@@ -316,19 +337,13 @@ div.article-element-content p {
 
 ul.tags {
 	margin: 0;
-	padding: 0;
-	list-style-type: none;
-	white-space: nowrap;
-	flex-direction: row;
-	flex-wrap: wrap;
 	gap: 8px;
-	display: flex;
 	align-items: center;
 }
 
 ul.tags li.tag {
-	background: rgba(34, 199, 169, 0.08);
-	border: 1px solid rgba(34, 199, 169, 0.22);
+	background: rgba(var(--accent-rgb), 0.08);
+	border: 1px solid rgba(var(--accent-rgb), 0.22);
 	color: var(--accent);
 	border-radius: 8px;
 	margin: 0;
@@ -339,7 +354,7 @@ ul.tags li.tag {
 }
 
 .date {
-	font-family: 'Source Sans Pro', sans-serif;
+	font-family: var(--sans);
 	font-size: 0.8rem;
 	font-weight: 400;
 	color: var(--muted);
@@ -352,11 +367,10 @@ ul.tags .date {
 
 /* ---------- Newsletter ---------- */
 
-section.newsletter,
 div.newsletter-card {
 	margin-top: 44px;
-	background: linear-gradient(160deg, rgba(34, 199, 169, 0.07), var(--surface) 55%);
-	border: 1px solid var(--border);
+	background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.07), var(--surface) 55%);
+	border: var(--hairline);
 	border-radius: var(--radius);
 	padding: clamp(22px, 3.5vw, 34px);
 }
@@ -378,7 +392,7 @@ form.newsletter-form {
 	gap: 8px;
 	align-items: stretch;
 	background: rgba(0, 0, 0, 0.25);
-	border: 1px solid var(--border);
+	border: var(--hairline);
 	border-radius: 14px;
 	padding: 7px;
 	transition: border-color 0.2s, box-shadow 0.2s;
@@ -386,7 +400,7 @@ form.newsletter-form {
 
 form.newsletter-form:focus-within {
 	border-color: var(--accent);
-	box-shadow: 0 0 0 3px rgba(34, 199, 169, 0.16);
+	box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16);
 }
 
 form.newsletter-form input {
@@ -395,7 +409,7 @@ form.newsletter-form input {
 	background: transparent;
 	border: 0;
 	color: var(--text);
-	font-family: 'Source Sans Pro', sans-serif;
+	font-family: var(--sans);
 	font-size: 1rem;
 	padding: 12px 14px;
 	height: auto;
@@ -434,11 +448,10 @@ input,
 button {
 	background: var(--surface);
 	color: var(--text);
-	border: 1px solid var(--border);
+	border: var(--hairline);
 	border-radius: 12px;
-	font-family: 'Source Sans Pro', sans-serif;
+	font-family: var(--sans);
 	font-size: 1rem;
-	box-sizing: border-box;
 }
 
 input[type="text"],
@@ -520,24 +533,11 @@ div.article-content {
 }
 
 a.fixed-button {
-	color: var(--text);
 	margin: 16px;
 	width: 48px;
 	height: 48px;
-	display: grid;
-	place-items: center;
 	border-radius: 12px;
-	border: 1px solid var(--border);
-	background: var(--surface);
-	text-align: center;
 	font-size: 1.25rem;
-	transition: 0.2s;
-}
-
-a.fixed-button:hover {
-	background: var(--surface-hover);
-	border-color: var(--accent);
-	color: var(--accent);
 }
 
 div.section.spaced {
@@ -550,10 +550,6 @@ div.article-header {
 
 div.article-header h1 {
 	margin: 12px 0 14px 0;
-}
-
-div.article-header h6 {
-	color: var(--muted);
 }
 
 div.article-header p.date {
@@ -590,12 +586,7 @@ div.social li {
 
 ul.social {
 	margin: 8px 0 0;
-	padding: 0;
-	list-style-type: none;
-	white-space: nowrap;
-	display: flex;
 	gap: 14px;
-	flex-wrap: wrap;
 }
 
 .right ul.social {
@@ -621,9 +612,9 @@ ul.social a:hover {
 /* ---------- Rich content ---------- */
 
 code {
-	background: #0d1117;
-	border: 1px solid var(--border);
-	color: #e9ebef;
+	background: var(--code-bg);
+	border: var(--hairline);
+	color: var(--text);
 	padding: 2px 6px;
 	border-radius: 6px;
 	font-family: var(--mono);
@@ -634,8 +625,8 @@ pre {
 	margin: 20px 0;
 	overflow: auto;
 	border-radius: var(--radius-sm);
-	border: 1px solid var(--border);
-	background: #0d1117;
+	border: var(--hairline);
+	background: var(--code-bg);
 }
 
 pre code {
@@ -665,7 +656,7 @@ th {
 }
 
 td {
-	border-top: 1px solid var(--border);
+	border-top: var(--hairline);
 	padding: 12px 16px;
 }
 
@@ -673,10 +664,10 @@ blockquote {
 	background: var(--surface);
 	margin: 22px 0;
 	padding: 14px 22px;
-	border: 1px solid var(--border);
+	border: var(--hairline);
 	border-left: 3px solid var(--accent);
 	border-radius: var(--radius-sm);
-	color: #d4d8de;
+	color: var(--text-soft);
 }
 
 center h1 {
